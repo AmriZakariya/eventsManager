@@ -241,14 +241,14 @@ return [
      | Example:
      |
      | 'search' => [
-     |     \App\Models\User::class,
-     |     \App\Models\Post::class,
+     |     \Notification\Models\User::class,
+     |     \Notification\Models\Post::class,
      | ],
      |
      */
 
     'search' => [
-        // \App\Models\User::class
+        // \Notification\Models\User::class
     ],
 
     /*

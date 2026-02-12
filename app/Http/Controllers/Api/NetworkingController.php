@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Connection;
+use App\Notifications\ConnectionAccepted;
+use App\Notifications\NewConnectionRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -137,39 +139,57 @@ class NetworkingController extends Controller
 
         $authId   = Auth::id();
         $targetId = (int) $request->target_id;
+        $user     = Auth::user(); // Me
 
         if ($authId === $targetId) {
-            return response()->json([
-                'error' => 'Cannot connect to yourself'
-            ], 422);
+            return response()->json(['error' => 'Cannot connect to yourself'], 422);
         }
 
         switch ($request->action) {
 
             case 'connect':
-                Connection::firstOrCreate(
+                // 1. Create Connection
+                $connection = Connection::firstOrCreate(
                     [
                         'requester_id' => $authId,
                         'target_id'    => $targetId,
                     ],
                     ['status' => 'pending']
                 );
+
+                // 2. Notify Target (Only if it's a new request)
+                if ($connection->wasRecentlyCreated) {
+                    $target = User::find($targetId);
+                    if ($target) {
+                        $target->notify(new NewConnectionRequest($user));
+                    }
+                }
                 break;
 
             case 'accept':
-                Connection::where('requester_id', $targetId)
+                // 1. Find the request sent TO me
+                $connection = Connection::where('requester_id', $targetId)
                     ->where('target_id', $authId)
-                    ->update(['status' => 'accepted']);
+                    ->first();
+
+                if ($connection && $connection->status !== 'accepted') {
+                    // 2. Update Status
+                    $connection->update(['status' => 'accepted']);
+
+                    // 3. Notify the Original Requester
+                    $requester = User::find($targetId);
+                    if ($requester) {
+                        $requester->notify(new ConnectionAccepted($user));
+                    }
+                }
                 break;
 
             case 'decline':
             case 'cancel':
                 Connection::where(function ($q) use ($authId, $targetId) {
-                    $q->where('requester_id', $authId)
-                        ->where('target_id', $targetId);
+                    $q->where('requester_id', $authId)->where('target_id', $targetId);
                 })->orWhere(function ($q) use ($authId, $targetId) {
-                    $q->where('requester_id', $targetId)
-                        ->where('target_id', $authId);
+                    $q->where('requester_id', $targetId)->where('target_id', $authId);
                 })->delete();
                 break;
         }

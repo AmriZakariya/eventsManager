@@ -24,14 +24,13 @@ class RolesTableSeeder extends Seeder
             'platform.companies' => true,
             'platform.conferences' => true,
             'platform.organizers' => true,
-            'platform.sponsors' => true,
             'platform.contacts' => true,
             'platform.products' => true,
         ];
         $admin->save();
 
         // 2. EXHIBITOR (Professional)
-        // Access: Mobile App (High Level)
+        // Access: Mobile Notification (High Level)
         // Note: We currently give them NO web access ('platform.index' => false)
         // They will use the API.
         $exhibitor = Role::firstOrCreate(
@@ -40,14 +39,14 @@ class RolesTableSeeder extends Seeder
         );
 
         $exhibitor->permissions = [
-            'platform.index' => false, // Cannot login to Admin Panel (App only)
+            'platform.index' => false, // Cannot login to Admin Panel (Notification only)
             'app.manage_products' => true, // Custom API permission
             'app.scan_badges' => true,     // Custom API permission
         ];
         $exhibitor->save();
 
         // 3. VISITOR (Public)
-        // Access: Mobile App (Standard)
+        // Access: Mobile Notification (Standard)
         $visitor = Role::firstOrCreate(
             ['slug' => 'visitor'],
             ['name' => 'Visitor']

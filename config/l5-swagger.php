@@ -141,7 +141,7 @@ return [
              * @see \OpenApi\scan
              */
             'processors' => [
-                // new \App\SwaggerProcessors\SchemaQueryParameter(),
+                // new \Notification\SwaggerProcessors\SchemaQueryParameter(),
             ],
 
             /**

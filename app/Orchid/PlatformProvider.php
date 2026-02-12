@@ -53,11 +53,6 @@ class PlatformProvider extends OrchidServiceProvider
                 ->route('platform.networking.requests')
                 ->permission('platform.contacts'),
 
-            Menu::make('Push Notifications')
-                ->icon('bs.broadcast')
-                ->route('platform.app.notifications')
-                ->permission('platform.app.notifications'),
-
             // =============================================================
             // 2. EXHIBITION & PARTNERS (Commercial Data)
             // =============================================================
@@ -83,11 +78,6 @@ class PlatformProvider extends OrchidServiceProvider
                 ->icon('bs.tags')
                 ->route('platform.product-categories.list')
                 ->permission('platform.products'),
-
-            Menu::make('Sponsors')
-                ->icon('bs.star')
-                ->route('platform.sponsors.list')
-                ->permission('platform.sponsors'),
 
             // =============================================================
             // 3. EVENT PROGRAM (Content)
@@ -152,8 +142,7 @@ class PlatformProvider extends OrchidServiceProvider
 
             ItemPermission::group(__('Exhibition Management'))
                 ->addPermission('platform.companies', __('Manage Exhibitors'))
-                ->addPermission('platform.products', __('Manage Products'))
-                ->addPermission('platform.sponsors', __('Manage Sponsors')),
+                ->addPermission('platform.products', __('Manage Products')),
 
             ItemPermission::group(__('Conference Program'))
                 ->addPermission('platform.conferences', __('Manage Agenda'))
@@ -162,8 +151,7 @@ class PlatformProvider extends OrchidServiceProvider
 
             ItemPermission::group(__('App Configuration'))
                 ->addPermission('platform.event.settings', __('Global Settings'))
-                ->addPermission('platform.app.banners', __('CMS & Banners'))
-                ->addPermission('platform.app.notifications', __('Push Notifications')),
+                ->addPermission('platform.app.banners', __('CMS & Banners')),
 
             ItemPermission::group(__('System'))
                 ->addPermission('platform.systems.roles', __('Manage Roles'))

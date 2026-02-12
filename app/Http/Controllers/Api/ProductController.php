@@ -11,19 +11,24 @@ class ProductController extends Controller
 {
     /**
      * GET /api/products
-     * List products with Search & Category Filter.
+     * Supports filtering by category, featured status, and search terms.
      */
     public function index(Request $request)
     {
-        // FIX: Changed 'company.users' to 'company.team' to match your Model
+        // 1. Start Query with Eager Loading
         $query = Product::with(['category', 'company.team']);
 
-        // 1. Filter by Category ID
+        // 2. Filter by Category
         if ($request->has('category_id') && $request->category_id != null) {
             $query->where('category_id', $request->category_id);
         }
 
-        // 2. Search by Name or Description
+        // 3. Filter by Featured (expects boolean or 1/0)
+        if ($request->boolean('is_featured')) {
+            $query->where('is_featured', true);
+        }
+
+        // 4. Search (Name, Description, or Company Name)
         if ($search = $request->input('search')) {
             $query->where(function($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -34,19 +39,12 @@ class ProductController extends Controller
             });
         }
 
-        // 3. Paginate
-        $products = $query->paginate(20);
+        // 5. Sorting
+        $query->orderBy('is_featured', 'desc')
+            ->orderBy('created_at', 'desc');
 
-        return response()->json($products);
-    }
-
-    /**
-     * GET /api/products/categories
-     */
-    public function categories()
-    {
-        $categories = ProductCategory::orderBy('name', 'asc')->get();
-        return response()->json($categories);
+        // 6. Return Paginated Result
+        return response()->json($query->paginate(20));
     }
 
     /**
@@ -54,8 +52,20 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        // FIX: Changed 'company.users' to 'company.team' here as well
         $product = Product::with(['category', 'company.team'])->findOrFail($id);
         return response()->json($product);
+    }
+
+    /**
+     * GET /api/products/categories
+     * Returns categories with the count of associated products.
+     */
+    public function categories()
+    {
+        $categories = ProductCategory::withCount('products')
+            ->orderBy('name')
+            ->get();
+
+        return response()->json($categories);
     }
 }

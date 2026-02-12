@@ -137,12 +137,6 @@ class PlatformScreen extends Screen
                         ->route('platform.companies.list') // Route verified (Updated)
                         ->type(Color::PRIMARY)
                         ->block(),
-
-                    Link::make('Send Notification')
-                        ->icon('bs.broadcast')
-                        ->route('platform.app.notifications') // Route verified
-                        ->type(Color::WARNING)
-                        ->block(),
                 ])->title('Quick Actions'),
             ]),
         ];

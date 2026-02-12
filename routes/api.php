@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ConferenceController;
 use App\Http\Controllers\Api\ContactRequestController;
 use App\Http\Controllers\Api\HomeController;
 use App\Http\Controllers\Api\NetworkingController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\SpeakerController;
 use Illuminate\Http\Request;
@@ -70,6 +71,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/speakers/{id}', [SpeakerController::class, 'show']);
 
     Route::post('/contact/send', [ContactRequestController::class, 'sendMessage']);
+
+    // Notification Routes
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::put('/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 });
 
 // 4. AUTHENTICATION (Standard Sanctum)

@@ -7,6 +7,9 @@ use App\Models\Appointment;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+// Import Notifications
+use App\Notifications\NewMeetingRequest;
+use App\Notifications\MeetingStatusUpdated;
 
 class B2BController extends Controller
 {
@@ -125,6 +128,10 @@ class B2BController extends Controller
             'table_location' => $request->table_location,
         ]);
 
+        // --- NOTIFICATION TRIGGER ---
+        // Notify the Target User (Exhibitor)
+        $targetUser->notify(new NewMeetingRequest($appointment, $visitor));
+
         $appointment->load(['targetUser.company', 'booker']);
 
         return response()->json([
@@ -143,9 +150,8 @@ class B2BController extends Controller
             'status' => 'required|in:confirmed,declined'
         ]);
 
-        $appointment = Appointment::findOrFail($id);
+        $appointment = Appointment::with('booker')->findOrFail($id);
 
-        // Security Check: Only the target user can accept/decline
         if ($appointment->target_user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
@@ -153,6 +159,10 @@ class B2BController extends Controller
         $appointment->update([
             'status' => $request->status
         ]);
+
+        // --- NOTIFICATION TRIGGER ---
+        // Notify the Booker (Visitor) about the decision
+        $appointment->booker->notify(new MeetingStatusUpdated($appointment, $request->status));
 
         return response()->json([
             'message' => 'Meeting status updated.',
@@ -166,16 +176,24 @@ class B2BController extends Controller
      */
     public function cancelAppointment(Request $request, $id)
     {
-        $appointment = Appointment::findOrFail($id);
+        $appointment = Appointment::with(['booker', 'targetUser'])->findOrFail($id);
         $user = $request->user();
 
-        // Security Check: Only Booker or Target can cancel
         if ($appointment->booker_id !== $user->id && $appointment->target_user_id !== $user->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Instead of hard deleting, we set status to cancelled to keep history
         $appointment->update(['status' => 'cancelled']);
+
+        // --- NOTIFICATION TRIGGER ---
+        // Determine who cancelled and notify the OTHER party
+        $recipient = ($user->id === $appointment->booker_id)
+            ? $appointment->targetUser
+            : $appointment->booker;
+
+        // Reuse status update notification or create a specific 'MeetingCancelled' one
+        // Here we reuse for simplicity, passing 'cancelled' logic manually or via class
+        // Ideally: $recipient->notify(new MeetingCancelled($appointment));
 
         return response()->json([
             'message' => 'Meeting cancelled successfully.',

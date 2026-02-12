@@ -31,6 +31,7 @@ class HomeController extends Controller
                 'id'       => $widget->id,
                 'type'     => $type, // 'main_slider', 'exhibitors', 'sponsors', etc.
                 'title'    => $widget->title,
+                'identifier' => $widget->identifier,
                 'content'  => $content,
             ];
         });
@@ -79,6 +80,7 @@ class HomeController extends Controller
                     ->map(fn($c) => [
                         'id' => $c->id,
                         'title' => $c->name,
+                        'identifier' => $c->identifier,
                         'subtitle' => $c->booth_number ? "Booth " . $c->booth_number : null,
                         'image_url' => $c->logo ? asset($c->logo) : null,
                         'action_id' => $c->id,
@@ -91,6 +93,7 @@ class HomeController extends Controller
                     ->map(fn($p) => [
                         'id' => $p->id,
                         'title' => $p->name,
+                        'identifier' => $p->identifier,
                         'subtitle' => $p->company->name ?? null,
                         'image_url' => $p->image ? asset($p->image) : null,
                         'action_id' => $p->id,
@@ -103,6 +106,7 @@ class HomeController extends Controller
             return [
                 'id'         => $item->id,
                 'title'      => $item->title,
+                'identifier' => $item->identifier,
                 'subtitle'   => $item->subtitle,
                 'image_url'  => $item->image_url, // Accessor from Model
                 'logo_url'   => $item->image_url, // Alias for logo clouds

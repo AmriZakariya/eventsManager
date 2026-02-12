@@ -10,140 +10,244 @@ class HomeWidgetSeeder extends Seeder
 {
     public function run()
     {
-        // Clear old widgets to avoid duplicates if re-running
+        // Clear old widgets
         HomeWidget::query()->delete();
 
         // ---------------------------------------------------------
-        // 1. TOP SECTION (Visuals & Main Navigation)
+        // 1. MAIN SLIDER (Hero Section)
         // ---------------------------------------------------------
-
-        // 1. Main Slider (Hero)
         $slider = HomeWidget::create([
             'title' => 'Main Slider',
+            'identifier' => 'home_hero_section',
             'widget_type' => 'slider',
             'order' => 10,
             'is_active' => true,
         ]);
-        // Add sample slides
-        HomeWidgetItem::create(['home_widget_id' => $slider->id, 'title' => 'Welcome to HCE 2026', 'subtitle' => 'The leading cleaning expo', 'image' => 'seeds/slider1.jpg', 'order' => 1]);
-        HomeWidgetItem::create(['home_widget_id' => $slider->id, 'title' => 'Book Your Stand', 'subtitle' => 'Spaces are limited', 'image' => 'seeds/slider2.jpg', 'order' => 2]);
 
-
-        // 2. Bannière Sponsor (Single Banner - Middle Ad)
-        $banner = HomeWidget::create([
-            'title' => 'Sponsor Banner',
-            'widget_type' => 'single_banner',
-            'order' => 20,
-            'is_active' => true,
+        // Slide 1
+        HomeWidgetItem::create([
+            'home_widget_id' => $slider->id,
+            'title' => 'Welcome to Sahara Summit',
+            'identifier' => 'home_slide_1_title',
+            'subtitle' => 'Connecting Innovation Across Africa',
+            'image' => 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80', // Conference Hall
+            'order' => 1
         ]);
-        HomeWidgetItem::create(['home_widget_id' => $banner->id, 'image' => 'seeds/banner_ad.jpg', 'action_url' => 'https://sponsor-link.com']);
 
+        // Slide 2
+        HomeWidgetItem::create([
+            'home_widget_id' => $slider->id,
+            'title' => 'Book Your Stand',
+            'identifier' => 'home_slide_2_title',
+            'subtitle' => 'Spaces are limited for 2026',
+            'image' => 'https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80', // Empty Stage/Lights
+            'order' => 2
+        ]);
 
         // ---------------------------------------------------------
-        // 2. MAIN MENU GRID (Shortcuts)
+        // 2. MAIN MENU GRID (Bento Grid)
         // ---------------------------------------------------------
-        // This widget contains buttons like "Exhibitors", "Badge", "Plan Trip"
-
         $menuGrid = HomeWidget::create([
-            'title' => 'Quick Menu',
+            'title' => 'Explore',
+            'identifier' => 'home_menu_section',
             'widget_type' => 'menu_grid',
-            'order' => 30,
+            'order' => 20,
             'is_active' => true,
         ]);
 
         $menuItems = [
-            ['title' => 'Exhibitors', 'icon' => 'store', 'action_url' => '/exhibitors'],
-            ['title' => 'Products', 'icon' => 'inventory_2', 'action_url' => '/products'],
-            ['title' => 'B2B Meeting', 'icon' => 'handshake', 'action_url' => '/appointments'],
-            ['title' => 'Networking', 'icon' => 'emoji_events', 'action_url' => '/networking'],
-            ['title' => 'HCE Awards', 'icon' => 'emoji_events', 'action_url' => '/awards'],
-            ['title' => 'Speakers', 'icon' => 'record_voice_over', 'action_url' => '/speakers'],
-            ['title' => 'Conferences', 'icon' => 'event', 'action_url' => '/conferences'],
-            ['title' => 'My Badge', 'icon' => 'badge', 'action_url' => '/badge'],
-            ['title' => 'Plan Your Trip', 'icon' => 'flight', 'action_url' => '/travel-guide'],
-            ['title' => 'Floor Plan', 'icon' => 'map', 'action_url' => '/floor-plan'],
+            [
+                'title' => 'Exhibitors',
+                'identifier' => 'home_menu_exhibitors',
+                'icon' => 'store',
+                'action_url' => '/exhibitors',
+                'image' => 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=600&q=80' // Meeting
+            ],
+            [
+                'title' => 'Conferences',
+                'identifier' => 'home_menu_conferences',
+                'icon' => 'event',
+                'action_url' => '/conferences',
+                'image' => 'https://images.unsplash.com/photo-1544531696-60c35eb683f9?auto=format&fit=crop&w=600&q=80' // Speaker
+            ],
+            [
+                'title' => 'Speakers',
+                'identifier' => 'home_menu_speakers',
+                'icon' => 'groups',
+                'action_url' => '/speakers',
+                'image' => 'https://images.unsplash.com/photo-1475721027760-f75cfc879794?auto=format&fit=crop&w=600&q=80' // Mic
+            ],
+            [
+                'title' => 'Products',
+                'identifier' => 'home_menu_products',
+                'icon' => 'inventory_2',
+                'action_url' => '/products',
+                'image' => 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=600&q=80' // Tech workspace
+            ],
+            [
+                'title' => 'B2B Meetings',
+                'identifier' => 'home_menu_b2b',
+                'icon' => 'handshake',
+                'action_url' => '/b2b',
+                'image' => 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=600&q=80' // Handshake
+            ],
+            [
+                'title' => 'My Badge',
+                'identifier' => 'home_menu_badge',
+                'icon' => 'badge',
+                'action_url' => '/badge',
+                'image' => 'https://images.unsplash.com/photo-1626785774573-4b7993143d2d?auto=format&fit=crop&w=600&q=80' // ID Card / Badge (Fixed)
+            ],
+            [
+                'title' => 'Floor Plan',
+                'identifier' => 'home_menu_floorplan',
+                'icon' => 'map',
+                'action_url' => '/floor-plan',
+                'image' => 'https://images.unsplash.com/photo-1577412647305-991150c7d163?auto=format&fit=crop&w=600&q=80' // Map/Abstract
+            ],
+            [
+                'title' => 'Networking',
+                'identifier' => 'home_menu_networking',
+                'icon' => 'emoji_events',
+                'action_url' => '/networking',
+                'image' => 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=600&q=80' // Crowd talking
+            ]
         ];
 
         foreach ($menuItems as $index => $item) {
             HomeWidgetItem::create([
                 'home_widget_id' => $menuGrid->id,
                 'title' => $item['title'],
-                'icon' => $item['icon'],       // Material Icon Name
-                'action_url' => $item['action_url'], // Internal App Route
+                'identifier' => $item['identifier'],
+                'icon' => $item['icon'],
+                'action_url' => $item['action_url'],
+                'image' => $item['image'],
                 'order' => $index + 1
             ]);
         }
 
         // ---------------------------------------------------------
-        // 3. DYNAMIC CONTENT (Teasers)
+        // 3. SPONSOR BANNER
+        // ---------------------------------------------------------
+        $banner = HomeWidget::create([
+            'title' => 'Sponsor Banner',
+            'identifier' => 'home_sponsor_banner_section',
+            'widget_type' => 'sponsor_banner',
+            'order' => 30,
+            'is_active' => true,
+        ]);
+
+        HomeWidgetItem::create([
+            'home_widget_id' => $banner->id,
+            'title' => 'Gold Sponsor',
+            'identifier' => 'home_sponsor_gold_title',
+            'image' => 'https://images.unsplash.com/photo-1557683311-eac922347aa1?auto=format&fit=crop&w=1200&q=80',
+            'action_url' => 'https://sponsor-link.com',
+            'order' => 1
+        ]);
+
+        // ---------------------------------------------------------
+        // 4. DYNAMIC LISTS
         // ---------------------------------------------------------
 
-        // Featured Exhibitors (Dynamic List)
         HomeWidget::create([
             'title' => 'Featured Exhibitors',
+            'identifier' => 'home_featured_exhibitors',
             'widget_type' => 'dynamic_list',
-            'data_source' => 'companies', // Fetches DB automatically
+            'data_source' => 'companies',
             'order' => 40,
             'is_active' => true,
         ]);
 
-        // New Products (Dynamic List)
         HomeWidget::create([
             'title' => 'Latest Products',
+            'identifier' => 'home_latest_products',
             'widget_type' => 'dynamic_list',
             'data_source' => 'products',
             'order' => 50,
             'is_active' => true,
         ]);
 
-
         // ---------------------------------------------------------
-        // 4. PARTNERS & LOGOS (Logo Clouds)
+        // 5. PARTNERS & LOGOS (FIXED & POPULATED)
         // ---------------------------------------------------------
-        // "Ensuite des zones pour logos comme sur références"
 
-        // Institutional Partners
+        // --- A. Institutional Partners (4 Logos) ---
         $instPartners = HomeWidget::create([
             'title' => 'Institutional Partners',
+            'identifier' => 'home_partners_inst',
             'widget_type' => 'logo_cloud',
             'order' => 60,
             'is_active' => true,
         ]);
-        HomeWidgetItem::create(['home_widget_id' => $instPartners->id, 'image' => 'seeds/partner1.png', 'action_url' => 'https://gov.ma']);
-        HomeWidgetItem::create(['home_widget_id' => $instPartners->id, 'image' => 'seeds/partner2.png', 'action_url' => 'https://chamber.ma']);
 
-        // Sponsors
+        $instLogos = [
+            'https://upload.wikimedia.org/wikipedia/commons/e/e5/NASA_logo.svg',
+            'https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg',
+            'https://upload.wikimedia.org/wikipedia/commons/b/b3/World_Bank_Group_logo.svg',
+            'https://upload.wikimedia.org/wikipedia/commons/5/51/IBM_logo.svg',
+        ];
+
+        foreach($instLogos as $i => $logo) {
+            HomeWidgetItem::create([
+                'home_widget_id' => $instPartners->id,
+                'title' => 'Inst Partner ' . ($i+1),
+                'image' => $logo,
+                'action_url' => '#',
+                'order' => $i + 1
+            ]);
+        }
+
+        // --- B. Sponsors (4 Logos) ---
         $sponsors = HomeWidget::create([
             'title' => 'Sponsors',
+            'identifier' => 'home_partners_sponsors',
             'widget_type' => 'logo_cloud',
             'order' => 70,
             'is_active' => true,
         ]);
-        HomeWidgetItem::create(['home_widget_id' => $sponsors->id, 'image' => 'seeds/sponsor1.png', 'order' => 1]);
-        HomeWidgetItem::create(['home_widget_id' => $sponsors->id, 'image' => 'seeds/sponsor2.png', 'order' => 2]);
 
-        // Media Partners
-        HomeWidget::create([
-            'title' => 'Media Partners',
+        $sponsorLogos = [
+            'https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg',
+            'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg',
+            'https://upload.wikimedia.org/wikipedia/commons/0/08/Cisco_logo_blue_2016.svg',
+            'https://upload.wikimedia.org/wikipedia/commons/5/50/Oracle_logo.svg',
+        ];
+
+        foreach($sponsorLogos as $i => $logo) {
+            HomeWidgetItem::create([
+                'home_widget_id' => $sponsors->id,
+                'title' => 'Sponsor ' . ($i+1),
+                'image' => $logo,
+                'action_url' => '#',
+                'order' => $i + 1
+            ]);
+        }
+
+        // --- C. Trademarks (4 Logos) ---
+        $trademarks = HomeWidget::create([
+            'title' => 'Trademarks',
+            'identifier' => 'home_partners_trademarks',
             'widget_type' => 'logo_cloud',
             'order' => 80,
             'is_active' => true,
         ]);
 
-        // Exhibition Partners
-        HomeWidget::create([
-            'title' => 'Exhibition Partners',
-            'widget_type' => 'logo_cloud',
-            'order' => 90,
-            'is_active' => true,
-        ]);
+        $trademarkLogos = [
+            'https://upload.wikimedia.org/wikipedia/commons/2/24/Samsung_Logo.svg',
+            'https://upload.wikimedia.org/wikipedia/commons/7/7d/Intel_logo_%282006-2020%29.svg',
+            'https://upload.wikimedia.org/wikipedia/commons/b/bd/Tesla_Motors.svg',
+            'https://upload.wikimedia.org/wikipedia/commons/8/82/Dell_Logo.png',
+        ];
 
-        // Trademarks (Marques)
-        HomeWidget::create([
-            'title' => 'Trademarks',
-            'widget_type' => 'logo_cloud',
-            'order' => 100,
-            'is_active' => true,
-        ]);
+        foreach($trademarkLogos as $i => $logo) {
+            HomeWidgetItem::create([
+                'home_widget_id' => $trademarks->id,
+                'title' => 'Trademark ' . ($i+1),
+                'image' => $logo,
+                'action_url' => '#',
+                'order' => $i + 1
+            ]);
+        }
     }
 }

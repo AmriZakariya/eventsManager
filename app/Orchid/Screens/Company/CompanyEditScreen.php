@@ -56,8 +56,8 @@ class CompanyEditScreen extends Screen
                     // Use Cropper for image upload handling
                     Cropper::make('company.logo')
                         ->title('Company Logo')
-                        ->width(300)
-                        ->height(300)
+//                        ->width(300)
+//                        ->height(300)
                         ->targetRelativeUrl(),
 
                     TextArea::make('company.description')
@@ -109,7 +109,7 @@ class CompanyEditScreen extends Screen
                 'Visibility Settings' => Layout::rows([
                     CheckBox::make('company.is_active')
                         ->title('Active Status')
-                        ->placeholder('Show in App')
+                        ->placeholder('Show in Notification')
                         ->help('If unchecked, this company will be hidden from the API.')
                         ->sendTrueOrFalse(),
 

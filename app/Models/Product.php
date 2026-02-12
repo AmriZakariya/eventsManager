@@ -11,19 +11,15 @@ class Product extends Model
     use AsSource, Attachable;
 
     protected $fillable = [
-        'company_id',
-        'category_id',
-        'name',
-        'image',
-        'type',
-        'description',
-        'is_featured'
+        'company_id', 'category_id', 'name',
+        'image', 'type', 'description', 'is_featured'
     ];
 
     protected $casts = [
         'is_featured' => 'boolean'
     ];
 
+    // Automatically append 'image_url' to JSON
     protected $appends = ['image_url'];
 
     public function company()
@@ -36,18 +32,11 @@ class Product extends Model
         return $this->belongsTo(ProductCategory::class, 'category_id');
     }
 
+    // Accessor for image_url
     public function getImageUrlAttribute()
     {
-        if (!$this->image) {
-            return null;
-        }
-
-        // If it's already a full URL (e.g. from S3), return it
-        if (str_starts_with($this->image, 'http')) {
-            return $this->image;
-        }
-
-        // Otherwise, generate the full public URL
+        if (!$this->image) return null;
+        if (str_starts_with($this->image, 'http')) return $this->image;
         return asset($this->image);
     }
 }

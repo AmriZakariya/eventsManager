@@ -10,30 +10,43 @@ use App\Models\User;
 use App\Http\Resources\UserResource;
 use Orchid\Platform\Models\Role;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
     /**
-     * REGISTER NEW VISITOR
+     * REGISTER NEW USER (Visitor or Exhibitor)
      */
     public function register(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed', // Requires 'password_confirmation' field
+            'password' => 'required|string|min:6|confirmed',
             'job_title' => 'nullable|string|max:100',
-            'company_name' => 'nullable|string|max:100', // Optional: Store company name
+
+            // 1. Role Validation
+            'role' => ['required', 'string', Rule::in(['visitor', 'exhibitor'])],
+
+            // 2. Company Validation (Required only for Exhibitors)
+            'company_id' => [
+                'nullable',
+                'integer',
+                'exists:companies,id',
+                Rule::requiredIf(fn () => $request->role === 'exhibitor')
+            ],
         ]);
 
-        // 1. Generate Unique Badge Code
-        $badgeCode = 'VIS-' . strtoupper(Str::random(6));
-        while (User::where('badge_code', $badgeCode)->exists()) {
-            $badgeCode = 'VIS-' . strtoupper(Str::random(6));
-        }
+        // 3. Generate Badge Code based on Role
+        // Exhibitors get "EXH-", Visitors get "VIS-"
+        $prefix = ($request->role === 'exhibitor') ? 'EXH-' : 'VIS-';
 
-        // 2. Create User
+        do {
+            $badgeCode = $prefix . strtoupper(Str::random(6));
+        } while (User::where('badge_code', $badgeCode)->exists());
+
+        // 4. Create User
         $user = User::create([
             'name' => $request->name,
             'last_name' => $request->last_name,
@@ -42,16 +55,24 @@ class AuthController extends Controller
             'job_title' => $request->job_title,
             'badge_code' => $badgeCode,
             'is_visible' => true,
-            // 'company_id' => null // Visitors usually don't have a linked Company ID initially
+            // Only assign company_id if it's an exhibitor
+            'company_id' => ($request->role === 'exhibitor') ? $request->company_id : null,
         ]);
 
-        // 3. Assign 'Visitor' Role (Orchid)
-        $visitorRole = Role::where('slug', 'visitor')->first();
-        if ($visitorRole) {
-            $user->addRole($visitorRole);
+        // 5. Assign Orchid Role
+        // Ensure you have roles with slugs 'visitor' and 'exhibitor' in your `roles` table
+        $roleSlug = $request->role; // 'visitor' or 'exhibitor'
+        $role = Role::where('slug', $roleSlug)->first();
+
+        if ($role) {
+            $user->addRole($role);
+        } else {
+            // Fallback: If 'exhibitor' role doesn't exist, default to visitor permissions
+            $defaultRole = Role::where('slug', 'visitor')->first();
+            if ($defaultRole) $user->addRole($defaultRole);
         }
 
-        // 4. Auto-Login (Generate Token)
+        // 6. Generate Token
         $token = $user->createToken('mobile_app')->plainTextToken;
 
         return response()->json([
@@ -85,12 +106,9 @@ class AuthController extends Controller
         ]);
     }
 
-
     /**
      * GET PROFILE
      */
-    #[OA\Get(path: '/api/me', tags: ['Auth'], summary: 'Get User Profile', security: [['bearerAuth' => []]])]
-    #[OA\Response(response: 200, description: 'User Data')]
     public function me(Request $request)
     {
         return new UserResource($request->user());
@@ -99,8 +117,6 @@ class AuthController extends Controller
     /**
      * LOGOUT
      */
-    #[OA\Post(path: '/api/logout', tags: ['Auth'], summary: 'Revoke Token', security: [['bearerAuth' => []]])]
-    #[OA\Response(response: 200, description: 'Logged out')]
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

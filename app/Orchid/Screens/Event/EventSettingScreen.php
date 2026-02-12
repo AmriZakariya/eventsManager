@@ -68,7 +68,7 @@ class EventSettingScreen extends Screen
                             ->help('This will appear in the app header and splash screen'),
 
                         Cropper::make('settings.app_logo')
-                            ->title('App Logo')
+                            ->title('Notification Logo')
                             ->targetRelativeUrl()
                             ->width(512)
                             ->height(512)
@@ -103,7 +103,7 @@ class EventSettingScreen extends Screen
                             ->maxlength(100)
                             ->help('Short catchy phrase for marketing'),
 
-                    ])->title('App Appearance'),
+                    ])->title('Notification Appearance'),
                 ],
 
                 'Event Details' => [
@@ -219,7 +219,7 @@ class EventSettingScreen extends Screen
                     ])->title('Meeting & Scheduling'),
                 ],
 
-                'App Features' => [
+                'Notification Features' => [
                     Layout::rows([
                         CheckBox::make('settings.enable_notifications')
                             ->title('Push Notifications')
@@ -228,7 +228,7 @@ class EventSettingScreen extends Screen
                             ->help('Allows sending alerts for sessions, meetings, and announcements'),
 
                         CheckBox::make('settings.enable_chat')
-                            ->title('In-App Chat')
+                            ->title('In-Notification Chat')
                             ->placeholder('Enable real-time messaging between users')
                             ->sendTrueOrFalse()
                             ->help('Users can message each other directly in the app'),
@@ -349,7 +349,7 @@ class EventSettingScreen extends Screen
                         ]),
 
                         Input::make('settings.app_version')
-                            ->title('Minimum Required App Version')
+                            ->title('Minimum Required Notification Version')
                             ->placeholder('1.0.0')
                             ->help('Force users to update if they have an older version'),
 

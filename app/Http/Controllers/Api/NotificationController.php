@@ -4,30 +4,56 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use OpenApi\Attributes as OA;
+use App\Models\AppNotification;
 
 class NotificationController extends Controller
 {
-    #[OA\Post(path: '/api/fcm-token', tags: ['User Actions'], summary: 'Save Mobile Device Token', security: [['bearerAuth' => []]])]
-    #[OA\RequestBody(content: new OA\JsonContent(properties: [new OA\Property(property: 'token', type: 'string')]))]
-    #[OA\Response(response: 200, description: 'Token saved')]
-    public function updateDeviceToken(Request $request)
-    {
-        $request->validate(['token' => 'required|string']);
-
-        $request->user()->update([
-            'fcm_token' => $request->token
-        ]);
-
-        return response()->json(['message' => 'Device registered for notifications']);
-    }
-
-    #[OA\Get(path: '/api/notifications', tags: ['User Actions'], summary: 'Get User Notifications', security: [['bearerAuth' => []]])]
+    /**
+     * GET /api/notifications
+     */
     public function index(Request $request)
     {
-        // Returns the last 20 notifications sent to this user
-        return response()->json([
-            'data' => $request->user()->notifications()->limit(20)->get()
-        ]);
+        $notifications = AppNotification::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'desc')
+            ->paginate(20);
+
+        return response()->json($notifications);
+    }
+
+    /**
+     * GET /api/notifications/unread-count
+     */
+    public function unreadCount(Request $request)
+    {
+        $count = AppNotification::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
+
+    /**
+     * PUT /api/notifications/{id}/read
+     */
+    public function markAsRead(Request $request, $id)
+    {
+        $notification = AppNotification::where('user_id', $request->user()->id)
+            ->findOrFail($id);
+
+        $notification->update(['is_read' => true]);
+
+        return response()->json(['message' => 'Marked as read']);
+    }
+
+    /**
+     * PUT /api/notifications/read-all
+     */
+    public function markAllAsRead(Request $request)
+    {
+        AppNotification::where('user_id', $request->user()->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        return response()->json(['message' => 'All marked as read']);
     }
 }

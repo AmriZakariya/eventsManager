@@ -20,13 +20,8 @@ use App\Orchid\Screens\User\UserEditScreen;
 use App\Orchid\Screens\User\UserListScreen;
 use App\Orchid\Screens\User\UserProfileScreen;
 
-// App Config & CMS
+// Notification Config & CMS
 use App\Orchid\Screens\Event\EventSettingScreen;
-use App\Orchid\Screens\App\NotificationSenderScreen;
-use App\Orchid\Screens\Banner\BannerEditScreen;
-use App\Orchid\Screens\Banner\BannerListScreen;
-use App\Orchid\Screens\App\HomeSectionEditScreen;
-use App\Orchid\Screens\App\HomeSectionListScreen;
 
 // Exhibition
 use App\Orchid\Screens\Company\CompanyListScreen;
@@ -44,7 +39,6 @@ use App\Orchid\Screens\Speaker\SpeakerListScreen;
 use App\Orchid\Screens\Speaker\SpeakerEditScreen;
 
 // Features
-use App\Orchid\Screens\Feature\SponsorListScreen;
 use App\Orchid\Screens\Feature\AwardListScreen;
 
 // Interaction
@@ -53,16 +47,6 @@ use App\Orchid\Screens\Contact\ContactRequestListScreen;
 use App\Orchid\Screens\Interaction\ConversationListScreen;
 use App\Orchid\Screens\Interaction\ConversationViewScreen;
 
-// Examples
-use App\Orchid\Screens\Examples\ExampleActionsScreen;
-use App\Orchid\Screens\Examples\ExampleCardsScreen;
-use App\Orchid\Screens\Examples\ExampleChartsScreen;
-use App\Orchid\Screens\Examples\ExampleFieldsAdvancedScreen;
-use App\Orchid\Screens\Examples\ExampleFieldsScreen;
-use App\Orchid\Screens\Examples\ExampleGridScreen;
-use App\Orchid\Screens\Examples\ExampleLayoutsScreen;
-use App\Orchid\Screens\Examples\ExampleScreen;
-use App\Orchid\Screens\Examples\ExampleTextEditorsScreen;
 
 /*
 |--------------------------------------------------------------------------
@@ -90,42 +74,6 @@ Route::screen('event/settings', EventSettingScreen::class)
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.index')
         ->push('Event Configuration', route('platform.event.settings')));
-
-Route::screen('app/notifications', NotificationSenderScreen::class)
-    ->name('platform.app.notifications')
-    ->breadcrumbs(fn (Trail $trail) => $trail
-        ->parent('platform.index')
-        ->push('Push Notifications', route('platform.app.notifications')));
-
-// --- BANNERS & HOME CONTENT (New) ---
-Route::screen('banners/create', BannerEditScreen::class)
-    ->name('platform.banners.create')
-    ->breadcrumbs(fn (Trail $trail) => $trail
-        ->parent('platform.banners.list')
-        ->push('Create Item'));
-
-Route::screen('banners/{banner}/edit', BannerEditScreen::class)
-    ->name('platform.banners.edit')
-    ->breadcrumbs(fn (Trail $trail, $banner) => $trail
-        ->parent('platform.banners.list')
-        ->push('Edit Item'));
-
-Route::screen('banners', BannerListScreen::class)
-    ->name('platform.banners.list')
-    ->breadcrumbs(fn (Trail $trail) => $trail
-        ->parent('platform.index')
-        ->push('Home Management', route('platform.banners.list')));
-
-// --- APP SECTIONS (Keep if used alongside banners) ---
-Route::screen('app/sections/create', HomeSectionEditScreen::class)
-    ->name('platform.app.sections.create');
-
-Route::screen('app/sections/{section}/edit', HomeSectionEditScreen::class)
-    ->name('platform.app.sections.edit');
-
-Route::screen('app/sections', HomeSectionListScreen::class)
-    ->name('platform.app.sections.list');
-
 
 // =========================================================================
 // 2. COMPANIES & PRODUCTS
@@ -243,12 +191,6 @@ Route::screen('speakers', SpeakerListScreen::class)
 // 4. FEATURES & INTERACTION
 // =========================================================================
 
-Route::screen('sponsors', SponsorListScreen::class)
-    ->name('platform.sponsors.list')
-    ->breadcrumbs(fn (Trail $trail) => $trail
-        ->parent('platform.index')
-        ->push('Sponsors', route('platform.sponsors.list')));
-
 Route::screen('awards', AwardListScreen::class)
     ->name('platform.awards.list')
     ->breadcrumbs(fn (Trail $trail) => $trail
@@ -325,20 +267,7 @@ Route::screen('roles', RoleListScreen::class)
         ->parent('platform.index')
         ->push(__('Roles'), route('platform.systems.roles')));
 
-// =========================================================================
-// 6. EXAMPLES (Keep strictly for dev reference)
-// =========================================================================
-Route::screen('example', ExampleScreen::class)->name('platform.example');
-Route::screen('/examples/form/fields', ExampleFieldsScreen::class)->name('platform.example.fields');
-Route::screen('/examples/form/advanced', ExampleFieldsAdvancedScreen::class)->name('platform.example.advanced');
-Route::screen('/examples/form/editors', ExampleTextEditorsScreen::class)->name('platform.example.editors');
-Route::screen('/examples/form/actions', ExampleActionsScreen::class)->name('platform.example.actions');
-Route::screen('/examples/layouts', ExampleLayoutsScreen::class)->name('platform.example.layouts');
-Route::screen('/examples/grid', ExampleGridScreen::class)->name('platform.example.grid');
-Route::screen('/examples/charts', ExampleChartsScreen::class)->name('platform.example.charts');
-Route::screen('/examples/cards', ExampleCardsScreen::class)->name('platform.example.cards');
-
-
+// Home Widgets
 Route::screen('app/widgets', HomeWidgetListScreen::class)
     ->name('platform.content.widgets.list');
 
@@ -348,11 +277,11 @@ Route::screen('app/widgets/create', HomeWidgetEditScreen::class)
 Route::screen('app/widgets/{widget}/edit', HomeWidgetEditScreen::class)
     ->name('platform.content.widgets.edit');
 
-// Item Routes (Create requires widgetId param)
-Route::screen('app/items/create', HomeWidgetItemEditScreen::class)
+// Home Widget Items - FIXED ROUTES
+Route::screen('app/widgets/{widget}/items/create', HomeWidgetItemEditScreen::class)
     ->name('platform.content.items.create');
 
-Route::screen('app/items/{item}/edit', HomeWidgetItemEditScreen::class)
+Route::screen('app/widgets/{widget}/items/{item}/edit', HomeWidgetItemEditScreen::class)
     ->name('platform.content.items.edit');
 
 

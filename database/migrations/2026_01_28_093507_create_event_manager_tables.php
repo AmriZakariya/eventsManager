@@ -89,9 +89,12 @@ return new class extends Migration
         Schema::create('home_widgets', function (Blueprint $table) {
             $table->id();
             $table->string('title')->nullable(); // e.g. "Main Slider", "Platinum Sponsors"
+            $table->string('identifier')->nullable();
 
             // LOGIC: 'slider', 'menu_grid', 'logo_cloud', 'single_banner', 'dynamic_list'
             $table->string('widget_type');
+            $table->string('image')->nullable();  // Upload path
+            $table->string('icon')->nullable();   // Material Icon name (e.g. "calendar_today")
 
             // FOR DYNAMIC LISTS: 'companies', 'products', 'speakers'
             $table->string('data_source')->nullable();
@@ -109,6 +112,7 @@ return new class extends Migration
             $table->string('image')->nullable();  // Upload path
             $table->string('icon')->nullable();   // Material Icon name (e.g. "calendar_today")
             $table->string('title')->nullable();
+            $table->string('identifier')->nullable();
             $table->string('subtitle')->nullable();
 
             // ACTION: Internal Route or External Link
@@ -136,6 +140,9 @@ return new class extends Migration
             $table->json('map_coordinates')->nullable(); // {x: 100, y: 500}
             $table->boolean('is_featured')->default(false);
             $table->boolean('is_active')->default(true);
+
+            $table->timestamps();
+
         });
 
         // =========================================================================
@@ -151,7 +158,7 @@ return new class extends Migration
             // Link to Company (Exhibitor Team)
             $table->foreignId('company_id')->nullable()->constrained('companies')->nullOnDelete();
 
-            // Social & App
+            // Social & Notification
             $table->string('linkedin_url')->nullable();
             $table->string('linkedin_id')->nullable();
             $table->string('google_id')->nullable();
@@ -213,6 +220,7 @@ return new class extends Migration
             $table->string('full_name');
             $table->string('job_title')->nullable();
             $table->string('company_name')->nullable();
+            $table->string('linkedin_url')->nullable();
             $table->string('photo')->nullable();
             $table->text('bio')->nullable();
             $table->timestamps();
@@ -245,6 +253,16 @@ return new class extends Migration
             $table->unique(['requester_id', 'target_id']);
         });
 
+        Schema::create('messages', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('sender_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('receiver_id')->constrained('users')->cascadeOnDelete();
+            $table->text('content');
+            $table->string('attachment_url')->nullable();
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+        });
+
         Schema::create('appointments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('booker_id')->constrained('users')->cascadeOnDelete();
@@ -259,27 +277,10 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('messages', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('sender_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('receiver_id')->constrained('users')->cascadeOnDelete();
-            $table->text('content');
-            $table->string('attachment_url')->nullable();
-            $table->timestamp('read_at')->nullable();
-            $table->timestamps();
-        });
 
         // =========================================================================
-        // 7. EXTRAS (Sponsors, Awards, Favorites)
+        // 7. EXTRAS (Awards, Favorites)
         // =========================================================================
-        Schema::create('sponsors', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('logo')->nullable();
-            $table->string('website')->nullable();
-            $table->string('category_type')->default('sponsor');
-            $table->timestamps();
-        });
 
         Schema::create('award_categories', function (Blueprint $table) {
             $table->id();
@@ -334,7 +335,6 @@ return new class extends Migration
         Schema::dropIfExists('jury_members');
         Schema::dropIfExists('award_nominees');
         Schema::dropIfExists('award_categories');
-        Schema::dropIfExists('sponsors');
         Schema::dropIfExists('messages');
         Schema::dropIfExists('appointments');
         Schema::dropIfExists('connections');
