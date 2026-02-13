@@ -65,6 +65,8 @@ class EventSetting extends Model
         'maintenance_message',
         'timezone',
         'language',
+        'available_languages',
+        'default_language',
     ];
 
     protected $casts = [
@@ -72,6 +74,7 @@ class EventSetting extends Model
         'end_date' => 'datetime',
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
+        'available_languages' => 'array',
 
         // Boolean casts
         'enable_meeting_requests' => 'boolean',
@@ -110,4 +113,81 @@ class EventSetting extends Model
         'timezone' => 'Africa/Casablanca',
         'language' => 'en',
     ];
+
+    public function getAttribute($key)
+    {
+        $value = parent::getAttribute($key);
+
+        if (is_string($value)) {
+            // Force convert to UTF-8, stripping invalid byte sequences
+            return mb_convert_encoding($value, 'UTF-8', 'UTF-8');
+        }
+
+        return $value;
+    }
+
+    public function getAppLogoUrlAttribute()
+    {
+        if (!$this->image) return null;
+        if (str_starts_with($this->image, 'http')) return $this->image;
+        return asset($this->image);
+    }
+
+    public function getAvailableLanguagesAttribute($value)
+    {
+        $languages = json_decode($value, true) ?? [];
+
+        // Default languages if not set
+        if (empty($languages)) {
+            return [
+                ['code' => 'en', 'name' => 'English', 'flag' => '🇬🇧', 'enabled' => true],
+                ['code' => 'fr', 'name' => 'Français', 'flag' => '🇫🇷', 'enabled' => true],
+                ['code' => 'ar', 'name' => 'العربية', 'flag' => '🇸🇦', 'enabled' => true],
+            ];
+        }
+
+        return $languages;
+    }
+
+    /**
+     * Get enabled languages only
+     */
+    public function getEnabledLanguages()
+    {
+        return collect($this->available_languages)
+            ->filter(fn($lang) => $lang['enabled'] ?? true)
+            ->values()
+            ->toArray();
+    }
+
+    /**
+     * Get translation file content for a language
+     */
+    public function getTranslationFile(string $languageCode): array
+    {
+        $path = resource_path("lang/{$languageCode}.json");
+
+        if (!file_exists($path)) {
+            return [];
+        }
+
+        $content = file_get_contents($path);
+        return json_decode($content, true) ?? [];
+    }
+
+    /**
+     * Save translation file
+     */
+    public function saveTranslationFile(string $languageCode, array $translations): bool
+    {
+        $path = resource_path("lang/{$languageCode}.json");
+
+        // Ensure directory exists
+        if (!file_exists(dirname($path))) {
+            mkdir(dirname($path), 0755, true);
+        }
+
+        $content = json_encode($translations, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        return file_put_contents($path, $content) !== false;
+    }
 }

@@ -41,7 +41,7 @@ class AppConfigController extends Controller
                 'data' => [
                     // Branding
                     'event_name' => $settings->event_name,
-                    'app_logo' => $settings->app_logo ? url('storage/' . $settings->app_logo) : null,
+                    'app_logo' => $settings->app_logo ? asset( $settings->app_logo) : null,
                     'primary_color' => $settings->primary_color,
                     'secondary_color' => $settings->secondary_color,
                     'accent_color' => $settings->accent_color,

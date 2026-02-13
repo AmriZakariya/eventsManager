@@ -10,6 +10,7 @@ use Orchid\Screen\Fields\TextArea;
 use Orchid\Screen\Fields\Cropper;
 use Orchid\Screen\Fields\CheckBox;
 use Orchid\Screen\Fields\Group;
+use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Actions\Button;
 use Orchid\Support\Facades\Layout;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class EventSettingScreen extends Screen
 
     public function description(): ?string
     {
-        return 'Customize your mobile app branding, event details, and operational settings.';
+        return 'Configure your event settings, branding, and mobile app features';
     }
 
     public function query(): array
@@ -41,331 +42,368 @@ class EventSettingScreen extends Screen
     {
         return [
             Button::make('Save Configuration')
-                ->icon('bs.check-circle')
+                ->icon('bs.check-circle-fill')
                 ->method('save')
-                ->type(Color::SUCCESS)
-                ->class('btn-lg'),
-
-            Button::make('Reset to Defaults')
-                ->icon('bs.arrow-counterclockwise')
-                ->method('resetDefaults')
-                ->confirm('Are you sure you want to reset all settings to default values? This cannot be undone.')
-                ->type(Color::WARNING)
-                ->novalidate(),
+                ->type(Color::SUCCESS),
         ];
     }
 
     public function layout(): array
     {
         return [
+            // Info Banner
+            Layout::view('orchid.settings.banner'),
+
             Layout::tabs([
-                'Branding & Identity' => [
-                    Layout::rows([
-                        Input::make('settings.event_name')
-                            ->title('Event Name')
-                            ->placeholder('e.g., Hygie Clean Expo 2026')
-                            ->required()
-                            ->help('This will appear in the app header and splash screen'),
+                // TAB 1: BASIC INFO
+                'Basic Information' => [
+                    Layout::columns([
+                        Layout::rows([
+                            Input::make('settings.event_name')
+                                ->title('Event Name')
+                                ->placeholder('e.g., Tech Summit 2026')
+                                ->required()
+                                ->help('Primary event name displayed in the app'),
 
-                        Cropper::make('settings.app_logo')
-                            ->title('Notification Logo')
-                            ->targetRelativeUrl()
-                            ->width(512)
-                            ->height(512)
-                            ->help('Recommended: 512x512px PNG with transparent background'),
+                            Input::make('settings.tagline')
+                                ->title('Tagline')
+                                ->placeholder('e.g., "Innovation Meets Opportunity"')
+                                ->maxlength(100)
+                                ->help('Short, memorable phrase'),
 
-                        Group::make([
-                            Input::make('settings.primary_color')
-                                ->title('Primary Color')
-                                ->type('color')
-                                ->help('Main brand color (buttons, headers)'),
-
-                            Input::make('settings.secondary_color')
-                                ->title('Secondary Color')
-                                ->type('color')
-                                ->help('Accent color (backgrounds, text)'),
-
-                            Input::make('settings.accent_color')
-                                ->title('Accent Color')
-                                ->type('color')
-                                ->help('Highlights and call-to-action elements'),
+                            TextArea::make('settings.description')
+                                ->title('Event Description')
+                                ->rows(4)
+                                ->maxlength(500)
+                                ->placeholder('Welcome to our amazing event...')
+                                ->help('Featured on the app home screen (max 500 chars)'),
                         ]),
 
-                        TextArea::make('settings.description')
-                            ->title('Event Description')
-                            ->rows(4)
-                            ->maxlength(500)
-                            ->help('Brief description shown on the home screen (max 500 characters)'),
+                        Layout::rows([
+                            Cropper::make('settings.app_logo')
+                                ->title('App Logo')
+                                ->targetRelativeUrl()
+                                ->width(512)
+                                ->height(512)
+                                ->help('Recommended: 512×512px PNG with transparent background'),
 
-                        Input::make('settings.tagline')
-                            ->title('Event Tagline')
-                            ->placeholder('e.g., The Future of Clean')
-                            ->maxlength(100)
-                            ->help('Short catchy phrase for marketing'),
-
-                    ])->title('Notification Appearance'),
-                ],
-
-                'Event Details' => [
-                    Layout::rows([
-                        Group::make([
-                            DateTimer::make('settings.start_date')
-                                ->title('Start Date & Time')
-                                ->enableTime()
-                                ->format24hr()
-                                ->required()
-                                ->help('When does the event begin?'),
-
-                            DateTimer::make('settings.end_date')
-                                ->title('End Date & Time')
-                                ->enableTime()
-                                ->format24hr()
-                                ->required()
-                                ->help('When does the event end?'),
+                            Cropper::make('settings.venue_image')
+                                ->title('Venue Hero Image')
+                                ->targetRelativeUrl()
+                                ->width(1200)
+                                ->height(600)
+                                ->help('Main banner image (1200×600px)'),
                         ]),
-
-                        Input::make('settings.location_name')
-                            ->title('Venue Name')
-                            ->placeholder('e.g., Parc des Expositions')
-                            ->help('Name of the venue or conference center'),
-
-                        TextArea::make('settings.location_address')
-                            ->title('Full Address')
-                            ->rows(2)
-                            ->placeholder('123 Main St, Casablanca, Morocco')
-                            ->help('Complete address for map integration'),
-
-                        Group::make([
-                            Input::make('settings.latitude')
-                                ->title('Latitude')
-                                ->type('number')
-                                ->step('0.0000001')
-                                ->placeholder('33.5731104')
-                                ->help('For accurate map positioning'),
-
-                            Input::make('settings.longitude')
-                                ->title('Longitude')
-                                ->type('number')
-                                ->step('0.0000001')
-                                ->placeholder('-7.5898434')
-                                ->help('For accurate map positioning'),
-                        ])->fullwidth(),
-
-                        Cropper::make('settings.venue_image')
-                            ->title('Venue Photo')
-                            ->targetRelativeUrl()
-                            ->help('Main photo of the venue for the app'),
-
-                        Cropper::make('settings.floor_plan_image')
-                            ->title('Floor Plan / Venue Map')
-                            ->targetRelativeUrl()
-                            ->help('Interactive floor plan for navigation'),
-
-                    ])->title('Location & Venue'),
+                    ]),
                 ],
 
-                'Operational Settings' => [
-                    Layout::rows([
-                        Group::make([
-                            Input::make('settings.opening_hour')
-                                ->title('Daily Opening Time')
-                                ->type('time')
-                                ->required()
-                                ->help('When does the event open each day?'),
+                // TAB 2: BRANDING
+                'Branding & Colors' => [
+                    Layout::columns([
+                        Layout::rows([
+                            Group::make([
+                                Input::make('settings.primary_color')
+                                    ->title('Primary Color')
+                                    ->type('color')
+                                    ->value('#D4AF37')
+                                    ->help('Main brand color'),
 
-                            Input::make('settings.closing_hour')
-                                ->title('Daily Closing Time')
-                                ->type('time')
-                                ->required()
-                                ->help('When does the event close each day?'),
-                        ]),
+                                Input::make('settings.secondary_color')
+                                    ->title('Secondary Color')
+                                    ->type('color')
+                                    ->value('#0F172A')
+                                    ->help('Background color'),
 
-                        Group::make([
-                            Input::make('settings.meeting_duration_minutes')
-                                ->title('B2B Meeting Duration (Minutes)')
-                                ->type('number')
-                                ->min(15)
-                                ->max(120)
-                                ->required()
-                                ->help('Default duration for scheduled meetings'),
+                                Input::make('settings.accent_color')
+                                    ->title('Accent Color')
+                                    ->type('color')
+                                    ->value('#F59E0B')
+                                    ->help('Highlights & badges'),
+                            ]),
+                        ])->title('Color Scheme'),
 
-                            Input::make('settings.meeting_buffer_minutes')
-                                ->title('Meeting Buffer Time (Minutes)')
-                                ->type('number')
-                                ->min(0)
-                                ->max(30)
-                                ->help('Gap between consecutive meetings'),
-
-                            Input::make('settings.max_meetings_per_day')
-                                ->title('Max Meetings Per Person/Day')
-                                ->type('number')
-                                ->min(1)
-                                ->max(50)
-                                ->help('Limit on daily meeting bookings'),
-                        ]),
-
-                        CheckBox::make('settings.enable_meeting_requests')
-                            ->title('Enable Meeting Requests')
-                            ->placeholder('Allow attendees to request meetings')
-                            ->sendTrueOrFalse()
-                            ->help('When enabled, attendees can send meeting requests to each other'),
-
-                        CheckBox::make('settings.auto_confirm_meetings')
-                            ->title('Auto-Confirm Meetings')
-                            ->placeholder('Automatically confirm meeting requests without approval')
-                            ->sendTrueOrFalse()
-                            ->help('If disabled, exhibitors must manually approve each request'),
-
-                    ])->title('Meeting & Scheduling'),
+                        Layout::rows([
+                            Cropper::make('settings.floor_plan_image')
+                                ->title('Floor Plan / Venue Map')
+                                ->targetRelativeUrl()
+                                ->width(800)
+                                ->height(800)
+                                ->help('Interactive navigation map'),
+                        ])->title('Additional Assets'),
+                    ]),
                 ],
 
-                'Notification Features' => [
-                    Layout::rows([
-                        CheckBox::make('settings.enable_notifications')
-                            ->title('Push Notifications')
-                            ->placeholder('Enable push notifications for important updates')
-                            ->sendTrueOrFalse()
-                            ->help('Allows sending alerts for sessions, meetings, and announcements'),
+                // TAB 3: DATE & LOCATION
+                'Date & Location' => [
+                    Layout::columns([
+                        Layout::rows([
+                            Group::make([
+                                DateTimer::make('settings.start_date')
+                                    ->title('Event Start')
+                                    ->enableTime()
+                                    ->format('Y-m-d H:i:s')
+                                    ->required()
+                                    ->help('Opening day & time'),
 
-                        CheckBox::make('settings.enable_chat')
-                            ->title('In-Notification Chat')
-                            ->placeholder('Enable real-time messaging between users')
-                            ->sendTrueOrFalse()
-                            ->help('Users can message each other directly in the app'),
+                                DateTimer::make('settings.end_date')
+                                    ->title('Event End')
+                                    ->enableTime()
+                                    ->format('Y-m-d H:i:s')
+                                    ->required()
+                                    ->help('Closing day & time'),
+                            ]),
 
-                        CheckBox::make('settings.enable_qr_checkin')
-                            ->title('QR Code Check-in')
-                            ->placeholder('Enable QR code scanning for attendance tracking')
-                            ->sendTrueOrFalse()
-                            ->help('Staff can scan attendee badges to track session attendance'),
+                            Group::make([
+                                Input::make('settings.opening_hour')
+                                    ->title('Daily Opening')
+                                    ->type('time')
+                                    ->required()
+                                    ->help('Daily start time'),
 
-                        CheckBox::make('settings.enable_networking')
-                            ->title('Networking Features')
-                            ->placeholder('Enable attendee networking and connections')
-                            ->sendTrueOrFalse()
-                            ->help('Allows attendees to connect and share contact information'),
+                                Input::make('settings.closing_hour')
+                                    ->title('Daily Closing')
+                                    ->type('time')
+                                    ->required()
+                                    ->help('Daily end time'),
+                            ]),
 
-                        CheckBox::make('settings.enable_exhibitor_scanning')
-                            ->title('Exhibitor Lead Scanning')
-                            ->placeholder('Allow exhibitors to scan attendee badges for leads')
-                            ->sendTrueOrFalse()
-                            ->help('Exhibitors can collect leads by scanning QR codes'),
+                            Select::make('settings.timezone')
+                                ->title('Time Zone')
+                                ->options([
+                                    'Africa/Casablanca' => 'Casablanca (UTC+1)',
+                                    'Africa/Cairo' => 'Cairo (UTC+2)',
+                                    'Africa/Johannesburg' => 'Johannesburg (UTC+2)',
+                                    'Europe/London' => 'London (UTC+1)',
+                                    'Europe/Paris' => 'Paris (UTC+2)',
+                                    'America/New_York' => 'New York (UTC-4)',
+                                    'America/Chicago' => 'Chicago (UTC-5)',
+                                    'America/Los_Angeles' => 'Los Angeles (UTC-7)',
+                                    'Asia/Dubai' => 'Dubai (UTC+4)',
+                                    'Asia/Singapore' => 'Singapore (UTC+8)',
+                                ])
+                                ->required()
+                                ->help('All times displayed in this zone'),
+                        ])->title('Schedule'),
 
-                        CheckBox::make('settings.enable_social_wall')
-                            ->title('Social Media Wall')
-                            ->placeholder('Display social media posts in the app')
-                            ->sendTrueOrFalse()
-                            ->help('Aggregates and displays social posts with event hashtag'),
+                        Layout::rows([
+                            Input::make('settings.location_name')
+                                ->title('Venue Name')
+                                ->placeholder('e.g., Grand Convention Center')
+                                ->help('Specific venue or hall name'),
 
-                        CheckBox::make('settings.show_attendee_list')
-                            ->title('Show Attendee Directory')
-                            ->placeholder('Display searchable list of all attendees')
-                            ->sendTrueOrFalse()
-                            ->help('Privacy consideration: attendees can see who else is attending'),
+                            TextArea::make('settings.location_address')
+                                ->title('Full Address')
+                                ->rows(3)
+                                ->placeholder('123 Main Street, City, Country')
+                                ->help('Complete address for maps'),
 
-                        CheckBox::make('settings.enable_offline_mode')
-                            ->title('Offline Mode')
-                            ->placeholder('Allow app to work without internet connection')
-                            ->sendTrueOrFalse()
-                            ->help('Caches data locally for offline access'),
+                            Group::make([
+                                Input::make('settings.latitude')
+                                    ->title('Latitude')
+                                    ->type('number')
+                                    ->step('0.0000001')
+                                    ->placeholder('33.5731104'),
 
-                    ])->title('Feature Toggles'),
+                                Input::make('settings.longitude')
+                                    ->title('Longitude')
+                                    ->type('number')
+                                    ->step('0.0000001')
+                                    ->placeholder('-7.5898434'),
+                            ])->fullwidth(),
+                        ])->title('Venue Location'),
+                    ]),
                 ],
 
+                // TAB 4: FEATURES
+                'App Features' => [
+                    Layout::columns([
+                        Layout::rows([
+                            CheckBox::make('settings.enable_meeting_requests')
+                                ->placeholder('Enable Meeting Scheduling')
+                                ->sendTrueOrFalse()
+                                ->help('Allow attendees to book meetings'),
+
+                            CheckBox::make('settings.auto_confirm_meetings')
+                                ->placeholder('Auto-approve Meetings')
+                                ->sendTrueOrFalse()
+                                ->help('Skip manual approval step'),
+
+                            CheckBox::make('settings.enable_exhibitor_scanning')
+                                ->placeholder('Lead Retrieval (QR Scanning)')
+                                ->sendTrueOrFalse()
+                                ->help('Exhibitors can scan attendee badges'),
+
+                            Group::make([
+                                Input::make('settings.meeting_duration_minutes')
+                                    ->title('Meeting Duration')
+                                    ->type('number')
+                                    ->min(15)
+                                    ->max(120)
+                                    ->step(5)
+                                    ->value(30)
+                                    ->help('Minutes'),
+
+                                Input::make('settings.meeting_buffer_minutes')
+                                    ->title('Buffer Time')
+                                    ->type('number')
+                                    ->min(0)
+                                    ->max(30)
+                                    ->step(5)
+                                    ->value(5)
+                                    ->help('Gap between'),
+
+                                Input::make('settings.max_meetings_per_day')
+                                    ->title('Daily Limit')
+                                    ->type('number')
+                                    ->min(1)
+                                    ->max(50)
+                                    ->value(10)
+                                    ->help('Max per day'),
+                            ]),
+                        ])->title('Meeting Management'),
+
+                        Layout::rows([
+                            CheckBox::make('settings.enable_networking')
+                                ->placeholder('Attendee Networking')
+                                ->sendTrueOrFalse()
+                                ->help('Allow connections between attendees'),
+
+                            CheckBox::make('settings.enable_chat')
+                                ->placeholder('In-App Messaging')
+                                ->sendTrueOrFalse()
+                                ->help('Enable direct messaging'),
+
+                            CheckBox::make('settings.enable_notifications')
+                                ->placeholder('Push Notifications')
+                                ->sendTrueOrFalse()
+                                ->help('Send alerts & reminders'),
+
+                            CheckBox::make('settings.enable_qr_checkin')
+                                ->placeholder('QR Check-in')
+                                ->sendTrueOrFalse()
+                                ->help('Track session attendance'),
+
+                            CheckBox::make('settings.show_attendee_list')
+                                ->placeholder('Attendee Directory')
+                                ->sendTrueOrFalse()
+                                ->help('Public attendee list'),
+
+                            CheckBox::make('settings.enable_social_wall')
+                                ->placeholder('Social Media Wall')
+                                ->sendTrueOrFalse()
+                                ->help('Display social posts'),
+
+                            CheckBox::make('settings.enable_offline_mode')
+                                ->placeholder('Offline Access')
+                                ->sendTrueOrFalse()
+                                ->help('Cache key information'),
+                        ])->title('Communication & Social'),
+                    ]),
+                ],
+
+                // TAB 5: CONTACT & SUPPORT
                 'Contact & Support' => [
-                    Layout::rows([
-                        Group::make([
+                    Layout::columns([
+                        Layout::rows([
                             Input::make('settings.support_email')
                                 ->title('Support Email')
                                 ->type('email')
-                                ->placeholder('support@yourevent.com')
-                                ->help('Contact email shown in the app'),
+                                ->placeholder('support@event.com')
+                                ->help('For attendee inquiries'),
 
                             Input::make('settings.support_phone')
                                 ->title('Support Phone')
                                 ->type('tel')
-                                ->placeholder('+212 5XX-XXXXXX')
-                                ->help('Contact phone shown in the app'),
-                        ]),
+                                ->placeholder('+1 234 567 8900')
+                                ->help('On-site contact'),
 
-                        Input::make('settings.website_url')
-                            ->title('Event Website')
-                            ->type('url')
-                            ->placeholder('https://yourevent.com')
-                            ->help('Official event website URL'),
-
-                        Group::make([
-                            Input::make('settings.facebook_url')
-                                ->title('Facebook Page')
+                            Input::make('settings.website_url')
+                                ->title('Event Website')
                                 ->type('url')
-                                ->placeholder('https://facebook.com/yourevent'),
+                                ->placeholder('https://event.com')
+                                ->help('Official homepage'),
+
+                            TextArea::make('settings.emergency_info')
+                                ->title('Emergency Information')
+                                ->rows(4)
+                                ->placeholder('Emergency exits, first aid locations, security contacts...')
+                                ->help('Critical safety information'),
+                        ])->title('Support Information'),
+
+                        Layout::rows([
+                            Input::make('settings.facebook_url')
+                                ->title('Facebook')
+                                ->type('url')
+                                ->placeholder('https://facebook.com/event'),
 
                             Input::make('settings.twitter_url')
-                                ->title('Twitter/X Handle')
+                                ->title('X (Twitter)')
                                 ->type('url')
-                                ->placeholder('https://twitter.com/yourevent'),
-                        ]),
+                                ->placeholder('https://twitter.com/event'),
 
-                        Group::make([
                             Input::make('settings.instagram_url')
-                                ->title('Instagram Profile')
+                                ->title('Instagram')
                                 ->type('url')
-                                ->placeholder('https://instagram.com/yourevent'),
+                                ->placeholder('https://instagram.com/event'),
 
                             Input::make('settings.linkedin_url')
-                                ->title('LinkedIn Page')
+                                ->title('LinkedIn')
                                 ->type('url')
-                                ->placeholder('https://linkedin.com/company/yourevent'),
-                        ]),
-
-                        TextArea::make('settings.emergency_info')
-                            ->title('Emergency Information')
-                            ->rows(4)
-                            ->placeholder('Emergency exits, first aid locations, emergency contact numbers, etc.')
-                            ->help('Important safety information displayed in the app'),
-
-                    ])->title('Contact Information'),
+                                ->placeholder('https://linkedin.com/company/event'),
+                        ])->title('Social Media'),
+                    ]),
                 ],
 
-                'Advanced' => [
-                    Layout::rows([
-                        Input::make('settings.api_key')
-                            ->title('API Key')
-                            ->placeholder('Generated automatically on first save')
-                            ->readonly()
-                            ->help('Use this key for mobile app API authentication'),
-
-                        Group::make([
-                            Input::make('settings.timezone')
-                                ->title('Event Timezone')
-                                ->placeholder('Africa/Casablanca')
-                                ->help('IANA timezone identifier (e.g., Africa/Casablanca, Europe/Paris)'),
-
-                            Input::make('settings.language')
+                // TAB 6: ADVANCED
+                'Advanced Settings' => [
+                    Layout::columns([
+                        Layout::rows([
+                            Select::make('settings.language')
                                 ->title('Default Language')
-                                ->placeholder('en')
-                                ->maxlength(5)
-                                ->help('ISO language code: en, fr, ar, etc.'),
-                        ]),
+                                ->options([
+                                    'en' => '🇬🇧 English',
+                                    'fr' => '🇫🇷 Français',
+                                    'ar' => '🇸🇦 العربية',
+                                    'es' => '🇪🇸 Español',
+                                    'de' => '🇩🇪 Deutsch',
+                                    'it' => '🇮🇹 Italiano',
+                                    'pt' => '🇵🇹 Português',
+                                    'zh' => '🇨🇳 中文',
+                                ])
+                                ->required()
+                                ->help('Primary app language'),
 
-                        Input::make('settings.app_version')
-                            ->title('Minimum Required Notification Version')
-                            ->placeholder('1.0.0')
-                            ->help('Force users to update if they have an older version'),
+                            Input::make('settings.app_version')
+                                ->title('Minimum App Version')
+                                ->placeholder('1.0.0')
+                                ->help('Force update for older versions'),
 
-                        CheckBox::make('settings.maintenance_mode')
-                            ->title('Maintenance Mode')
-                            ->placeholder('Put app in maintenance mode (blocks all access)')
-                            ->sendTrueOrFalse()
-                            ->help('⚠️ Warning: Enabling this will prevent users from accessing the app'),
+                            Input::make('settings.api_key')
+                                ->title('API Key')
+                                ->placeholder('Auto-generated on first save')
+                                ->readonly()
+                                ->help('Keep this secret!'),
+                        ])->title('System Configuration'),
 
-                        TextArea::make('settings.maintenance_message')
-                            ->title('Maintenance Message')
-                            ->rows(3)
-                            ->placeholder('We are currently updating the app. Please check back soon.')
-                            ->help('Message shown to users when maintenance mode is enabled'),
+                        Layout::rows([
+                            CheckBox::make('settings.maintenance_mode')
+                                ->placeholder('⚠️ Enable Maintenance Mode')
+                                ->sendTrueOrFalse()
+                                ->help('Blocks all user access'),
 
-                    ])->title('Technical Settings'),
+                            TextArea::make('settings.maintenance_message')
+                                ->title('Maintenance Message')
+                                ->rows(3)
+                                ->placeholder('We are currently updating. Please check back soon.')
+                                ->help('Shown when maintenance mode is active'),
+
+                            Input::make('last_updated')
+                                ->title('Last Updated')
+                                ->value(optional($this->query()['settings']->updated_at)->format('M j, Y \a\t g:i A') ?? 'Never')
+                                ->readonly()
+                                ->help('Configuration last saved'),
+                        ])->title('Maintenance & Status'),
+                    ]),
                 ],
             ]),
         ];
@@ -391,16 +429,17 @@ class EventSettingScreen extends Screen
             'settings.floor_plan_image' => 'nullable|string',
             'settings.opening_hour' => 'required',
             'settings.closing_hour' => 'required',
+            'settings.timezone' => 'required|string|max:50',
             'settings.meeting_duration_minutes' => 'required|integer|min:15|max:120',
             'settings.meeting_buffer_minutes' => 'nullable|integer|min:0|max:30',
             'settings.max_meetings_per_day' => 'nullable|integer|min:1|max:50',
             'settings.enable_meeting_requests' => 'nullable|boolean',
             'settings.auto_confirm_meetings' => 'nullable|boolean',
+            'settings.enable_exhibitor_scanning' => 'nullable|boolean',
             'settings.enable_notifications' => 'nullable|boolean',
             'settings.enable_chat' => 'nullable|boolean',
             'settings.enable_qr_checkin' => 'nullable|boolean',
             'settings.enable_networking' => 'nullable|boolean',
-            'settings.enable_exhibitor_scanning' => 'nullable|boolean',
             'settings.enable_social_wall' => 'nullable|boolean',
             'settings.show_attendee_list' => 'nullable|boolean',
             'settings.enable_offline_mode' => 'nullable|boolean',
@@ -412,67 +451,23 @@ class EventSettingScreen extends Screen
             'settings.instagram_url' => 'nullable|url|max:255',
             'settings.linkedin_url' => 'nullable|url|max:255',
             'settings.emergency_info' => 'nullable|string',
+            'settings.language' => 'required|string|max:5',
             'settings.app_version' => 'nullable|string|max:20',
             'settings.maintenance_mode' => 'nullable|boolean',
             'settings.maintenance_message' => 'nullable|string',
-            'settings.timezone' => 'nullable|string|max:50',
-            'settings.language' => 'nullable|string|max:5',
         ]);
 
         $settings = EventSetting::firstOrNew();
-
-        // Fill all settings from request
         $settings->fill($request->get('settings'));
 
         // Generate API key if not exists
         if (empty($settings->api_key)) {
-            $settings->api_key = bin2hex(random_bytes(32));
+            $settings->api_key = 'evt_' . bin2hex(random_bytes(16));
         }
 
         $settings->save();
 
-        Toast::success('Event settings saved successfully!');
-
-        return redirect()->route('platform.event.settings');
-    }
-
-    public function resetDefaults()
-    {
-        $settings = EventSetting::firstOrNew();
-
-        // Keep the API key and event name
-        $apiKey = $settings->api_key;
-        $eventName = $settings->event_name ?? 'My Event';
-
-        $settings->fill([
-            'event_name' => $eventName,
-            'api_key' => $apiKey,
-            'primary_color' => '#D4AF37',
-            'secondary_color' => '#0F172A',
-            'accent_color' => '#F59E0B',
-            'opening_hour' => '10:00:00',
-            'closing_hour' => '18:00:00',
-            'meeting_duration_minutes' => 30,
-            'meeting_buffer_minutes' => 5,
-            'max_meetings_per_day' => 10,
-            'enable_meeting_requests' => true,
-            'auto_confirm_meetings' => false,
-            'enable_notifications' => true,
-            'enable_chat' => true,
-            'enable_qr_checkin' => true,
-            'enable_networking' => true,
-            'enable_exhibitor_scanning' => true,
-            'enable_social_wall' => false,
-            'show_attendee_list' => true,
-            'enable_offline_mode' => true,
-            'maintenance_mode' => false,
-            'timezone' => 'Africa/Casablanca',
-            'language' => 'en',
-        ]);
-
-        $settings->save();
-
-        Toast::info('Settings reset to default values. Event name and API key were preserved.');
+        Toast::success('Configuration saved successfully! Changes are now live in the mobile app.');
 
         return redirect()->route('platform.event.settings');
     }

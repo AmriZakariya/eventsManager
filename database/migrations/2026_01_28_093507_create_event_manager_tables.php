@@ -81,6 +81,8 @@ return new class extends Migration
             $table->text('maintenance_message')->nullable();
             $table->string('timezone')->default('Africa/Casablanca');
             $table->string('language')->default('en');
+            $table->json('available_languages')->nullable();
+            $table->string('default_language')->default('en');
 
             $table->timestamps();
         });
