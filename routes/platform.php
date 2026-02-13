@@ -7,6 +7,7 @@ use App\Orchid\Screens\Content\HomeWidgetItemEditScreen;
 use App\Orchid\Screens\Content\HomeWidgetListScreen;
 use App\Orchid\Screens\Interaction\Networking\ConnectionRequestListScreen;
 use App\Orchid\Screens\Interaction\Networking\ConversationMonitorScreen;
+use App\Orchid\Screens\Language\LanguageManagementScreen;
 use Illuminate\Support\Facades\Route;
 use Tabuna\Breadcrumbs\Trail;
 
@@ -290,3 +291,29 @@ Route::screen('networking/requests', ConnectionRequestListScreen::class)
 
 Route::screen('networking/chats', ConversationMonitorScreen::class)
     ->name('platform.networking.chats');
+
+
+// Language Management
+Route::screen('languages/{languageCode?}', LanguageManagementScreen::class)
+    ->name('platform.language.management')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.event.settings')
+        ->push('Languages', route('platform.language.management')));
+
+Route::post('languages/toggle', [LanguageManagementScreen::class, 'toggleLanguage'])
+    ->name('platform.language.toggle');
+
+Route::post('languages/add', [LanguageManagementScreen::class, 'addLanguage'])
+    ->name('platform.language.add');
+
+Route::post('languages/update-default', [LanguageManagementScreen::class, 'updateDefaultLanguage'])
+    ->name('platform.language.update-default');
+
+Route::get('languages/{code}/export', function($code) {
+    $settings = \App\Models\EventSetting::first();
+    $translations = $settings->getTranslationFile($code);
+
+    return response()->json($translations)
+        ->header('Content-Type', 'application/json')
+        ->header('Content-Disposition', "attachment; filename={$code}.json");
+})->name('platform.language.export');

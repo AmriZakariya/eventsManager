@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ConferenceController;
 use App\Http\Controllers\Api\ContactRequestController;
 use App\Http\Controllers\Api\HomeController;
+use App\Http\Controllers\Api\LanguageController;
 use App\Http\Controllers\Api\NetworkingController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ProductController;
@@ -82,6 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
 // 4. AUTHENTICATION (Standard Sanctum)
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 
 Route::prefix('config')->group(function () {
     Route::get('/init', [AppConfigController::class, 'init']);
@@ -89,3 +92,7 @@ Route::prefix('config')->group(function () {
     Route::get('/features', [AppConfigController::class, 'features']);
     Route::get('/home', [HomeController::class, 'index']);
 });
+
+Route::get('/languages', [LanguageController::class, 'index']);
+Route::get('/languages/{code}/translations', [LanguageController::class, 'translations']);
+Route::get('/languages/all', [LanguageController::class, 'all']);

@@ -93,6 +93,10 @@ class AppConfigController extends Controller
                     'maintenance_message' => $settings->maintenance_message,
                     'timezone' => $settings->timezone,
                     'language' => $settings->language,
+
+                    // Language Configuration
+                    'languages' => $settings->getEnabledLanguages(),
+                    'defaultLanguage' => $settings->default_language ?? 'en',
                 ],
                 'timestamp' => now()->toIso8601String(),
             ]);

@@ -114,6 +114,11 @@ class PlatformProvider extends OrchidServiceProvider
                 ->route('platform.event.settings')
                 ->permission('platform.event.settings'),
 
+            Menu::make('Languages')
+                ->icon('bs.translate')
+                ->route('platform.language.management')
+                ->permission('platform.event.settings'),
+
             // =============================================================
             // 5. SYSTEM ACCESS (Admin)
             // =============================================================

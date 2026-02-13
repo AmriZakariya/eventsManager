@@ -383,6 +383,12 @@ class EventSettingScreen extends Screen
                                 ->placeholder('Auto-generated on first save')
                                 ->readonly()
                                 ->help('Keep this secret!'),
+
+                            Button::make('Manage Languages & Translations')
+                                ->icon('bs.translate')
+                                ->link(route('platform.language.management'))
+                                ->type(Color::INFO)
+                                ->class('w-100 mb-3'),
                         ])->title('System Configuration'),
 
                         Layout::rows([
