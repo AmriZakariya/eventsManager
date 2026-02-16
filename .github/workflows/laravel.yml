@@ -81,18 +81,8 @@ jobs:
 
           git checkout --orphan prod
           git rm -rf .
-
-          cp -r vendor vendor
-          cp -r public public
-          cp -r bootstrap bootstrap
-          cp -r app app
-          cp -r config config
-          cp -r database database
-          cp -r resources resources
-          cp -r routes routes
-          cp artisan artisan
-          cp composer.json composer.json
-          cp composer.lock composer.lock
+          
+          rsync -a vendor public bootstrap app config database resources routes artisan composer.json composer.lock ./ 
 
           git add .
           git commit -m "Deploy build from main"
