@@ -160,7 +160,7 @@ class ExhibitorUserListScreen extends Screen
                     ->width('300px')
                     ->render(function (User $user) {
                         $avatar = $user->avatar
-                            ? "<img src='{$user->avatar}' class='rounded-circle me-2 border' width='40' height='40' style='object-fit:cover;'>"
+                            ? "<img src='{$user->avatar_url}' class='rounded-circle me-2 border' width='40' height='40' style='object-fit:cover;'>"
                             : "<div class='rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2' style='width:40px;height:40px;font-weight:bold;'>" . substr($user->name, 0, 1) . "</div>";
 
                         return "<div class='d-flex align-items-center'>
