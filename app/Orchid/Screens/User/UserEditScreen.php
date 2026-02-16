@@ -14,15 +14,19 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Orchid\Access\Impersonation;
 use App\Models\User;
-use App\Models\Company; // Imported Company Model
+use App\Models\Company;
 use Orchid\Screen\Action;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Screen;
 use Orchid\Support\Color;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
-use Orchid\Screen\Fields\Input; // Imported Input
-use Orchid\Screen\Fields\Relation; // Imported Relation
+use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Relation;
+use Orchid\Screen\Fields\Group;
+use Orchid\Screen\Fields\Select;
+use Orchid\Screen\Fields\Cropper;
+use Orchid\Screen\Fields\Switcher;
 
 class UserEditScreen extends Screen
 {
@@ -33,8 +37,6 @@ class UserEditScreen extends Screen
 
     /**
      * Fetch data to be displayed on the screen.
-     *
-     * @return array
      */
     public function query(User $user): iterable
     {
@@ -59,7 +61,7 @@ class UserEditScreen extends Screen
      */
     public function description(): ?string
     {
-        return 'User profile, event details, and privileges.';
+        return 'Manage user profile, professional details, and access rights.';
     }
 
     public function permission(): ?iterable
@@ -71,8 +73,6 @@ class UserEditScreen extends Screen
 
     /**
      * The screen's action buttons.
-     *
-     * @return Action[]
      */
     public function commandBar(): iterable
     {
@@ -102,91 +102,152 @@ class UserEditScreen extends Screen
     {
         return [
 
-            // 1. Standard Profile (Name, Email)
-            Layout::block(UserEditLayout::class)
-                ->title(__('Profile Information'))
-                ->description(__('Update your account\'s profile information and email address.'))
-                ->commands(
-                    Button::make(__('Save'))
-                        ->type(Color::BASIC)
-                        ->icon('bs.check-circle')
-                        ->canSee($this->user->exists)
-                        ->method('save')
-                ),
-
-            // 2. [NEW] Event Specific Details (Exhibitor/Visitor Info)
+            // 1. IDENTITY & CONTACT (Standard Info)
             Layout::block(Layout::rows([
-                Input::make('user.last_name')
-                    ->title('Last Name')
-                    ->placeholder('Enter last name'),
+                // Avatar Cropper
+                Cropper::make('user.avatar')
+                    ->title('Profile Picture')
+                    ->targetRelativeUrl()
+                    ->width(500)
+                    ->height(500),
 
-                Input::make('user.phone')
-                    ->title('Phone Number')
-                    ->mask('(999) 999-9999'),
+                // Group: Names
+                Group::make([
+                    Input::make('user.name')
+                        ->type('text')
+                        ->title('First Name')
+                        ->required()
+                        ->placeholder('First Name'),
 
-                // Link User to Company (Makes them an Exhibitor)
-                Relation::make('user.company_id')
-                    ->title('Company (For Exhibitors)')
-                    ->fromModel(Company::class, 'name')
-                    ->empty('None (Visitor or Admin)')
-                    ->help('If selected, this user will be linked to the company as an exhibitor.'),
+                    Input::make('user.last_name')
+                        ->type('text')
+                        ->title('Last Name')
+                        ->required()
+                        ->placeholder('Last Name'),
+                ]),
 
-                Input::make('user.job_function')
-                    ->title('Job Function')
-                    ->help('E.g. Sales Manager, CEO'),
+                Input::make('user.email')
+                    ->type('email')
+                    ->title('Email')
+                    ->required()
+                    ->placeholder('Email Address'),
 
-                Input::make('user.linkedin_url')
-                    ->title('LinkedIn URL'),
+                // Group: Contact
+                Group::make([
+                    Input::make('user.phone')
+                        ->type('tel')
+                        ->title('Phone Number')
+                        ->placeholder('+1 234 567 890'),
 
-                Input::make('user.badge_code')
-                    ->title('Badge Code')
-                    ->help('Unique code for Visitors'),
+                    Input::make('user.linkedin_url')
+                        ->type('url')
+                        ->title('LinkedIn URL')
+                        ->placeholder('https://linkedin.com/in/...'),
+                ]),
+
+                // Group: Location
+                Group::make([
+                    Select::make('user.country')
+                        ->title('Country')
+                        ->options([
+                            'MA' => 'Morocco',
+                            'FR' => 'France',
+                            'US' => 'United States',
+                            'UK' => 'United Kingdom',
+                            'ES' => 'Spain',
+                            'DE' => 'Germany',
+                            'IT' => 'Italy',
+                            'AE' => 'United Arab Emirates',
+                            'SA' => 'Saudi Arabia',
+                        ])
+                        ->empty('Select Country'),
+
+                    Input::make('user.city')
+                        ->title('City')
+                        ->placeholder('City Name'),
+                ]),
             ]))
-                ->title(__('Event Details'))
-                ->description(__('Manage specific data for Visitors and Exhibitors.'))
+                ->title(__('Identity & Contact'))
+                ->description(__('Basic profile information and contact details.'))
                 ->commands(
-                    Button::make(__('Save'))
+                    Button::make(__('Save Changes'))
                         ->type(Color::BASIC)
                         ->icon('bs.check-circle')
-                        ->canSee($this->user->exists)
                         ->method('save')
                 ),
 
-            // 3. Password
+            // 2. PROFESSIONAL DETAILS (Exhibitor/Visitor Context)
+            Layout::block(Layout::rows([
+                Group::make([
+                    Input::make('user.job_title')
+                        ->title('Job Title')
+                        ->placeholder('e.g. Sales Manager'),
+
+                    Select::make('user.company_sector')
+                        ->title('Sector')
+                        ->options([
+                            'Cleaning Chemicals & Agents' => 'Cleaning Chemicals & Agents',
+                            'Washroom Hygiene & Waste Disposal' => 'Washroom Hygiene & Waste Disposal',
+                            'Dry-cleaning & Laundry' => 'Dry-cleaning & Laundry',
+                            'Cleaning Equipment Machinery' => 'Cleaning Equipment Machinery',
+                            'Car Care Systems & Accessories' => 'Car Care Systems & Accessories',
+                            'Packaging Materials & Processing' => 'Packaging Materials & Processing',
+                            'Climbing Aid & Protection' => 'Climbing Aid & Protection',
+                            'Municipal Solutions' => 'Municipal Solutions',
+                            'Waste Management' => 'Waste Management',
+                            'Other' => 'Other',
+                        ])
+                        ->empty('Select Sector'),
+                ]),
+
+                // Logic: Exhibitor vs Visitor
+                Group::make([
+                    Relation::make('user.company_id')
+                        ->title('Assigned Company (Exhibitors)')
+                        ->fromModel(Company::class, 'name')
+                        ->empty('No Company Assigned')
+                        ->help('Select a company if this user is an Exhibitor Team Member.'),
+
+                    Input::make('user.company_name')
+                        ->title('Company Name (Visitors)')
+                        ->placeholder('Enter company name')
+                        ->help('For visitors who do not belong to a registered exhibitor company.'),
+                ]),
+
+                // System Fields
+                Group::make([
+                    Input::make('user.badge_code')
+                        ->title('Badge Code')
+                        ->disabled() // Usually auto-generated, keep read-only
+                        ->help('Auto-generated unique ID'),
+
+                    Switcher::make('user.is_visible')
+                        ->title('Public Profile')
+                        ->sendTrueOrFalse()
+                        ->help('Show this user in the public networking list?'),
+                ]),
+            ]))
+                ->title(__('Professional Info'))
+                ->description(__('Employment details and categorization.'))
+                ->commands(
+                    Button::make(__('Save Changes'))
+                        ->type(Color::BASIC)
+                        ->icon('bs.check-circle')
+                        ->method('save')
+                ),
+
+            // 3. AUTHENTICATION (Password, Roles)
             Layout::block(UserPasswordLayout::class)
-                ->title(__('Password'))
-                ->description(__('Ensure your account is using a long, random password to stay secure.'))
-                ->commands(
-                    Button::make(__('Save'))
-                        ->type(Color::BASIC)
-                        ->icon('bs.check-circle')
-                        ->canSee($this->user->exists)
-                        ->method('save')
-                ),
+                ->title(__('Security'))
+                ->description(__('Manage password and security settings.')),
 
-            // 4. Roles
             Layout::block(UserRoleLayout::class)
                 ->title(__('Roles'))
-                ->description(__('A Role defines a set of tasks a user assigned the role is allowed to perform.'))
-                ->commands(
-                    Button::make(__('Save'))
-                        ->type(Color::BASIC)
-                        ->icon('bs.check-circle')
-                        ->canSee($this->user->exists)
-                        ->method('save')
-                ),
+                ->description(__('Assign roles to define user permissions.')),
 
-            // 5. Permissions
             Layout::block(RolePermissionLayout::class)
                 ->title(__('Permissions'))
-                ->description(__('Allow the user to perform some actions that are not provided for by his roles'))
-                ->commands(
-                    Button::make(__('Save'))
-                        ->type(Color::BASIC)
-                        ->icon('bs.check-circle')
-                        ->canSee($this->user->exists)
-                        ->method('save')
-                ),
+                ->description(__('Granular permission overrides.')),
         ];
     }
 
@@ -200,6 +261,8 @@ class UserEditScreen extends Screen
                 'required',
                 Rule::unique(User::class, 'email')->ignore($user),
             ],
+            'user.name' => 'required|string',
+            'user.last_name' => 'required|string',
         ]);
 
         $permissions = collect($request->get('permissions'))
@@ -207,35 +270,33 @@ class UserEditScreen extends Screen
             ->collapse()
             ->toArray();
 
+        // Handle Password Update
         $user->when($request->filled('user.password'), function (Builder $builder) use ($request) {
             $builder->getModel()->password = Hash::make($request->input('user.password'));
         });
 
-        // This automatically saves all the new fields (last_name, phone, company_id, etc.)
-        // because we added them to the $fillable array in the User model earlier.
-        $user
-            ->fill($request->collect('user')->except(['password', 'permissions', 'roles'])->toArray())
+        // Save User Data (New fields are handled automatically via $fillable in User model)
+        $userData = $request->collect('user')->except(['password', 'permissions', 'roles'])->toArray();
+
+        $user->fill($userData)
             ->forceFill(['permissions' => $permissions])
             ->save();
 
+        // Sync Roles
         $user->replaceRoles($request->input('user.roles'));
 
-        Toast::info(__('User was saved.'));
+        Toast::info(__('User details saved successfully.'));
 
         return redirect()->route('platform.systems.users');
     }
 
     /**
-     * @throws \Exception
-     *
      * @return \Illuminate\Http\RedirectResponse
      */
     public function remove(User $user)
     {
         $user->delete();
-
         Toast::info(__('User was removed'));
-
         return redirect()->route('platform.systems.users');
     }
 
@@ -245,9 +306,7 @@ class UserEditScreen extends Screen
     public function loginAs(User $user)
     {
         Impersonation::loginAs($user);
-
         Toast::info(__('You are now impersonating this user'));
-
         return redirect()->route(config('platform.index'));
     }
 }

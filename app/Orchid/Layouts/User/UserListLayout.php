@@ -33,7 +33,7 @@ class UserListLayout extends Table
                 ->width('60px')
                 ->render(fn (User $user) =>
                 $user->avatar
-                    ? "<img src='" . asset($user->avatar) . "' class='rounded-circle' style='width: 40px; height: 40px; object-fit: cover;'>"
+                    ? "<img src='" . asset($user->avatar_url) . "' class='rounded-circle' style='width: 40px; height: 40px; object-fit: cover;'>"
                     : "<div class='bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white' style='width: 40px; height: 40px; font-weight: bold;'>{$user->name[0]}</div>"
                 ),
 
