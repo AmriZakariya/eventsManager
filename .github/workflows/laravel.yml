@@ -76,6 +76,9 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
+          # Delete local prod if exists
+          git branch -D prod || true
+
           git checkout --orphan prod
           git rm -rf .
 
