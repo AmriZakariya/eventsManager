@@ -89,7 +89,7 @@ jobs:
 
           # Prepare a temporary directory for prod branch
           mkdir ../prod-temp
-          cp -r app bootstrap config database public resources routes artisan composer.json composer.lock vendor ../prod-temp/
+          cp -r app bootstrap config database public resources routes artisan composer.json composer.lock .env vendor ../prod-temp/
 
           # Switch to prod branch
           git checkout --orphan prod
