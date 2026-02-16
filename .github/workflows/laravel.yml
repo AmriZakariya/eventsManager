@@ -22,6 +22,10 @@ jobs:
           extensions: mbstring, bcmath, sqlite
           coverage: none
 
+      # Composer Update
+      - name: Update composer
+        run: composer update
+
       # Install Composer dependencies
       - name: Install PHP Dependencies
         run: composer install -q --no-ansi --no-interaction --no-scripts --no-progress --prefer-dist
