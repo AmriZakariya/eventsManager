@@ -10,12 +10,21 @@ class AppNotification extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
-        'title',
-        'body',
-        'type', // 'alert', 'info', 'promo'
-        'data',
-        'is_read'
+        'name',
+        'last_name',
+        'email',
+        'password',
+        'phone',
+        'avatar',
+        'job_title',
+        'company_id',     // Exhibitor Relation
+        'company_name',   // Visitor Text Input
+        'country',
+        'city',
+        'company_sector',
+        'badge_code',
+        'is_visible',
+        'permissions',    // Orchid permissions
     ];
 
     protected $casts = [

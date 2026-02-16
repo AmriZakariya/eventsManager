@@ -167,6 +167,11 @@ return new class extends Migration
             $table->string('badge_code')->nullable();
             $table->string('fcm_token')->nullable();
             $table->boolean('is_visible')->default(true);
+
+            $table->string('country')->nullable();
+            $table->string('city')->nullable();
+            $table->string('company_sector')->nullable();
+            $table->string('company_name')->nullable();
         });
 
         // Push Notifications History

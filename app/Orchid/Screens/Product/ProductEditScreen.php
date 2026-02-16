@@ -70,7 +70,7 @@ class ProductEditScreen extends Screen
         return [
             Link::make('Back to Products')
                 ->icon('bs.arrow-left')
-                ->route('platform.product.list'),
+                ->route('platform.products.list'),
 
             Button::make('Save')
                 ->icon('bs.check-circle')
@@ -170,7 +170,7 @@ class ProductEditScreen extends Screen
 
         Toast::info(__('Product was saved.'));
 
-        return redirect()->route('platform.product.list');
+        return redirect()->route('platform.products.list');
     }
 
     /**
@@ -185,6 +185,6 @@ class ProductEditScreen extends Screen
 
         Toast::info(__('Product was removed'));
 
-        return redirect()->route('platform.product.list');
+        return redirect()->route('platform.products.list');
     }
 }

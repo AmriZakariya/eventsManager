@@ -175,7 +175,7 @@ class HomeWidgetSeeder extends Seeder
         // --- A. Institutional Partners (4 Logos) ---
         $instPartners = HomeWidget::create([
             'title' => 'Institutional Partners',
-            'identifier' => 'home_partners_section',
+            'identifier' => 'home_partners_inst',
             'widget_type' => 'logo_cloud',
             'order' => 60,
             'is_active' => true,

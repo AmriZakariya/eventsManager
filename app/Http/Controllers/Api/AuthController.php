@@ -28,53 +28,82 @@ class AuthController extends Controller
             'password' => 'required|string|min:6|confirmed',
             'job_title' => 'nullable|string|max:100',
 
-            // 1. Role Validation
+            // New Fields
+            'phone' => 'required|string|max:20',
+            'country' => 'required|string|max:100',
+            'city' => 'required|string|max:100',
+            'company_sector' => 'required|string|max:100',
+
+            // Profile Picture (Required)
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,webp|max:4096', // Max 4MB
+
+            // Role Validation
             'role' => ['required', 'string', Rule::in(['visitor', 'exhibitor'])],
 
-            // 2. Company Validation (Required only for Exhibitors)
+            // CONDITIONAL VALIDATION:
+
+            // 1. Exhibitors need a valid company_id from DB
             'company_id' => [
                 'nullable',
                 'integer',
                 'exists:companies,id',
                 Rule::requiredIf(fn () => $request->role === 'exhibitor')
             ],
+
+            // 2. Visitors need a manual company_name text
+            'company_name' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::requiredIf(fn () => $request->role === 'visitor')
+            ],
         ]);
 
-        // 3. Generate Badge Code based on Role
-        // Exhibitors get "EXH-", Visitors get "VIS-"
-        $prefix = ($request->role === 'exhibitor') ? 'EXH-' : 'VIS-';
+        // Handle File Upload
+        $avatarPath = null;
+        if ($request->hasFile('avatar')) {
+            // Stores in storage/app/public/avatars
+            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+        }
 
+        // Generate Badge Code
+        $prefix = ($request->role === 'exhibitor') ? 'EXH-' : 'VIS-';
         do {
             $badgeCode = $prefix . strtoupper(Str::random(6));
         } while (User::where('badge_code', $badgeCode)->exists());
 
-        // 4. Create User
+        // Create User
         $user = User::create([
             'name' => $request->name,
             'last_name' => $request->last_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'phone' => $request->phone,
+            'country' => $request->country,
+            'city' => $request->city,
+            'company_sector' => $request->company_sector,
             'job_title' => $request->job_title,
             'badge_code' => $badgeCode,
+            'avatar' => $avatarPath, // Save path
             'is_visible' => true,
-            // Only assign company_id if it's an exhibitor
+
+            // Assign Company Data based on Role
             'company_id' => ($request->role === 'exhibitor') ? $request->company_id : null,
+            'company_name' => ($request->role === 'visitor') ? $request->company_name : null,
         ]);
 
-        // 5. Assign Orchid Role
-        // Ensure you have roles with slugs 'visitor' and 'exhibitor' in your `roles` table
-        $roleSlug = $request->role; // 'visitor' or 'exhibitor'
+        // Assign Orchid Role
+        $roleSlug = $request->role;
         $role = Role::where('slug', $roleSlug)->first();
 
         if ($role) {
             $user->addRole($role);
         } else {
-            // Fallback: If 'exhibitor' role doesn't exist, default to visitor permissions
             $defaultRole = Role::where('slug', 'visitor')->first();
             if ($defaultRole) $user->addRole($defaultRole);
         }
 
-        // 6. Generate Token
+        // Generate Token
         $token = $user->createToken('mobile_app')->plainTextToken;
 
         return response()->json([
