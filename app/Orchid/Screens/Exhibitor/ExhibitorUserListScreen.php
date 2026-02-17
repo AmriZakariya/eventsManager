@@ -50,8 +50,10 @@ class ExhibitorUserListScreen extends Screen
         // 2. Filter by Search Term (Name, Email, Job Title)
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('last_name', 'like', "%{$search}%")
+                // 1. Use the new model scope for Name + Last Name
+                $q->searchFullName($search)
+
+                    // 2. Continue with other fields
                     ->orWhere('email', 'like', "%{$search}%")
                     ->orWhere('job_title', 'like', "%{$search}%");
             });

@@ -66,7 +66,11 @@ class B2BController extends Controller
         // Search Filter
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
+
+                // 1. Use your new Model Scope here!
+                $q->searchFullName($search)
+
+                    // 2. Continue with other OR conditions
                     ->orWhere('job_title', 'like', "%{$search}%")
                     ->orWhereHas('company', fn ($c) =>
                     $c->where('name', 'like', "%{$search}%")
