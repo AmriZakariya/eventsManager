@@ -3,26 +3,39 @@
 namespace App\Orchid\Screens\Company;
 
 use App\Models\Company;
+use Illuminate\Http\Request;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\TextArea;
 use Orchid\Screen\Fields\CheckBox;
-use Orchid\Screen\Fields\Cropper; // Use Cropper for images!
+use Orchid\Screen\Fields\Cropper;
+use Orchid\Screen\Fields\Select;
+use Orchid\Screen\Fields\Group;
+use Orchid\Screen\Fields\Code; // For JSON Map
 use Orchid\Screen\Actions\Button;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
-use Illuminate\Http\Request;
 use Orchid\Support\Color;
 
 class CompanyEditScreen extends Screen
 {
-    public $name = 'Manage Exhibitor';
-    public $description = 'Edit company details, visibility, and booth info.';
     public $company;
 
     public function query(Company $company): array
     {
-        return ['company' => $company];
+        return [
+            'company' => $company
+        ];
+    }
+
+    public function name(): ?string
+    {
+        return $this->company->exists ? 'Edit Exhibitor' : 'Create Exhibitor';
+    }
+
+    public function description(): ?string
+    {
+        return 'Manage company profile, booth assignment, and partnership types.';
     }
 
     public function commandBar(): array
@@ -46,77 +59,104 @@ class CompanyEditScreen extends Screen
     {
         return [
             Layout::tabs([
-                // TAB 1: ESSENTIAL INFO
-                'General Info' => Layout::rows([
-                    Input::make('company.name')
-                        ->title('Company Name')
-                        ->placeholder('e.g. Acme Corp')
-                        ->required(),
+                // TAB 1: OVERVIEW
+                'Company Profile' => Layout::rows([
+                    // Row 1: Logo & Basic Info
+                    Group::make([
+                        Cropper::make('company.logo')
+                            ->title('Logo')
+                            ->targetRelativeUrl()
+                            ->width(300)
+                            ->height(300),
 
-                    // Use Cropper for image upload handling
-                    Cropper::make('company.logo')
-                        ->title('Company Logo')
-//                        ->width(300)
-//                        ->height(300)
-                        ->targetRelativeUrl(),
+                        Input::make('company.name')
+                            ->title('Company Name')
+                            ->placeholder('e.g. Acme Corp')
+                            ->required(),
+
+                        Input::make('catalog_upload') // distinct name to handle manually
+                        ->type('file')
+                            ->title('Company Catalog (PDF)')
+                            ->accepted('.pdf')
+                            ->help($this->company->catalog_file
+                                ? "Current: <a href='".asset($this->company->catalog_file)."' target='_blank'>View Catalog</a>"
+                                : 'Upload a PDF brochure or catalog.'),
+                    ]),
+
+                    // Row 2: Categorization
+                    Group::make([
+                        Select::make('company.type')
+                            ->title('Partnership Type(s)')
+                            ->multiple() // Allow selecting multiple types
+                            ->options(Company::TYPES)
+                            ->help('A company can have multiple roles (e.g. Sponsor AND Exhibitor).'),
+
+                        Input::make('company.category')
+                            ->title('Industry Category')
+                            ->placeholder('e.g. Technology, Healthcare'),
+                    ]),
 
                     TextArea::make('company.description')
-                        ->title('Description')
+                        ->title('About the Company')
                         ->rows(5)
-                        ->placeholder('Short bio about the company...'),
-
-                    Input::make('company.category')
-                        ->title('Industry / Category')
-                        ->placeholder('e.g. Technology, Healthcare')
-                        ->help('Used for app filters'),
+                        ->placeholder('Short bio...'),
                 ]),
 
-                // TAB 2: LOCATION & LOGISTICS
+                // TAB 2: LOGISTICS
                 'Location & Booth' => Layout::rows([
-                    Input::make('company.booth_number')
-                        ->title('Booth Number')
-                        ->placeholder('e.g. A-101'),
+                    Group::make([
+                        Input::make('company.booth_number')
+                            ->title('Booth Number')
+                            ->placeholder('e.g. A-101')
+                            ->help('Physical location ID.'),
 
-                    Input::make('company.country')
-                        ->title('Country')
-                        ->placeholder('e.g. Morocco')
-                        ->help('Used for country filter in the app'),
-
-                    Input::make('company.map_coordinates')
-                        ->title('Map Coordinates (JSON)')
-                        ->placeholder('{"x": 100, "y": 200}')
-                        ->help('X/Y coordinates for the interactive floor plan.'),
-                ]),
-
-                // TAB 3: CONTACT DETAILS
-                'Contact Info' => Layout::rows([
-                    Input::make('company.email')
-                        ->type('email')
-                        ->title('Email Address'),
-
-                    Input::make('company.phone')
-                        ->title('Phone Number'),
-
-                    Input::make('company.website_url')
-                        ->title('Website URL')
-                        ->placeholder('https://example.com'),
+                        Input::make('company.country')
+                            ->title('Country')
+                            ->placeholder('e.g. Morocco'),
+                    ]),
 
                     Input::make('company.address')
-                        ->title('Physical Address'),
+                        ->title('Full Address')
+                        ->placeholder('123 Business Blvd, City'),
+
+                    // JSON Input for Map
+                    Code::make('company.map_coordinates')
+                        ->title('Interactive Map Coordinates (JSON)')
+                        ->language('json')
+                        ->placeholder('{"x": 100, "y": 200}')
+                        ->help('Coordinates for the floor plan.'),
                 ]),
 
-                // TAB 4: VISIBILITY & SETTINGS
-                'Visibility Settings' => Layout::rows([
+                // TAB 3: CONTACT
+                'Contact Details' => Layout::rows([
+                    Group::make([
+                        Input::make('company.email')
+                            ->type('email')
+                            ->title('Email Address')
+                            ->placeholder('contact@company.com'),
+
+                        Input::make('company.phone')
+                            ->type('tel')
+                            ->title('Phone Number')
+                            ->placeholder('+1 234 567 890'),
+                    ]),
+
+                    Input::make('company.website_url')
+                        ->type('url')
+                        ->title('Website URL')
+                        ->placeholder('https://...'),
+                ]),
+
+                // TAB 4: SETTINGS
+                'Visibility' => Layout::rows([
                     CheckBox::make('company.is_active')
                         ->title('Active Status')
-                        ->placeholder('Show in Notification')
-                        ->help('If unchecked, this company will be hidden from the API.')
+                        ->placeholder('Visible in App')
                         ->sendTrueOrFalse(),
 
                     CheckBox::make('company.is_featured')
-                        ->title('Featured Exhibitor')
-                        ->placeholder('Mark as Featured')
-                        ->help('Featured companies appear at the top of the list.')
+                        ->title('Featured')
+                        ->placeholder('Highlight on Homepage')
                         ->sendTrueOrFalse(),
                 ]),
             ])
@@ -127,9 +167,28 @@ class CompanyEditScreen extends Screen
     {
         $request->validate([
             'company.name' => 'required|max:255',
+            'catalog_upload' => 'nullable|file|mimes:pdf|max:10240', // Max 10MB
+            'company.email' => 'nullable|email',
+            'company.type' => 'nullable|array', // Ensure array validation
         ]);
 
-        $company->fill($request->get('company'))->save();
+        $data = $request->get('company');
+
+        if ($request->hasFile('catalog_upload')) {
+            // Store in storage/app/public/catalogs
+            $path = $request->file('catalog_upload')->store('catalogs', 'public');
+            $data['catalog_file'] = 'storage/' . $path;
+        }
+
+        // Handle Map Coordinates (Ensure valid JSON or null)
+        if (!empty($data['map_coordinates']) && is_string($data['map_coordinates'])) {
+            $decoded = json_decode($data['map_coordinates'], true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $data['map_coordinates'] = $decoded;
+            }
+        }
+
+        $company->fill($data)->save();
 
         Toast::info('Company saved successfully.');
         return redirect()->route('platform.companies.list');

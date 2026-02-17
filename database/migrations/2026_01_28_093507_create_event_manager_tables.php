@@ -139,6 +139,7 @@ return new class extends Migration
             $table->string('website_url')->nullable();
             $table->string('address')->nullable();
             $table->json('type')->nullable(); //INSTITUTIONAL PARTNER , SPONSOR, MEDIA PARTNERS, EXHIBITIONS PARTNERS
+            $table->string('catalog_file')->nullable();
             $table->text('description')->nullable();
             $table->json('map_coordinates')->nullable(); // {x: 100, y: 500}
             $table->boolean('is_featured')->default(false);

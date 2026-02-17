@@ -26,6 +26,8 @@ class CompanyResource extends JsonResource
             'booth_number'  => $this->booth_number,
             'country'       => $this->country,
             'category'      => $this->category,
+            'type'      => $this->type,
+            'catalog_file'      => $this->catalog_file,
             'is_featured'   => (bool) $this->is_featured,
 
             // Contact

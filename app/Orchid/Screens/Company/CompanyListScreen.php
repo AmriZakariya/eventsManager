@@ -8,9 +8,9 @@ use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Actions\Button;
-use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Actions\DropDown;
 use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\Group;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
@@ -20,133 +20,203 @@ class CompanyListScreen extends Screen
 {
     public function name(): ?string
     {
-        return 'Exhibitors';
+        return 'Exhibitors & Partners';
     }
 
     public function description(): ?string
     {
-        return 'Manage participating companies and booths.';
+        return 'Directory of all participating companies, sponsors, and partners.';
     }
 
+    /**
+     * Query data.
+     */
     public function query(Request $request): iterable
     {
-        // 1. Initialize Query
         $query = Company::query();
 
-        // 2. Manual Filtering (Fixes the "Target class does not exist" error)
-        // This connects the UI Input filters to the Database Query
-        if ($name = $request->input('filter.name')) {
-            $query->where('name', 'like', "%{$name}%");
-        }
-        if ($booth = $request->input('filter.booth_number')) {
-            $query->where('booth_number', 'like', "%{$booth}%");
-        }
-        if ($country = $request->input('filter.country')) {
-            $query->where('country', 'like', "%{$country}%");
+        // 1. Keyword Search (Name, Email, Booth)
+        if ($search = $request->get('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('booth_number', 'like', "%{$search}%");
+            });
         }
 
-        // 3. Sorting & Pagination
+        // 2. Filter by Partner Type (JSON Column)
+        if ($type = $request->get('type')) {
+            $query->whereJsonContains('type', $type);
+        }
+
+        // 3. Filter by Country
+        if ($country = $request->get('country')) {
+            $query->where('country', $country);
+        }
+
+        // 4. Filter by Category
+        if ($category = $request->get('category')) {
+            $query->where('category', 'like', "%{$category}%");
+        }
+
         return [
+            // Get unique countries for the filter dropdown
+            'countries' => Company::distinct()->whereNotNull('country')->pluck('country', 'country')->toArray(),
+
+            'companies' => $query->latest()->paginate(15),
+
             'metrics' => [
                 'total'    => Company::count(),
-                'active'   => Company::where('is_active', true)->count(),
-                'featured' => Company::where('is_featured', true)->count(),
-            ],
-            'companies' => $query->defaultSort('created_at', 'desc')->paginate(15),
+                'sponsors' => Company::whereJsonContains('type', 'SPONSOR')->count(),
+                'active'   => Company::where('is_active', 1)->count(),
+            ]
         ];
     }
 
+    /**
+     * Button commands.
+     */
     public function commandBar(): array
     {
         return [
-            // Download Template Button
-            Button::make('Download CSV Template')
-                ->icon('bs.file-earmark-arrow-down')
-                ->method('downloadTemplate')
-                ->rawClick()
-                ->novalidate(),
-
-            // Import Button
-            ModalToggle::make('Import Data')
-                ->modal('importModal')
-                ->method('importFile')
-                ->icon('bs.upload')
-                ->type(Color::SUCCESS),
-
-            // Add Button
-            Link::make('Add Exhibitor')
+            Link::make('Add Company')
                 ->icon('bs.plus-lg')
                 ->type(Color::PRIMARY)
                 ->route('platform.companies.create'),
         ];
     }
 
+    /**
+     * Views.
+     */
     public function layout(): iterable
     {
         return [
-            // Top Metrics
+            // 1. TOP METRICS
             Layout::metrics([
-                'Total Exhibitors' => 'metrics.total',
-                'Active Profiles'  => 'metrics.active',
-                'Featured'         => 'metrics.featured',
+                'Total Companies' => 'metrics.total',
+                'Active Sponsors' => 'metrics.sponsors',
+                'Live on App'     => 'metrics.active',
             ]),
 
-            // The Table
+            // 2. SEARCH & FILTER BAR
+            Layout::rows([
+                Group::make([
+                    Input::make('search')
+                        ->title('Search')
+                        ->placeholder('Name, Booth or Email...')
+                        ->value(request('search'))
+                        ->icon('bs.search'),
+
+                    Select::make('type')
+                        ->title('Partner Type')
+                        ->options([
+                            'EXHIBITOR'             => 'Exhibitor',
+                            'SPONSOR'               => 'Sponsor',
+                            'INSTITUTIONAL_PARTNER' => 'Institutional Partner',
+                            'MEDIA_PARTNER'         => 'Media Partner',
+                        ])
+                        ->empty('All Types')
+                        ->value(request('type')),
+
+                    Select::make('country')
+                        ->title('Country')
+                        ->options($this->query(request())['countries']) // Use data from query
+                        ->empty('All Countries')
+                        ->value(request('country')),
+
+                    Input::make('category')
+                        ->title('Category')
+                        ->placeholder('e.g. Technology')
+                        ->value(request('category')),
+                ]),
+
+                Group::make([
+                    Button::make('Apply Filters')
+                        ->icon('bs.funnel')
+                        ->type(Color::PRIMARY)
+                        ->method('applyFilters'),
+
+                    Link::make('Reset')
+                        ->icon('bs.x-circle')
+                        ->route('platform.companies.list'), // Clears URL params
+                ])->autoWidth(),
+            ]),
+
+            // 3. DATA TABLE
             Layout::table('companies', [
 
-                // Name Column with Search Filter
+                // COLUMN: LOGO & IDENTITY
                 TD::make('name', 'Company')
                     ->sort()
-                    ->filter(Input::make()->placeholder('Search Company...'))
-                    ->width('250px')
+                    ->width('300px')
                     ->render(function (Company $company) {
-                        // Visual Avatar Logic
-                        $avatar = $company->logo
-                            ? "<img src='".asset($company->logo)."' class='rounded border bg-white' width='40' height='40' style='object-fit:contain; margin-right:10px;'>"
-                            : "<div class='rounded bg-secondary text-white d-flex align-items-center justify-content-center' style='width:40px; height:40px; margin-right:10px; font-weight:bold;'>".substr($company->name, 0, 1)."</div>";
+                        $logo = $company->logo
+                            ? "<img src='".asset($company->logo)."' class='rounded border bg-white me-3' width='48' height='48' style='object-fit:contain;'>"
+                            : "<div class='rounded bg-light text-secondary d-flex align-items-center justify-content-center border me-3' style='width:48px; height:48px; font-weight:bold; font-size:1.2em;'>".substr($company->name, 0, 1)."</div>";
 
-                        return "<div class='d-flex align-items-center'>
-                                    $avatar
-                                    <div>
-                                        <div class='fw-bold text-dark'>{$company->name}</div>
+                        return "<div class='d-flex align-items-center py-2'>
+                                    {$logo}
+                                    <div class='lh-sm'>
+                                        <div class='fw-bold text-dark' style='font-size:1.05em;'>{$company->name}</div>
                                         <div class='small text-muted'>{$company->email}</div>
                                     </div>
                                 </div>";
                     }),
 
-                // Booth Column with Search Filter
-                TD::make('booth_number', 'Booth')
-                    ->sort()
-                    ->filter(Input::make()->placeholder('e.g. A10'))
-                    ->render(fn($c) =>
-                        "<div><span class='badge bg-light text-dark border'>{$c->booth_number}</span></div>" .
-                        "<div class='small text-muted mt-1'>" . ($c->category ?? 'General') . "</div>"
+                // COLUMN: ROLES / BADGES
+                TD::make('type', 'Roles')
+                    ->width('200px')
+                    ->render(function (Company $company) {
+                        if (empty($company->type)) return '<span class="text-muted small fst-italic">No Role</span>';
+
+                        $html = '<div class="d-flex flex-wrap gap-1">';
+                        foreach ($company->type as $type) {
+                            $style = match($type) {
+                                'SPONSOR'               => 'background-color:#FFF7ED; color:#C2410C; border:1px solid #FFEDD5;', // Orange
+                                'INSTITUTIONAL_PARTNER' => 'background-color:#ECFDF5; color:#047857; border:1px solid #D1FAE5;', // Green
+                                'MEDIA_PARTNER'         => 'background-color:#FDF4FF; color:#C026D3; border:1px solid #FAE8FF;', // Purple
+                                'EXHIBITOR'             => 'background-color:#EFF6FF; color:#1D4ED8; border:1px solid #DBEAFE;', // Blue
+                                default                 => 'background-color:#F3F4F6; color:#374151; border:1px solid #E5E7EB;', // Gray
+                            };
+
+                            $label = ucwords(strtolower(str_replace('_', ' ', $type)));
+                            $html .= "<span style='{$style} font-size:0.75rem; padding: 2px 8px; border-radius:12px; font-weight:600;'>{$label}</span>";
+                        }
+                        $html .= '</div>';
+                        return $html;
+                    }),
+
+                // COLUMN: LOCATION
+                TD::make('location', 'Location')
+                    ->render(fn(Company $c) =>
+                        "<div class='lh-sm'>
+                            <div class='text-dark'><i class='bs.geo-alt me-1 text-muted'></i>" . ($c->country ?? '-') . "</div>
+                            <div class='small text-muted mt-1'><i class='bs.shop me-1'></i>Booth: " . ($c->booth_number ?? 'N/A') . "</div>
+                        </div>"
                     ),
 
-                // Country Column with Search Filter
-                TD::make('country', 'Location')
-                    ->sort()
-                    ->filter(Input::make()->placeholder('Search Country...'))
-                    ->render(fn($c) => $c->country ?? '-'),
-
-                // Status Column
+                // COLUMN: STATUS
                 TD::make('status', 'Status')
-                    ->sort()
+                    ->width('100px')
+                    ->alignCenter()
                     ->render(fn (Company $c) =>
+                        "<div class='d-flex flex-column align-items-center gap-1'>" .
                         ($c->is_active
-                            ? '<span class="badge bg-success me-1">Active</span>'
-                            : '<span class="badge bg-danger me-1">Hidden</span>') .
+                            ? '<span class="badge bg-success" style="width:100%;">Active</span>'
+                            : '<span class="badge bg-secondary" style="width:100%;">Hidden</span>') .
                         ($c->is_featured
-                            ? '<span class="badge bg-warning text-dark">Featured</span>'
-                            : '')
+                            ? '<span class="badge bg-warning text-dark" style="width:100%;">Featured</span>'
+                            : '') .
+                        "</div>"
                     ),
 
-                // Actions Column
+                // COLUMN: ACTIONS
                 TD::make(__('Actions'))
                     ->alignRight()
-                    ->width('100px')
+                    ->width('70px')
                     ->render(fn (Company $company) => DropDown::make()
-                        ->icon('bs.three-dots')
+                        ->icon('bs.three-dots-vertical')
                         ->list([
                             Link::make('Edit Details')
                                 ->route('platform.companies.edit', $company->id)
@@ -154,90 +224,33 @@ class CompanyListScreen extends Screen
 
                             Button::make('Delete')
                                 ->icon('bs.trash3')
-                                ->confirm('Delete this company permanently?')
+                                ->confirm('Are you sure you want to delete this company? This action cannot be undone.')
                                 ->method('remove', ['id' => $company->id])
                                 ->class('text-danger'),
                         ])),
             ]),
-
-            // Import Modal Layout
-            Layout::modal('importModal', Layout::rows([
-                Group::make([
-                    Input::make('file')
-                        ->type('file')
-                        ->title('Upload CSV File')
-                        ->accepted('.csv')
-                        ->help('Please use the "Download CSV Template" button to get the correct format.')
-                        ->required(),
-                ]),
-            ]))
-                ->title('Import Companies')
-                ->applyButton('Upload & Process'),
         ];
     }
 
-    // --- LOGIC: Download Template ---
-    public function downloadTemplate()
+    /**
+     * Logic: Apply Filters (Reloads page with GET params)
+     */
+    public function applyFilters(Request $request)
     {
-        $headers = [
-            'Content-type'        => 'text/csv',
-            'Content-Disposition' => 'attachment; filename=exhibitors_template.csv',
-            'Pragma'              => 'no-cache',
-            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
-            'Expires'             => '0'
-        ];
-
-        $columns = ['Name', 'Email', 'Booth Number', 'Category', 'Country', 'Website'];
-        $example = ['Tech Solutions', 'info@tech.com', 'A-101', 'IT Services', 'USA', 'https://tech.com'];
-
-        $callback = function() use ($columns, $example) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, $columns);
-            fputcsv($file, $example); // Example row
-            fclose($file);
-        };
-
-        return response()->stream($callback, 200, $headers);
+        return redirect()->route('platform.companies.list', [
+            'search'   => $request->get('search'),
+            'type'     => $request->get('type'),
+            'country'  => $request->get('country'),
+            'category' => $request->get('category'),
+        ]);
     }
 
-    // --- LOGIC: Import ---
-    public function importFile(Request $request)
-    {
-        $request->validate(['file' => 'required|file|mimes:csv,txt']);
-
-        $file = $request->file('file');
-        $handle = fopen($file->getRealPath(), "r");
-
-        // Skip Header
-        fgetcsv($handle);
-
-        $count = 0;
-        while (($row = fgetcsv($handle)) !== false) {
-            // Row Format: Name[0], Email[1], Booth[2], Category[3], Country[4], Website[5]
-            if (empty($row[0])) continue; // Skip empty names
-
-            Company::updateOrCreate(
-                ['email' => $row[1] ?? null], // Match by email to avoid duplicates
-                [
-                    'name'         => $row[0],
-                    'booth_number' => $row[2] ?? null,
-                    'category'     => $row[3] ?? null,
-                    'country'      => $row[4] ?? null,
-                    'website'      => $row[5] ?? null,
-                    'is_active'    => true,
-                ]
-            );
-            $count++;
-        }
-        fclose($handle);
-
-        Toast::success("Successfully processed $count companies.");
-    }
-
-    // --- LOGIC: Delete ---
+    /**
+     * Logic: Delete
+     */
     public function remove(Request $request)
     {
         Company::findOrFail($request->get('id'))->delete();
-        Toast::info('Exhibitor deleted.');
+        Toast::info('Company deleted successfully.');
     }
 }
