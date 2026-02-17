@@ -145,4 +145,18 @@ class User extends Authenticatable
 
         return asset($this->avatar);
     }
+
+    public function scopeSearchFullName(Builder $query, $term)
+    {
+        $term = "%{$term}%";
+
+        return $query->where(function ($q) use ($term) {
+            // Match "First"
+            $q->where('name', 'like', $term)
+                // Match "Last"
+                ->orWhere('last_name', 'like', $term)
+                // Match "First Last" (e.g. "John Doe")
+                ->orWhereRaw("CONCAT(name, ' ', last_name) LIKE ?", [$term]);
+        });
+    }
 }
