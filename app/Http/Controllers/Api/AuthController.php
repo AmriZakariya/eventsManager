@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Storage;
 use Orchid\Platform\Models\Role;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -62,8 +63,10 @@ class AuthController extends Controller
         // Handle File Upload
         $avatarPath = null;
         if ($request->hasFile('avatar')) {
-            // Stores in storage/app/public/avatars
-            $avatarPath = $request->file('avatar')->store('avatars', 'public');
+            // Store using YYYY/MM/DD structure on 'public' disk
+            // This matches the structure: /storage/2026/02/16/filename.png
+            $path = date('Y/m/d');
+            $avatarPath = $request->file('avatar')->store($path, 'public');
         }
 
         // Generate Badge Code
@@ -199,5 +202,34 @@ class AuthController extends Controller
         }
 
         return response()->json(['message' => __($status)], 400);
+    }
+
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,webp|max:4096', // Max 4MB
+        ]);
+
+        $user = $request->user();
+
+        // 1. Delete old avatar if it exists to save space
+        // Note: We check if it exists on the public disk
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        // 2. Store new avatar
+        if ($request->hasFile('avatar')) {
+            // Store using YYYY/MM/DD structure on 'public' disk
+            $path = date('Y/m/d');
+            $avatarPath = $request->file('avatar')->store($path, 'public');
+
+            $user->update(['avatar' => $avatarPath]);
+        }
+
+        return response()->json([
+            'message' => 'Profile picture updated successfully',
+            'user' => new UserResource($user),
+        ]);
     }
 }
