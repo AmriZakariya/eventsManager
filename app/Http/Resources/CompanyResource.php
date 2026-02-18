@@ -36,6 +36,7 @@ class CompanyResource extends JsonResource
             'website_url'   => $this->website_url,
             'address'       => $this->address,
             'description'   => $this->description,
+            'is_active'   => $this->is_active,
 
             // Dynamic State
             'is_favorited'  => $this->isFavoritedBy($user),

@@ -148,41 +148,57 @@ class SaharaSummitSeeder extends Seeder
     private function createEventSettings()
     {
         EventSetting::create([
-            'event_name' => 'Sahara Tech Summit 2026',
-            'tagline' => 'Connecting Innovation Across Africa',
-            'description' => 'The largest technology and innovation event in North Africa, bringing together industry leaders, startups, investors, and tech enthusiasts to shape the future of African technology.',
-            'start_date' => '2026-11-20 09:00:00',
-            'end_date' => '2026-11-22 18:00:00',
-            'location_name' => 'Palais des Congrès',
-            'location_address' => 'Avenue Mohammed VI, Marrakech, Morocco',
-            'latitude' => 31.6295,
-            'longitude' => -7.9811,
-            'opening_hour' => '09:00',
-            'closing_hour' => '18:00',
+            'event_name' => 'HYGIE-CLEAN EXPO 2026',
+            'tagline' => 'The Future of Hygiene and Business in Morocco',
+            'description' => 'The premier international trade fair for the cleaning, hygiene, and chemical industries in Morocco. A strategic platform bringing together industry leaders, innovators, and decision-makers to showcase the latest technologies and sustainable solutions.',
+
+            // Verified Dates: November 5-7, 2026
+            'start_date' => '2026-11-05 10:00:00',
+            'end_date'   => '2026-11-07 19:00:00',
+
+            // Venue: ICEC Casablanca (International Corporate Events Center)
+            'location_name'    => 'ICEC Casablanca',
+            'location_address' => '6 Bd de Makro, Aïn Sebaâ, Casablanca 20250, Morocco',
+            'latitude'         => 33.5900,
+            'longitude'        => -7.5300,
+
+            // Official Opening Hours: 10:00 AM - 7:00 PM
+            'opening_hour' => '10:00',
+            'closing_hour' => '19:00',
+
             'meeting_duration_minutes' => 30,
-            'meeting_buffer_minutes' => 5,
-            'max_meetings_per_day' => 10,
-            'enable_meeting_requests' => true,
-            'auto_confirm_meetings' => false,
-            'enable_notifications' => true,
-            'enable_chat' => true,
-            'enable_qr_checkin' => true,
-            'enable_networking' => true,
+            'meeting_buffer_minutes'   => 10,
+            'max_meetings_per_day'     => 12,
+
+            // Features
+            'enable_meeting_requests'   => true,
+            'auto_confirm_meetings'     => false,
+            'enable_notifications'      => true,
+            'enable_chat'               => true,
+            'enable_qr_checkin'         => true,
+            'enable_networking'         => true,
             'enable_exhibitor_scanning' => true,
-            'show_attendee_list' => true,
-            'enable_offline_mode' => true,
-            'support_email' => 'support@saharatechsummit.ma',
-            'support_phone' => '+212 5 24 12 34 56',
-            'website_url' => 'https://saharatechsummit.ma',
-            'facebook_url' => 'https://facebook.com/saharatechsummit',
-            'twitter_url' => 'https://twitter.com/saharatechsum',
-            'instagram_url' => 'https://instagram.com/saharatechsummit',
-            'linkedin_url' => 'https://linkedin.com/company/sahara-tech-summit',
+            'show_attendee_list'        => true,
+            'enable_offline_mode'       => true,
+
+            // Contact Info from Jala Agency / Event Site
+            'support_email' => 'contact@hygiecleanexpo.com',
+            'support_phone' => '+212 520 946 054',
+            'website_url'   => 'https://hygiecleanexpo.com',
+
+            // Social Media (Standard handles for the event)
+            'facebook_url'  => 'https://facebook.com/hygiecleanexpo',
+            'twitter_url'   => null, // Not prominently featured
+            'instagram_url' => 'https://instagram.com/hygiecleanexpo',
+            'linkedin_url'  => 'https://linkedin.com/company/hygie-clean-expo',
+
             'timezone' => 'Africa/Casablanca',
-            'language' => 'en',
-            'primary_color' => '#D4AF37',
-            'secondary_color' => '#0F172A',
-            'accent_color' => '#F59E0B',
+            'language' => 'fr', // Primary business language in Morocco/Event is French/English
+
+            // Official Brand Colors from Media Kit
+            'primary_color'   => '#1A365B', // Navy Blue
+            'secondary_color' => '#02CA67', // Hygiene Green
+            'accent_color'    => '#00A1EC', // Bright Blue
         ]);
     }
 

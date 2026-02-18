@@ -157,7 +157,7 @@ class HomeWidgetSeeder extends Seeder
             'widget_type' => 'dynamic_list',
             'data_source' => 'companies',
             'order' => 40,
-            'is_active' => true,
+            'is_active' => false,
         ]);
 
         HomeWidget::create([
@@ -166,7 +166,7 @@ class HomeWidgetSeeder extends Seeder
             'widget_type' => 'dynamic_list',
             'data_source' => 'products',
             'order' => 50,
-            'is_active' => true,
+            'is_active' => false,
         ]);
 
         // ---------------------------------------------------------
@@ -179,7 +179,7 @@ class HomeWidgetSeeder extends Seeder
             'identifier' => 'home_partners_inst',
             'widget_type' => 'logo_cloud',
             'order' => 60,
-            'is_active' => true,
+            'is_active' => false,
         ]);
 
         $instLogos = [
@@ -205,7 +205,7 @@ class HomeWidgetSeeder extends Seeder
             'identifier' => 'home_partners_sponsors',
             'widget_type' => 'logo_cloud',
             'order' => 70,
-            'is_active' => true,
+            'is_active' => false,
         ]);
 
         $sponsorLogos = [
@@ -231,7 +231,7 @@ class HomeWidgetSeeder extends Seeder
             'identifier' => 'home_partners_trademarks',
             'widget_type' => 'logo_cloud',
             'order' => 80,
-            'is_active' => true,
+            'is_active' => false,
         ]);
 
         $trademarkLogos = [
