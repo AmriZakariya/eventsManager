@@ -44,14 +44,35 @@ class HomeWidgetSeeder extends Seeder
             'order' => 2
         ]);
 
+
         // ---------------------------------------------------------
-        // 2. MAIN MENU GRID (Bento Grid)
+        // 2. SPONSOR BANNER
+        // ---------------------------------------------------------
+        $banner = HomeWidget::create([
+            'title' => 'Sponsor Banner',
+            'identifier' => 'home_sponsor_banner_section',
+            'widget_type' => 'sponsor_banner',
+            'order' => 20,
+            'is_active' => true,
+        ]);
+
+        HomeWidgetItem::create([
+            'home_widget_id' => $banner->id,
+            'title' => 'Gold Sponsor',
+            'identifier' => 'home_sponsor_gold_title',
+            'image' => 'https://images.unsplash.com/photo-1557683311-eac922347aa1?auto=format&fit=crop&w=1200&q=80',
+            'action_url' => 'https://sponsor-link.com',
+            'order' => 1
+        ]);
+
+        // ---------------------------------------------------------
+        // 3. MAIN MENU GRID (Bento Grid)
         // ---------------------------------------------------------
         $menuGrid = HomeWidget::create([
             'title' => 'Explore',
             'identifier' => 'home_menu_section',
             'widget_type' => 'menu_grid',
-            'order' => 20,
+            'order' => 30,
             'is_active' => true,
         ]);
 
@@ -62,20 +83,6 @@ class HomeWidgetSeeder extends Seeder
                 'icon' => 'store',
                 'action_url' => '/exhibitors',
                 'image' => 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?auto=format&fit=crop&w=600&q=80' // Meeting
-            ],
-            [
-                'title' => 'Conferences',
-                'identifier' => 'home_menu_conferences',
-                'icon' => 'event',
-                'action_url' => '/conferences',
-                'image' => 'https://images.unsplash.com/photo-1544531696-60c35eb683f9?auto=format&fit=crop&w=600&q=80' // Speaker
-            ],
-            [
-                'title' => 'Speakers',
-                'identifier' => 'home_menu_speakers',
-                'icon' => 'groups',
-                'action_url' => '/speakers',
-                'image' => 'https://images.unsplash.com/photo-1475721027760-f75cfc879794?auto=format&fit=crop&w=600&q=80' // Mic
             ],
             [
                 'title' => 'Products',
@@ -90,6 +97,13 @@ class HomeWidgetSeeder extends Seeder
                 'icon' => 'handshake',
                 'action_url' => '/b2b',
                 'image' => 'https://images.unsplash.com/photo-1557804506-669a67965ba0?auto=format&fit=crop&w=600&q=80' // Handshake
+            ],
+            [
+                'title' => 'Conferences',
+                'identifier' => 'home_menu_conferences',
+                'icon' => 'event',
+                'action_url' => '/conferences',
+                'image' => 'https://images.unsplash.com/photo-1544531696-60c35eb683f9?auto=format&fit=crop&w=600&q=80' // Speaker
             ],
             [
                 'title' => 'My Badge',
@@ -111,6 +125,13 @@ class HomeWidgetSeeder extends Seeder
                 'icon' => 'emoji_events',
                 'action_url' => '/networking',
                 'image' => 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=600&q=80' // Crowd talking
+            ],
+            [
+                'title' => 'Speakers',
+                'identifier' => 'home_menu_speakers',
+                'icon' => 'groups',
+                'action_url' => '/speakers',
+                'image' => 'https://images.unsplash.com/photo-1475721027760-f75cfc879794?auto=format&fit=crop&w=600&q=80' // Mic
             ]
         ];
 
@@ -125,26 +146,6 @@ class HomeWidgetSeeder extends Seeder
                 'order' => $index + 1
             ]);
         }
-
-        // ---------------------------------------------------------
-        // 3. SPONSOR BANNER
-        // ---------------------------------------------------------
-        $banner = HomeWidget::create([
-            'title' => 'Sponsor Banner',
-            'identifier' => 'home_sponsor_banner_section',
-            'widget_type' => 'sponsor_banner',
-            'order' => 30,
-            'is_active' => true,
-        ]);
-
-        HomeWidgetItem::create([
-            'home_widget_id' => $banner->id,
-            'title' => 'Gold Sponsor',
-            'identifier' => 'home_sponsor_gold_title',
-            'image' => 'https://images.unsplash.com/photo-1557683311-eac922347aa1?auto=format&fit=crop&w=1200&q=80',
-            'action_url' => 'https://sponsor-link.com',
-            'order' => 1
-        ]);
 
         // ---------------------------------------------------------
         // 4. DYNAMIC LISTS

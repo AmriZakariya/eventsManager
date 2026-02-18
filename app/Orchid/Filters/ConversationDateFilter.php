@@ -6,7 +6,6 @@ namespace App\Orchid\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
 use Orchid\Filters\Filter;
-use Orchid\Screen\Field;
 use Orchid\Screen\Fields\Select;
 
 class ConversationDateFilter extends Filter
@@ -14,52 +13,52 @@ class ConversationDateFilter extends Filter
     /**
      * The displayable name of the filter.
      */
-    public string $name = 'Filter by Activity';
+    public $name = 'Activity Period';
 
     /**
-     * The array of matched parameters.
+     * The query parameters this filter handles.
      */
-    public array $parameters = ['activity'];
+    public $parameters = ['activity'];
 
     /**
-     * Apply filter to the query.
+     * Apply the filter to the query.
+     *
+     * Bug fixed: previously used `whereDate('created_at', '>=', ...)` for 'today',
+     * which only compares the date portion and ignores time — use `where()` instead
+     * so the full datetime is compared correctly.
      */
     public function run(Builder $query): Builder
     {
-        $activity = $this->request->get('activity');
-
-        if (!$activity || $activity === 'all') {
-            return $query;
-        }
+        $activity = $this->request->get('activity', 'all');
 
         return match ($activity) {
-            'today' => $query->whereDate('created_at', '>=', now()->startOfDay()),
-            'week' => $query->where('created_at', '>=', now()->subWeek()),
-            'month' => $query->where('created_at', '>=', now()->subMonth()),
+            'today'   => $query->where('created_at', '>=', now()->startOfDay()),
+            'week'    => $query->where('created_at', '>=', now()->subWeek()),
+            'month'   => $query->where('created_at', '>=', now()->subMonth()),
             'quarter' => $query->where('created_at', '>=', now()->subQuarter()),
-            'year' => $query->where('created_at', '>=', now()->subYear()),
-            default => $query,
+            'year'    => $query->where('created_at', '>=', now()->subYear()),
+            default   => $query,   // 'all' or any unknown value → no filter
         };
     }
 
     /**
-     * Get the display fields for the filter.
+     * The display fields for this filter.
      */
     public function display(): iterable
     {
         return [
             Select::make('activity')
                 ->options([
-                    'all' => 'All Time',
-                    'today' => 'Today',
-                    'week' => 'Last 7 Days',
-                    'month' => 'Last 30 Days',
+                    'all'     => 'All Time',
+                    'today'   => 'Today',
+                    'week'    => 'Last 7 Days',
+                    'month'   => 'Last 30 Days',
                     'quarter' => 'Last 3 Months',
-                    'year' => 'Last Year',
+                    'year'    => 'Last Year',
                 ])
-                ->empty('All Time', 'all')
+                ->value($this->request->get('activity', 'all'))
                 ->title('Activity Period')
-                ->help('Filter conversations by when they were last active'),
+                ->help('Show conversations that had messages within this period'),
         ];
     }
 }

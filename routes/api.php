@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/contact/send', [ContactRequestController::class, 'sendMessage']);
     Route::post('/auth/update-avatar', [AuthController::class, 'updateAvatar']);
+    Route::get('/auth/stats', [AuthController::class, 'getStats']);
 
     // Notification Routes
     Route::get('/notifications', [NotificationController::class, 'index']);
