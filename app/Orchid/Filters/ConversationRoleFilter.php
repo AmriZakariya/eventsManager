@@ -6,7 +6,6 @@ namespace App\Orchid\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
 use Orchid\Filters\Filter;
-use Orchid\Screen\Field;
 use Orchid\Screen\Fields\Select;
 
 class ConversationRoleFilter extends Filter
@@ -14,49 +13,49 @@ class ConversationRoleFilter extends Filter
     /**
      * The displayable name of the filter.
      */
-    public string $name = 'Filter by Role';
+    public $name = 'Participant Role';
 
     /**
-     * The array of matched parameters.
+     * The query parameters this filter handles.
      */
-    public array $parameters = ['role'];
+    public $parameters = ['role'];
 
     /**
-     * Apply filter to the query.
+     * Apply the filter to the query.
+     *
+     * Filters conversations where at least one participant holds the selected role.
+     * Requires Message model to have `sender` and `receiver` BelongsTo relationships,
+     * each with a `roles` HasMany/BelongsToMany through Orchid.
      */
     public function run(Builder $query): Builder
     {
-        $role = $this->request->get('role');
+        $role = $this->request->get('role', 'all');
 
         if (!$role || $role === 'all') {
             return $query;
         }
 
-        // Filter conversations where at least one participant has the specified role
-        return $query->where(function ($q) use ($role) {
-            $q->whereHas('sender.roles', function ($roleQuery) use ($role) {
-                $roleQuery->where('slug', $role);
-            })->orWhereHas('receiver.roles', function ($roleQuery) use ($role) {
-                $roleQuery->where('slug', $role);
-            });
+        return $query->where(function (Builder $q) use ($role) {
+            $q->whereHas('sender.roles', fn(Builder $r) => $r->where('slug', $role))
+                ->orWhereHas('receiver.roles', fn(Builder $r) => $r->where('slug', $role));
         });
     }
 
     /**
-     * Get the display fields for the filter.
+     * The display fields for this filter.
      */
     public function display(): iterable
     {
         return [
             Select::make('role')
                 ->options([
-                    'all' => 'All Roles',
-                    'exhibitor' => 'Exhibitor Conversations',
-                    'visitor' => 'Visitor Conversations',
+                    'all'       => 'All Roles',
+                    'exhibitor' => 'Exhibitors Only',
+                    'visitor'   => 'Visitors Only',
                 ])
-                ->empty('All Roles', 'all')
+                ->value($this->request->get('role', 'all'))
                 ->title('Participant Role')
-                ->help('Filter conversations by participant role type'),
+                ->help('Show conversations where at least one participant has this role'),
         ];
     }
 }

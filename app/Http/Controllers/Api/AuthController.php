@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
+use App\Models\Connection;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -230,6 +232,30 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Profile picture updated successfully',
             'user' => new UserResource($user),
+        ]);
+    }
+
+    public function getStats(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        // 1. Count Confirmed Connections
+        // Checks if user is either the requester OR the target, and status is accepted
+        $connectionsCount = Connection::where(function ($q) use ($userId) {
+            $q->where('requester_id', $userId)
+                ->orWhere('target_id', $userId);
+        })->where('status', 'accepted')->count();
+
+        // 2. Count Active Meetings
+        // Checks if user is booker OR target, and status is not cancelled/declined
+        $meetingsCount = Appointment::where(function ($q) use ($userId) {
+            $q->where('booker_id', $userId)
+                ->orWhere('target_user_id', $userId);
+        })->whereIn('status', ['pending', 'confirmed'])->count();
+
+        return response()->json([
+            'connections' => $connectionsCount,
+            'meetings' => $meetingsCount,
         ]);
     }
 }
