@@ -103,14 +103,14 @@ class HomeWidgetSeeder extends Seeder
                 'identifier' => 'home_menu_conferences',
                 'icon' => 'event',
                 'action_url' => '/conferences',
-                'image' => 'https://images.unsplash.com/photo-1544531696-60c35eb683f9?auto=format&fit=crop&w=600&q=80' // Speaker
+                'image' => 'https://images.unsplash.com/photo-1558008258-3256797b43f3?q=80&w=1931&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' // Speaker
             ],
             [
                 'title' => 'My Badge',
                 'identifier' => 'home_menu_badge',
                 'icon' => 'badge',
                 'action_url' => '/badge',
-                'image' => 'https://images.unsplash.com/photo-1626785774573-4b7993143d2d?auto=format&fit=crop&w=600&q=80' // ID Card / Badge (Fixed)
+                'image' => 'https://images.unsplash.com/photo-1516384100354-0e0bbc0d2e00?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D' // ID Card / Badge (Fixed)
             ],
             [
                 'title' => 'Floor Plan',

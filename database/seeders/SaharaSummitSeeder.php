@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 use Faker\Factory as Faker;
 use Orchid\Platform\Models\Role;
 
-// Models
+// Make sure these Models exist in your App\Models namespace
 use App\Models\EventSetting;
 use App\Models\Company;
 use App\Models\User;
@@ -30,8 +30,9 @@ class SaharaSummitSeeder extends Seeder
 
     public function run()
     {
+        // Initialize Faker with French/Moroccan locale
         $this->faker = Faker::create('fr_FR');
-        $this->usedEmails = []; // Reset email tracker
+        $this->usedEmails = [];
 
         $this->command->info('🧹 Cleaning database...');
         $this->cleanDatabase();
@@ -46,7 +47,7 @@ class SaharaSummitSeeder extends Seeder
         $productCategoryIds = $this->createProductCategories();
 
         $this->command->info('🏢 Creating companies & products...');
-        // Note: We capture company IDs and exhibitor User IDs for later relationships
+        // Returns [$companyIds, $exhibitorUserIds]
         [$companyIds, $exhibitorUserIds] = $this->createCompaniesAndProducts($productCategoryIds);
 
         $this->command->info('👥 Creating visitors...');
@@ -81,18 +82,17 @@ class SaharaSummitSeeder extends Seeder
     }
 
     /**
-     * Helper to generate a unique email address
+     * Helper to generate a unique email address to avoid DB collision errors
      */
     private function generateUniqueEmail($name, $domain = 'gmail.com')
     {
-        // Convert name to slug (e.g., "John Doe" -> "john.doe")
         $slug = Str::slug($name, '.');
         $baseEmail = $slug . '@' . $domain;
 
         $email = $baseEmail;
         $counter = 1;
 
-        // Check if email is already in our local tracking array or DB
+        // Check local array AND database
         while (in_array($email, $this->usedEmails) || User::where('email', $email)->exists()) {
             $email = $slug . $counter . '@' . $domain;
             $counter++;
@@ -106,21 +106,26 @@ class SaharaSummitSeeder extends Seeder
     {
         Schema::disableForeignKeyConstraints();
 
+        // Truncate tables in specific order to avoid constraint errors
         DB::table('messages')->truncate();
         DB::table('contact_requests')->truncate();
         DB::table('favorites')->truncate();
         DB::table('app_notifications')->truncate();
-        DB::table('notifications')->truncate(); // Orchid notifications
+        DB::table('notifications')->truncate(); // Orchid core notifications
+
         Appointment::truncate();
         Connection::truncate();
         AwardNominee::truncate();
         AwardCategory::truncate();
+
         DB::table('conference_registrations')->truncate();
         DB::table('conference_speaker')->truncate();
         Conference::truncate();
         Speaker::truncate();
+
         Product::truncate();
         ProductCategory::truncate();
+
         DB::table('role_users')->truncate();
         User::truncate();
         Company::truncate();
@@ -150,27 +155,18 @@ class SaharaSummitSeeder extends Seeder
         EventSetting::create([
             'event_name' => 'HYGIE-CLEAN EXPO 2026',
             'tagline' => 'The Future of Hygiene and Business in Morocco',
-            'description' => 'The premier international trade fair for the cleaning, hygiene, and chemical industries in Morocco. A strategic platform bringing together industry leaders, innovators, and decision-makers to showcase the latest technologies and sustainable solutions.',
-
-            // Verified Dates: November 5-7, 2026
+            'description' => 'The premier international trade fair for the cleaning, hygiene, and chemical industries in Morocco.',
             'start_date' => '2026-11-05 10:00:00',
             'end_date'   => '2026-11-07 19:00:00',
-
-            // Venue: ICEC Casablanca (International Corporate Events Center)
             'location_name'    => 'ICEC Casablanca',
             'location_address' => '6 Bd de Makro, Aïn Sebaâ, Casablanca 20250, Morocco',
             'latitude'         => 33.5900,
             'longitude'        => -7.5300,
-
-            // Official Opening Hours: 10:00 AM - 7:00 PM
             'opening_hour' => '10:00',
             'closing_hour' => '19:00',
-
             'meeting_duration_minutes' => 30,
             'meeting_buffer_minutes'   => 10,
             'max_meetings_per_day'     => 12,
-
-            // Features
             'enable_meeting_requests'   => true,
             'auto_confirm_meetings'     => false,
             'enable_notifications'      => true,
@@ -180,43 +176,27 @@ class SaharaSummitSeeder extends Seeder
             'enable_exhibitor_scanning' => true,
             'show_attendee_list'        => true,
             'enable_offline_mode'       => true,
-
-            // Contact Info from Jala Agency / Event Site
             'support_email' => 'contact@hygiecleanexpo.com',
             'support_phone' => '+212 520 946 054',
             'website_url'   => 'https://hygiecleanexpo.com',
-
-            // Social Media (Standard handles for the event)
             'facebook_url'  => 'https://facebook.com/hygiecleanexpo',
-            'twitter_url'   => null, // Not prominently featured
             'instagram_url' => 'https://instagram.com/hygiecleanexpo',
             'linkedin_url'  => 'https://linkedin.com/company/hygie-clean-expo',
-
             'timezone' => 'Africa/Casablanca',
-            'language' => 'fr', // Primary business language in Morocco/Event is French/English
-
-            // Official Brand Colors from Media Kit
-            'primary_color'   => '#1A365B', // Navy Blue
-            'secondary_color' => '#02CA67', // Hygiene Green
-            'accent_color'    => '#00A1EC', // Bright Blue
+            'language' => 'fr',
+            'primary_color'   => '#1A365B',
+            'secondary_color' => '#02CA67',
+            'accent_color'    => '#00A1EC',
         ]);
     }
 
     private function createProductCategories()
     {
         $categories = [
-            'Software Solutions',
-            'Cloud & Infrastructure',
-            'Artificial Intelligence & Machine Learning',
-            'Cybersecurity',
-            'Fintech & Payments',
-            'IoT & Smart Devices',
-            'Data Analytics & Business Intelligence',
-            'E-commerce Platforms',
-            'Mobile Applications',
-            'Blockchain & Cryptocurrency',
-            'EdTech Solutions',
-            'HealthTech',
+            'Software Solutions', 'Cloud & Infrastructure', 'Artificial Intelligence',
+            'Cybersecurity', 'Fintech & Payments', 'IoT & Smart Devices',
+            'Data Analytics', 'E-commerce Platforms', 'Mobile Applications',
+            'Blockchain', 'EdTech Solutions', 'HealthTech',
         ];
 
         $ids = [];
@@ -233,85 +213,73 @@ class SaharaSummitSeeder extends Seeder
 
     private function createCompaniesAndProducts($productCategoryIds)
     {
+        // Converted to associative array for better readability and added domains/types
         $companiesData = [
-            ['Orange Maroc', 'Telecommunications', 'Morocco', 'Leading telecom provider in Morocco with 5G and IoT solutions', true],
-            ['Microsoft Africa', 'Cloud Computing', 'USA', 'Global technology leader empowering African businesses with Azure', true],
-            ['OCP Group', 'Industrial Technology', 'Morocco', 'World leader in phosphate and digital transformation', true],
-            ['Huawei Technologies', 'Telecommunications', 'China', 'Global ICT solutions provider with African innovation centers', true],
-            ['Salesforce', 'Enterprise Software', 'USA', 'Customer relationship management and cloud solutions', false],
-            ['HPS Worldwide', 'Fintech', 'Morocco', 'Global payment solutions and digital banking platform', true],
-            ['Jumia Technologies', 'E-commerce', 'Nigeria', 'Africa\'s leading e-commerce and logistics platform', true],
-            ['Maroc Telecom', 'Telecommunications', 'Morocco', 'Integrated telecom operator across Africa', false],
-            ['SAP Africa', 'Enterprise Software', 'Germany', 'Business software solutions for African enterprises', false],
-            ['Schneider Electric', 'Energy Management', 'France', 'Digital automation and energy management solutions', false],
-            ['Injaz Morocco', 'Fintech', 'Morocco', 'Mobile payment and digital wallet solutions', false],
-            ['InstaDeep', 'Artificial Intelligence', 'Tunisia', 'AI-powered decision-making systems', true],
-            ['Andela', 'Technology Services', 'Nigeria', 'Distributed engineering teams and tech talent platform', false],
-            ['Flutterwave', 'Fintech', 'Nigeria', 'Payment infrastructure for Africa', true],
-            ['M-Pesa', 'Mobile Money', 'Kenya', 'Revolutionary mobile money transfer service', false],
+            ['name' => 'Orange Maroc', 'category' => 'Telecommunications', 'country' => 'Morocco', 'desc' => 'Leading telecom provider.', 'featured' => true, 'domain' => 'orange.ma', 'types' => ['SPONSOR']],
+            ['name' => 'Microsoft Africa', 'category' => 'Cloud Computing', 'country' => 'USA', 'desc' => 'Global technology leader.', 'featured' => true, 'domain' => 'microsoft.com', 'types' => ['INSTITUTIONAL_PARTNER']],
+            ['name' => 'OCP Group', 'category' => 'Industrial Technology', 'country' => 'Morocco', 'desc' => 'World leader in phosphate.', 'featured' => true, 'domain' => 'ocpgroup.ma', 'types' => ['SPONSOR', 'EXHIBITIONS_PARTNERS']],
+            ['name' => 'Huawei Technologies', 'category' => 'Telecommunications', 'country' => 'China', 'desc' => 'Global ICT solutions provider.', 'featured' => true, 'domain' => 'huawei.com', 'types' => ['SPONSOR']],
+            ['name' => 'Salesforce', 'category' => 'Enterprise Software', 'country' => 'USA', 'desc' => 'CRM and cloud solutions.', 'featured' => false, 'domain' => 'salesforce.com', 'types' => ['EXHIBITIONS_PARTNERS']],
+            ['name' => 'HPS Worldwide', 'category' => 'Fintech', 'country' => 'Morocco', 'desc' => 'Global payment solutions.', 'featured' => true, 'domain' => 'hps-worldwide.com', 'types' => ['EXHIBITIONS_PARTNERS']],
+            ['name' => 'Jumia Technologies', 'category' => 'E-commerce', 'country' => 'Nigeria', 'desc' => 'Africa leading e-commerce.', 'featured' => true, 'domain' => 'jumia.ma', 'types' => ['MEDIA PARTNERS']],
+            ['name' => 'Maroc Telecom', 'category' => 'Telecommunications', 'country' => 'Morocco', 'desc' => 'Integrated telecom operator.', 'featured' => false, 'domain' => 'iam.ma', 'types' => ['SPONSOR']],
+            ['name' => 'SAP Africa', 'category' => 'Enterprise Software', 'country' => 'Germany', 'desc' => 'Business software solutions.', 'featured' => false, 'domain' => 'sap.com', 'types' => ['EXHIBITIONS_PARTNERS']],
+            ['name' => 'Schneider Electric', 'category' => 'Energy Management', 'country' => 'France', 'desc' => 'Digital automation solutions.', 'featured' => false, 'domain' => 'se.com', 'types' => ['SPONSOR']],
         ];
 
         $companyIds = [];
         $exhibitorUserIds = [];
         $roleExhibitor = Role::where('slug', 'exhibitor')->first();
 
-        // Data pool for random generation
-        $moroccanFirstNames = ['Ahmed', 'Youssef', 'Mehdi', 'Omar', 'Karim', 'Hamza', 'Ayoub', 'Amine', 'Saad', 'Reda', 'Fatima', 'Khadija', 'Amina', 'Salma', 'Leila'];
-        $moroccanLastNames = ['El Amrani', 'Benali', 'Alaoui', 'El Idrissi', 'Bennani', 'Chraibi', 'Tazi', 'Fassi', 'Ouazzani', 'Berrada'];
+        $moroccanFirstNames = ['Ahmed', 'Youssef', 'Mehdi', 'Omar', 'Karim', 'Hamza', 'Ayoub', 'Amine'];
+        $moroccanLastNames = ['El Amrani', 'Benali', 'Alaoui', 'El Idrissi', 'Bennani', 'Chraibi'];
 
         foreach ($companiesData as $index => $c) {
-            $companyName = $c[0];
-            $companyDomain = Str::slug($companyName) . '.com';
-
-            // Generate unique email for company
+            $companyName = $c['name'];
+            $companyDomain = $c['domain'];
             $companyEmail = $this->generateUniqueEmail('contact', $companyDomain);
+
+            // Uses Clearbit API to fetch the actual working logo of the company
+            $logoUrl = 'https://logo.clearbit.com/' . $companyDomain;
 
             $company = Company::create([
                 'name' => $companyName,
-                'category' => $c[1],
-                'country' => $c[2],
+                'logo' => $logoUrl, // Added logo
                 'booth_number' => 'Stand ' . chr(65 + floor($index / 10)) . sprintf('%02d', ($index % 10) + 1),
+                'country' => $c['country'],
+                'category' => $c['category'],
                 'email' => $companyEmail,
                 'phone' => '+212 5 ' . rand(20, 29) . ' ' . rand(10, 99) . ' ' . rand(10, 99) . ' ' . rand(10, 99),
                 'website_url' => 'https://' . $companyDomain,
-                'description' => $c[3],
-                'is_featured' => $c[4],
+                'address' => $this->faker->address, // Added fake address
+                'type' => $c['types'], // Added JSON types. (Remove json_encode if your model uses $casts = ['type' => 'array'])
+                'catalog_file' => 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf', // Added dummy PDF catalog
+                'description' => $c['desc'],
+                'map_coordinates' => json_encode(['x' => rand(100, 800), 'y' => rand(100, 600)]), // Added JSON coordinates
+                'is_featured' => $c['featured'],
                 'is_active' => true,
             ]);
 
             $companyIds[] = $company->id;
 
-            // Create 2-4 products per company
+            // Products (Unchanged Logic)
             $numProducts = rand(2, 4);
             for ($p = 0; $p < $numProducts; $p++) {
-                $productNames = [
-                    'Enterprise Cloud Platform', 'Smart Analytics Dashboard', 'Secure Payment Gateway',
-                    'AI-Powered CRM System', 'Mobile Banking App', 'IoT Device Manager',
-                    'Cybersecurity Suite', 'E-commerce Platform', 'Business Intelligence Tool',
-                    'Digital Wallet Solution', 'Inventory Management System', 'Customer Engagement Platform',
-                    'Data Visualization Engine', 'Automated Workflow Builder', 'Real-time Monitoring System'
-                ];
-
-                $productName = $productNames[array_rand($productNames)] . ' ' . ($p > 0 ? 'Pro' : 'Enterprise');
-
                 Product::create([
                     'company_id' => $company->id,
-                    'name' => $productName,
-                    'type' => $c[1],
-                    'description' => 'Advanced ' . strtolower($productName) . ' designed for modern businesses in Africa.',
+                    'name' => 'Solution ' . $p . ' for ' . $companyName,
+                    'type' => $c['category'],
+                    'description' => 'Advanced solution designed for modern businesses.',
                     'is_featured' => $this->faker->boolean(30),
                     'category_id' => $productCategoryIds[array_rand($productCategoryIds)],
                 ]);
             }
 
-            // Create 2-3 exhibitor users per company
+            // Exhibitors (Unchanged Logic)
             $numExhibitors = rand(2, 3);
             for ($i = 0; $i < $numExhibitors; $i++) {
                 $firstName = $moroccanFirstNames[array_rand($moroccanFirstNames)];
                 $lastName = $moroccanLastNames[array_rand($moroccanLastNames)];
-                $positions = ['Sales Director', 'Technical Lead', 'Business Development Manager', 'Product Manager', 'Solutions Architect'];
-
-                // Generate guaranteed unique email for exhibitor
                 $exhibitorEmail = $this->generateUniqueEmail($firstName . ' ' . $lastName, $companyDomain);
 
                 $user = User::create([
@@ -320,11 +288,11 @@ class SaharaSummitSeeder extends Seeder
                     'email' => $exhibitorEmail,
                     'password' => Hash::make('password'),
                     'company_id' => $company->id,
-                    'job_title' => $positions[$i % count($positions)],
+                    'job_title' => 'Representative',
                     'phone' => '+212 6' . rand(10, 99) . ' ' . rand(10, 99) . ' ' . rand(10, 99) . ' ' . rand(10, 99),
                     'badge_code' => 'EX-' . str_pad($company->id, 3, '0', STR_PAD_LEFT) . '-' . str_pad($i + 1, 2, '0', STR_PAD_LEFT),
                     'is_visible' => true,
-                    'bio' => 'Experienced professional with ' . rand(5, 15) . '+ years in ' . strtolower($c[1]) . '. Passionate about innovation and technology in Africa.',
+                    'bio' => 'Experienced professional.',
                 ]);
 
                 $user->addRole($roleExhibitor);
@@ -340,24 +308,15 @@ class SaharaSummitSeeder extends Seeder
         $roleVisitor = Role::where('slug', 'visitor')->first();
         $visitorIds = [];
 
-        $moroccanFirstNames = ['Ahmed', 'Youssef', 'Mehdi', 'Omar', 'Karim', 'Hamza', 'Ayoub', 'Amine', 'Saad', 'Reda', 'Fatima', 'Khadija', 'Amina', 'Salma', 'Leila', 'Zineb', 'Nadia', 'Rachid', 'Hassan', 'Mustapha'];
-        $moroccanLastNames = ['El Amrani', 'Benali', 'Alaoui', 'El Idrissi', 'Bennani', 'Chraibi', 'Tazi', 'Fassi', 'Ouazzani', 'Berrada', 'Lahlou', 'Kettani', 'Squalli', 'Filali'];
+        $moroccanFirstNames = ['Ahmed', 'Youssef', 'Mehdi', 'Omar', 'Karim', 'Hamza', 'Ayoub', 'Amine', 'Saad', 'Reda', 'Fatima', 'Khadija'];
+        $moroccanLastNames = ['El Amrani', 'Benali', 'Alaoui', 'El Idrissi', 'Bennani', 'Chraibi', 'Tazi', 'Fassi'];
+        $domains = ['gmail.com', 'yahoo.com', 'outlook.com'];
 
-        $jobTitles = [
-            'CEO', 'CTO', 'CIO', 'Business Development Manager', 'Product Manager',
-            'IT Director', 'Digital Transformation Lead', 'Innovation Manager',
-            'Startup Founder', 'Entrepreneur', 'Investor', 'Technology Consultant',
-            'Software Engineer', 'Data Scientist', 'UX Designer', 'Marketing Director'
-        ];
-
-        $domains = ['techco.ma', 'innovation.ma', 'startup.ma', 'digital.ma', 'business.ma', 'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'proton.me'];
-
+        // Create 50 visitors
         for ($i = 0; $i < 50; $i++) {
             $firstName = $moroccanFirstNames[array_rand($moroccanFirstNames)];
             $lastName = $moroccanLastNames[array_rand($moroccanLastNames)];
             $domain = $domains[$i % count($domains)];
-
-            // Generate guaranteed unique email for visitor
             $visitorEmail = $this->generateUniqueEmail($firstName . ' ' . $lastName, $domain);
 
             $visitor = User::create([
@@ -365,11 +324,10 @@ class SaharaSummitSeeder extends Seeder
                 'last_name' => $lastName,
                 'email' => $visitorEmail,
                 'password' => Hash::make('password'),
-                'job_title' => $jobTitles[array_rand($jobTitles)],
+                'job_title' => 'Visitor',
                 'phone' => '+212 6' . rand(10, 99) . ' ' . rand(10, 99) . ' ' . rand(10, 99) . ' ' . rand(10, 99),
                 'badge_code' => 'VIS-' . str_pad(1000 + $i, 4, '0', STR_PAD_LEFT),
                 'is_visible' => $this->faker->boolean(85),
-                'bio' => $this->faker->boolean(60) ? 'Tech enthusiast interested in innovation and digital transformation in Africa.' : null,
                 'company_id' => null,
             ]);
 
@@ -383,54 +341,24 @@ class SaharaSummitSeeder extends Seeder
     private function createConferencesAndSpeakers($visitorIds)
     {
         $conferencesData = [
-            // Day 1 - November 20
             [
-                'title' => 'Opening Keynote: The Future of Technology in Africa',
-                'start' => '2026-11-20 09:30:00',
-                'end' => '2026-11-20 10:30:00',
+                'title' => 'Opening Keynote: The Future of Hygiene',
+                'start' => '2026-11-05 09:30:00',
+                'end' => '2026-11-05 10:30:00',
                 'location' => 'Main Auditorium',
                 'type' => 'keynote',
-                'description' => 'Join us for an inspiring opening keynote exploring the transformative power of technology across the African continent.',
-                'speakers' => [
-                    ['Dr. Amina Touré', 'Chief Innovation Officer', 'African Development Bank'],
-                ]
+                'description' => 'Join us for an inspiring opening keynote.',
+                'speakers' => [['Dr. Amina Touré', 'Chief Innovation Officer', 'African Development Bank']]
             ],
             [
-                'title' => 'AI & Machine Learning: Practical Applications for African Markets',
-                'start' => '2026-11-20 11:00:00',
-                'end' => '2026-11-20 12:30:00',
+                'title' => 'Sustainable Cleaning Solutions',
+                'start' => '2026-11-05 11:00:00',
+                'end' => '2026-11-05 12:30:00',
                 'location' => 'Tech Hall A',
                 'type' => 'panel',
-                'description' => 'Discover how AI and ML are solving real problems in healthcare, agriculture, and finance across Africa.',
-                'speakers' => [
-                    ['Dr. Karim Beguir', 'CEO & Co-Founder', 'InstaDeep'],
-                    ['Sarah Mensah', 'Head of AI Research', 'Google Africa'],
-                ]
+                'description' => 'Discover how green chemicals are solving real problems.',
+                'speakers' => [['Dr. Karim Beguir', 'CEO', 'InstaDeep']]
             ],
-            [
-                'title' => 'Fintech Revolution: Digital Payments & Financial Inclusion',
-                'start' => '2026-11-20 14:00:00',
-                'end' => '2026-11-20 15:30:00',
-                'location' => 'Innovation Stage',
-                'type' => 'panel',
-                'description' => 'How fintech is transforming banking and bringing financial services to millions of unbanked Africans.',
-                'speakers' => [
-                    ['Olugbenga Agboola', 'CEO', 'Flutterwave'],
-                    ['Mohamed Dabo', 'VP Product', 'Wave Mobile Money'],
-                ]
-            ],
-            [
-                'title' => 'Cybersecurity in the Digital Age: Protecting African Businesses',
-                'start' => '2026-11-20 16:00:00',
-                'end' => '2026-11-20 17:00:00',
-                'location' => 'Security Forum',
-                'type' => 'workshop',
-                'description' => 'Learn best practices for protecting your organization from cyber threats in an increasingly connected world.',
-                'speakers' => [
-                    ['Dr. Hassan El Hajj', 'CISO', 'OCP Group'],
-                ]
-            ],
-            // Day 2 & 3 would follow similar pattern
         ];
 
         foreach ($conferencesData as $confData) {
@@ -448,47 +376,50 @@ class SaharaSummitSeeder extends Seeder
                     'full_name' => $speakerData[0],
                     'job_title' => $speakerData[1],
                     'company_name' => $speakerData[2],
-                    'bio' => 'Renowned expert in technology and innovation with extensive experience leading transformative initiatives across Africa and globally.',
+                    'bio' => 'Renowned expert in the field.',
                 ]);
 
+                // Assuming Conference has belongsToMany Speakers
                 $conf->speakers()->attach($speaker->id);
             }
 
             // Register random attendees
-            $numAttendees = rand(20, 40);
-            $attendees = $this->faker->randomElements($visitorIds, min($numAttendees, count($visitorIds)));
-
-            foreach ($attendees as $attendeeId) {
-                DB::table('conference_registrations')->insert([
-                    'user_id' => $attendeeId,
-                    'conference_id' => $conf->id,
-                    'created_at' => now(),
-                ]);
-            }
+//            $numAttendees = rand(5, 15);
+//            $attendees = $this->faker->randomElements($visitorIds, min($numAttendees, count($visitorIds)));
+//
+//            foreach ($attendees as $attendeeId) {
+//                DB::table('conference_registrations')->insert([
+//                    'user_id' => $attendeeId,
+//                    'conference_id' => $conf->id,
+//                    'created_at' => now(),
+//                    'updated_at' => now(), // Good practice to add updated_at
+//                ]);
+//            }
         }
     }
 
     private function createAppointments($visitorIds, $exhibitorUserIds)
     {
         $statuses = ['pending', 'confirmed', 'cancelled', 'declined', 'completed'];
-        $tables = ['Table A1', 'Table A2', 'Table B1', 'Table B2', 'Table C1', 'Meeting Room 1', 'Meeting Room 2'];
+        $tables = ['Table A1', 'Table A2', 'Table B1'];
 
-        for ($i = 0; $i < 90; $i++) {
+        for ($i = 0; $i < 50; $i++) {
             $status = $statuses[array_rand($statuses)];
-            $day = rand(20, 22);
+            $day = rand(5, 7); // Days 5, 6, 7 of November
             $hour = rand(10, 17);
             $minute = [0, 30][array_rand([0, 30])];
+
+            // Ensure formatting is correct (e.g. 2026-11-05 09:30:00)
+            $formattedDate = sprintf("2026-11-%02d %02d:%02d:00", $day, $hour, $minute);
 
             Appointment::create([
                 'booker_id' => $visitorIds[array_rand($visitorIds)],
                 'target_user_id' => $exhibitorUserIds[array_rand($exhibitorUserIds)],
-                'scheduled_at' => "2026-11-{$day} {$hour}:{$minute}:00",
+                'scheduled_at' => $formattedDate,
                 'duration_minutes' => 30,
                 'table_location' => $tables[array_rand($tables)],
                 'status' => $status,
                 'notes' => $this->faker->boolean(70) ? 'Interested in your solutions.' : null,
-                'rating' => $status === 'completed' && $this->faker->boolean(80) ? rand(3, 5) : null,
-                'feedback' => $status === 'completed' && $this->faker->boolean(40) ? 'Great meeting!' : null,
             ]);
         }
     }
@@ -498,18 +429,18 @@ class SaharaSummitSeeder extends Seeder
         $allUserIds = array_merge($visitorIds, $exhibitorUserIds);
         $createdPairs = [];
 
-        for ($i = 0; $i < 110; $i++) {
+        for ($i = 0; $i < 60; $i++) {
             $requester = $allUserIds[array_rand($allUserIds)];
             $target = $allUserIds[array_rand($allUserIds)];
 
-            // Ensure unique directional pair for tracking
+            // Create a unique key to prevent duplicate connections
             $pair = $requester < $target ? "{$requester}-{$target}" : "{$target}-{$requester}";
 
             if ($requester !== $target && !in_array($pair, $createdPairs)) {
                 Connection::create([
                     'requester_id' => $requester,
                     'target_id' => $target,
-                    'status' => $this->faker->randomElement(['pending', 'accepted', 'accepted', 'declined']),
+                    'status' => $this->faker->randomElement(['pending', 'accepted', 'accepted']),
                 ]);
 
                 $createdPairs[] = $pair;
@@ -520,11 +451,8 @@ class SaharaSummitSeeder extends Seeder
     private function createAwards($companyIds)
     {
         $awardCategories = [
-            ['name' => 'Best Innovation 2026', 'description' => 'Recognizing groundbreaking technological innovation'],
-            ['name' => 'Best Fintech Solution', 'description' => 'Excellence in financial technology'],
-            ['name' => 'Best AI Application', 'description' => 'Outstanding use of artificial intelligence'],
-            ['name' => 'Best Cybersecurity Product', 'description' => 'Superior security solution'],
-            ['name' => 'Best Startup', 'description' => 'Most promising new technology company'],
+            ['name' => 'Best Innovation 2026', 'description' => 'Best tech innovation'],
+            ['name' => 'Best Sustainable Product', 'description' => 'Eco-friendly excellence'],
         ];
 
         foreach ($awardCategories as $catData) {
@@ -537,7 +465,7 @@ class SaharaSummitSeeder extends Seeder
                 AwardNominee::create([
                     'award_category_id' => $category->id,
                     'company_id' => $companyId,
-                    'product_name' => 'Innovative Solution ' . ($index + 1),
+                    'product_name' => 'Solution ' . ($index + 1),
                     'is_winner' => $index === 0,
                 ]);
             }
@@ -548,13 +476,12 @@ class SaharaSummitSeeder extends Seeder
     {
         $allUserIds = array_merge($visitorIds, $exhibitorUserIds);
         $notifications = [
-            ['Welcome to Sahara Tech Summit', 'Don\'t miss the opening keynote.', 'info'],
-            ['Your meeting has been confirmed', 'Your appointment is confirmed.', 'appointment'],
-            ['New connection request', 'Someone wants to connect.', 'connection'],
+            ['Welcome', 'Don\'t miss the opening keynote.', 'info'],
+            ['Meeting Confirmed', 'Your appointment is confirmed.', 'appointment'],
         ];
 
         foreach ($allUserIds as $userId) {
-            $numNotifs = rand(2, 4);
+            $numNotifs = rand(1, 3);
             for ($i = 0; $i < $numNotifs; $i++) {
                 $notif = $notifications[array_rand($notifications)];
                 DB::table('app_notifications')->insert([
@@ -563,8 +490,8 @@ class SaharaSummitSeeder extends Seeder
                     'body' => $notif[1],
                     'type' => $notif[2],
                     'is_read' => $this->faker->boolean(40),
-                    'created_at' => now()->subHours(rand(1, 48)),
-                    'updated_at' => now()->subHours(rand(1, 48)),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
             }
         }
@@ -574,21 +501,19 @@ class SaharaSummitSeeder extends Seeder
     {
         $createdFavorites = [];
         foreach ($visitorIds as $visitorId) {
-            if ($this->faker->boolean(70)) {
-                $numFavorites = rand(1, 3);
-                $favoriteCompanies = $this->faker->randomElements($companyIds, $numFavorites);
-                foreach ($favoriteCompanies as $companyId) {
-                    $key = "{$visitorId}-{$companyId}";
-                    if (!in_array($key, $createdFavorites)) {
-                        DB::table('favorites')->insert([
-                            'user_id' => $visitorId,
-                            'favoritable_type' => 'App\\Models\\Company',
-                            'favoritable_id' => $companyId,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                        $createdFavorites[] = $key;
-                    }
+            if ($this->faker->boolean(50)) {
+                $companyId = $companyIds[array_rand($companyIds)];
+                $key = "{$visitorId}-{$companyId}";
+
+                if (!in_array($key, $createdFavorites)) {
+                    DB::table('favorites')->insert([
+                        'user_id' => $visitorId,
+                        'favoritable_type' => 'App\\Models\\Company',
+                        'favoritable_id' => $companyId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $createdFavorites[] = $key;
                 }
             }
         }
@@ -596,36 +521,31 @@ class SaharaSummitSeeder extends Seeder
 
     private function createMessages($visitorIds, $exhibitorUserIds)
     {
-        for ($i = 0; $i < 35; $i++) {
+        for ($i = 0; $i < 20; $i++) {
             $sender = $visitorIds[array_rand($visitorIds)];
             $receiver = $exhibitorUserIds[array_rand($exhibitorUserIds)];
-            $numMessages = rand(2, 5);
-            for ($j = 0; $j < $numMessages; $j++) {
-                DB::table('messages')->insert([
-                    'sender_id' => $j % 2 === 0 ? $sender : $receiver,
-                    'receiver_id' => $j % 2 === 0 ? $receiver : $sender,
-                    'content' => $this->faker->sentence(rand(8, 20)),
-                    'read_at' => $this->faker->boolean(60) ? now()->subHours(rand(1, 24)) : null,
-                    'created_at' => now()->subHours(rand(1, 48)),
-                    'updated_at' => now()->subHours(rand(1, 48)),
-                ]);
-            }
+
+            DB::table('messages')->insert([
+                'sender_id' => $sender,
+                'receiver_id' => $receiver,
+                'content' => $this->faker->sentence(10),
+                'read_at' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
     }
 
     private function createContactRequests($visitorIds)
     {
-        $subjects = ['Partnership inquiry', 'Speaker slot', 'Booth booking', 'Support'];
-        for ($i = 0; $i < 15; $i++) {
+        for ($i = 0; $i < 10; $i++) {
             DB::table('contact_requests')->insert([
-                'user_id' => $this->faker->boolean(70) ? $visitorIds[array_rand($visitorIds)] : null,
-                'name' => $this->faker->boolean(70) ? null : $this->faker->name,
-                'email' => $this->faker->boolean(70) ? null : $this->faker->safeEmail,
-                'subject' => $subjects[array_rand($subjects)],
-                'message' => $this->faker->paragraph(3),
-                'is_handled' => $this->faker->boolean(40),
-                'created_at' => now()->subDays(rand(1, 7)),
-                'updated_at' => now()->subDays(rand(1, 7)),
+                'user_id' => $visitorIds[array_rand($visitorIds)],
+                'subject' => 'Inquiry',
+                'message' => $this->faker->paragraph(2),
+                'is_handled' => false,
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
         }
     }

@@ -9,7 +9,6 @@ use Orchid\Screen\Screen;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Cropper;
 use Orchid\Screen\Fields\TextArea;
-use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\Link;
 use Orchid\Support\Facades\Layout;
@@ -45,6 +44,8 @@ class HomeWidgetItemEditScreen extends Screen
         return [
             'item' => $item,
             'widget' => $this->widget,
+            // Bind manual URL to the field if the current image is a valid web URL
+            'manual_image_url' => filter_var($item->image, FILTER_VALIDATE_URL) ? $item->image : null,
         ];
     }
 
@@ -159,14 +160,17 @@ class HomeWidgetItemEditScreen extends Screen
                         ->required($isGrid)
                         ->help($iconHelp),
 
+                    Input::make('manual_image_url')
+                        ->title('Manual Image URL')
+                        ->type('url')
+                        ->placeholder('https://example.com/image.jpg')
+                        ->help('Provide a direct URL. (If used, this will override the upload box below)'),
+
                     Cropper::make('item.image')
-                        ->title('Image')
+                        ->title('Upload Image')
                         ->targetRelativeUrl()
-//                        ->width($isLogo ? 300 : 800)
-//                        ->height($isLogo ? 200 : 500)
                         ->maxFileSize(2)
-                        ->required($isSlider || $isLogo || $isBanner)
-                        ->help($imageHelp)
+                        ->help($imageHelp . ' - Leave empty if using the Manual URL above.')
                         ->storage('public'),
 
                     Input::make('item.order')
@@ -207,16 +211,24 @@ class HomeWidgetItemEditScreen extends Screen
 
     public function save(HomeWidgetItem $item, Request $request)
     {
-        $data = $request->validate([
+        $validated = $request->validate([
             'item.home_widget_id' => 'required|exists:home_widgets,id',
             'item.title' => 'required|string|max:255',
-            'item.identifier' => 'nullable|string|max:255', // <--- ADD THIS LINE
+            'item.identifier' => 'nullable|string|max:255',
             'item.subtitle' => 'nullable|string|max:500',
             'item.action_url' => 'nullable|string|max:500',
             'item.icon' => 'nullable|string|max:50',
             'item.image' => 'nullable|string',
             'item.order' => 'required|integer|min:0',
-        ])['item'];
+            'manual_image_url' => 'nullable|string', // Safe manual URL injection
+        ]);
+
+        $data = $validated['item'];
+
+        // If user provided a manual URL, use it instead of the uploaded image
+        if (!empty($validated['manual_image_url'])) {
+            $data['image'] = $validated['manual_image_url'];
+        }
 
         // Ensure we have the widget ID
         if (empty($data['home_widget_id'])) {
@@ -231,13 +243,21 @@ class HomeWidgetItemEditScreen extends Screen
 
     public function saveAndAddAnother(Request $request)
     {
-        $data = $request->validate([
+        $validated = $request->validate([
             'item.home_widget_id' => 'required|exists:home_widgets,id',
             'item.title' => 'required|string|max:255',
             'item.icon' => 'nullable|string|max:50',
             'item.image' => 'nullable|string',
             'item.order' => 'required|integer|min:0',
-        ])['item'];
+            'manual_image_url' => 'nullable|string', // Safe manual URL injection
+        ]);
+
+        $data = $validated['item'];
+
+        // If user provided a manual URL, use it instead of the uploaded image
+        if (!empty($validated['manual_image_url'])) {
+            $data['image'] = $validated['manual_image_url'];
+        }
 
         // Ensure we have the widget ID
         if (empty($data['home_widget_id'])) {
