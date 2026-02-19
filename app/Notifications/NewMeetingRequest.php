@@ -5,6 +5,7 @@ namespace App\Notifications;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use App\Channels\AppDatabaseChannel;
+use App\Channels\FcmChannel;
 use App\Models\Appointment;
 use App\Models\User;
 
@@ -23,8 +24,8 @@ class NewMeetingRequest extends Notification
 
     public function via($notifiable)
     {
-        // We use our custom channel AND standard database (optional, for admin panel)
-        return [AppDatabaseChannel::class, 'database'];
+        // Added FcmChannel::class here
+        return [AppDatabaseChannel::class, 'database', FcmChannel::class];
     }
 
     // Configuration for YOUR custom app_notifications table
@@ -33,11 +34,25 @@ class NewMeetingRequest extends Notification
         return [
             'title' => 'New Meeting Request',
             'body'  => "{$this->booker->name} wants to meet with you.",
-            'type'  => 'info', // Enum: info, success, alert, promo
+            'type'  => 'info',
             'data'  => [
-                'screen' => '/b2b_detail', // The Flutter route name
-                'arg'    => $this->appointment->id, // The ID to fetch details
-                'click_action' => 'FLUTTER_NOTIFICATION_CLICK' // Standard FCM key
+                'screen' => '/b2b_detail',
+                'arg'    => $this->appointment->id,
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK'
+            ]
+        ];
+    }
+
+    // Firebase Cloud Messaging Payload
+    public function toFcm($notifiable)
+    {
+        return [
+            'title' => 'New Meeting Request',
+            'body'  => "{$this->booker->name} wants to meet with you.",
+            'data'  => [
+                'screen' => '/b2b_detail',
+                'arg'    => (string) $this->appointment->id, // FCM requires strings
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK'
             ]
         ];
     }

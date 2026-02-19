@@ -76,6 +76,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/stats', [AuthController::class, 'getStats']);
 
     // Notification Routes
+    Route::post('/notifications/device-token', [NotificationController::class, 'saveDeviceToken']); // ADD THIS LINE
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
     Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);

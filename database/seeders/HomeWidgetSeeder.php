@@ -44,6 +44,26 @@ class HomeWidgetSeeder extends Seeder
             'order' => 2
         ]);
 
+        // Slide 3
+        HomeWidgetItem::create([
+            'home_widget_id' => $slider->id,
+            'title' => 'B2B Networking',
+            'identifier' => 'home_slide_3_title',
+            'subtitle' => 'Meet Industry Leaders and Innovators',
+            'image' => 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&w=1200&q=80', // Networking / Business Meeting
+            'order' => 3
+        ]);
+
+        // Slide 4
+        HomeWidgetItem::create([
+            'home_widget_id' => $slider->id,
+            'title' => 'Inspiring Keynotes',
+            'identifier' => 'home_slide_4_title',
+            'subtitle' => 'Learn from Top Tech Visionaries',
+            'image' => 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80', // Speaker on Stage / Presentation
+            'order' => 4
+        ]);
+
 
         // ---------------------------------------------------------
         // 2. SPONSOR BANNER
