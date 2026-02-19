@@ -45,13 +45,13 @@ jobs:
         run: npm run build
 
       # Optimize Laravel
-      - name: Optimize Laravel
-        run: |
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
+      #- name: Optimize Laravel
+      #  run: |
+      #    php artisan config:cache
+      #    php artisan route:cache
+      #    php artisan view:cache
 
-          php artisan key:generate
+      #    php artisan key:generate
 
       # Upload build artifact
       - name: Upload Build Artifact
