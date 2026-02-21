@@ -72,7 +72,7 @@ jobs:
           git fetch origin prod || true
 
           # Backup prod
-          if git show-ref --verify --quiet refs/heads/prod; then
+          if git show-ref --verify --quiet prod; then
             echo "Branch prod exists"
             TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
             git checkout prod
