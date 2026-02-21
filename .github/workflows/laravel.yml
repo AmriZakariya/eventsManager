@@ -68,19 +68,18 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
 
-          # Fetch prod in case it exists
-          git fetch origin prod || true
-
-          # Backup prod
-          #if git show-ref --verify --quiet prod; then
+          # Fetch & Backup prod if exists
+          if git ls-remote --exit-code --heads origin prod; then
             echo "Branch prod exists"
+
             TIMESTAMP=$(date +"%Y%m%d-%H%M%S")
-            git checkout prod
-            git checkout -b prod-backup-$TIMESTAMP
+
+            # Create backup branch directly from remote prod
+            git branch prod-backup-$TIMESTAMP origin/prod
             git push origin prod-backup-$TIMESTAMP
-          #else
-          #    echo "Branch prod does not exist"
-          #fi
+          else
+            echo "Branch prod does not exist"
+          fi
 
           # Return to main to copy files
           git checkout main
