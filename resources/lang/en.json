@@ -172,8 +172,12 @@
     "onboarding_title_1": "Discover Amazing Events",
     "onboarding_desc_1": "Browse through exciting events happening around you. Find conferences, workshops, and networking opportunities.",
     "onboarding_title_2": "Easy Check-In",
-    "onboarding_desc_2": "Scan QR codes for instant event check-in. No more waiting in long queues. Your digital ticket is always ready.",
+    "onboarding_desc_2": "Sc an QR codes for instant event check-in. No more waiting in long queues. Your digital ticket is always ready.",
     "onboarding_title_3": "Connect & Network",
     "onboarding_desc_3": "Meet like-minded people and expand your professional network. Share experiences and build lasting connections.",
-    "or": "or"
+    "or": "or",
+    "new_meeting_title": "New Meeting Request 🤝",
+    "new_meeting_body": ":name from :company has requested a meeting with you on :date.",
+    "meeting_confirmed_title": "Meeting Confirmed! ✅",
+    "meeting_confirmed_body": "Great news! Your meeting scheduled for :date has been confirmed."
 }

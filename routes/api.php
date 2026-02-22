@@ -74,6 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/contact/send', [ContactRequestController::class, 'sendMessage']);
     Route::post('/auth/update-avatar', [AuthController::class, 'updateAvatar']);
     Route::get('/auth/stats', [AuthController::class, 'getStats']);
+    Route::post('/auth/update-locale', [AuthController::class, 'updateLocale']);
 
     // Notification Routes
     Route::post('/notifications/device-token', [NotificationController::class, 'saveDeviceToken']); // ADD THIS LINE

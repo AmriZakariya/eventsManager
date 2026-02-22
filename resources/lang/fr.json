@@ -137,5 +137,9 @@
     "error_password_min": "Min 6 caractères",
     "error_password_mismatch": "Les mots de passe ne correspondent pas",
     "error_select_company": "Veuillez sélectionner une entreprise",
-    "or": "ou"
+    "or": "ou",
+    "new_meeting_title": "Nouvelle demande de réunion 🤝",
+    "new_meeting_body": ":name de :company a demandé une réunion avec vous le :date.",
+    "meeting_confirmed_title": "Réunion confirmée ! ✅",
+    "meeting_confirmed_body": "Excellente nouvelle ! Votre réunion prévue le :date a été confirmée."
 }

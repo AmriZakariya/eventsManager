@@ -24,6 +24,7 @@ class User extends Authenticatable
         'email',
         'password',
         'permissions',
+        'locale',
 
         // Extended Profile Fields
         'phone',

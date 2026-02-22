@@ -258,4 +258,22 @@ class AuthController extends Controller
             'meetings' => $meetingsCount,
         ]);
     }
+
+    public function updateLocale(Request $request)
+    {
+        // Validate that the language is one of your supported options
+        $request->validate([
+            'locale' => 'required|string|in:en,fr,ar'
+        ]);
+
+        $user = $request->user();
+        $user->update([
+            'locale' => $request->locale
+        ]);
+
+        return response()->json([
+            'message' => 'Language updated successfully',
+            'user' => $user
+        ]);
+    }
 }

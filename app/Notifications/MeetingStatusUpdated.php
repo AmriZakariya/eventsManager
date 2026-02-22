@@ -5,8 +5,9 @@ namespace App\Notifications;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 use App\Channels\AppDatabaseChannel;
-use App\Channels\FcmChannel; // <-- Add your FCM Channel here
+use App\Channels\FcmChannel;
 use App\Models\Appointment;
+use Carbon\Carbon;
 
 class MeetingStatusUpdated extends Notification
 {
@@ -23,24 +24,55 @@ class MeetingStatusUpdated extends Notification
 
     public function via($notifiable)
     {
-        // Tell Laravel to save to DB AND send via FCM Push Notification
+        // Save to DB AND send via FCM Push Notification
         return [AppDatabaseChannel::class, FcmChannel::class];
     }
 
-    // This handles the Database save (already working)
-    public function toApp($notifiable)
+    /**
+     * Helper to generate translated content based on the target user's locale
+     */
+    private function getTranslatedContent($notifiable)
     {
-        $title = match($this->status) {
-            'confirmed' => 'Meeting Confirmed! ✅',
-            'declined'  => 'Meeting Declined ❌',
-            'cancelled' => 'Meeting Cancelled ⚠️',
-            default     => 'Meeting Update'
+        $locale = $notifiable->locale ?? 'en';
+
+        $date = Carbon::parse($this->appointment->scheduled_at)
+            ->locale($locale)
+            ->translatedFormat('M j \a\t g:i A');
+
+        // Determine the translation keys based on status
+        $titleKey = "notifications.meeting_{$this->status}_title";
+        $bodyKey  = "notifications.meeting_{$this->status}_body";
+
+        $title = __($titleKey, [], $locale);
+        $body  = __($bodyKey, ['date' => $date], $locale);
+
+        // Fallbacks in case the specific status translation doesn't exist
+        if ($title === $titleKey) {
+            $title = __('notifications.meeting_update_title', [], $locale) ?? 'Meeting Update';
+            $body  = __('notifications.meeting_update_body', ['status' => $this->status, 'date' => $date], $locale) ?? "Your meeting on {$date} is now {$this->status}.";
+        }
+
+        $type = match($this->status) {
+            'confirmed' => 'success',
+            default => 'alert'
         };
 
         return [
             'title' => $title,
-            'body'  => "The status of your meeting has changed to {$this->status}.",
-            'type'  => match($this->status) { 'confirmed' => 'success', default => 'alert' },
+            'body'  => $body,
+            'type'  => $type,
+        ];
+    }
+
+    // Configuration for YOUR custom app_notifications table
+    public function toApp($notifiable)
+    {
+        $content = $this->getTranslatedContent($notifiable);
+
+        return [
+            'title' => $content['title'],
+            'body'  => $content['body'],
+            'type'  => $content['type'],
             'data'  => [
                 'screen' => '/b2b_detail',
                 'arg'    => $this->appointment->id,
@@ -48,20 +80,14 @@ class MeetingStatusUpdated extends Notification
         ];
     }
 
-    // NEW: This formats the payload specifically for Firebase Cloud Messaging
+    // Firebase Cloud Messaging Payload
     public function toFcm($notifiable)
     {
-        $title = match($this->status) {
-            'confirmed' => 'Meeting Confirmed! ✅',
-            'declined'  => 'Meeting Declined ❌',
-            'cancelled' => 'Meeting Cancelled ⚠️',
-            default     => 'Meeting Update'
-        };
+        $content = $this->getTranslatedContent($notifiable);
 
         return [
-            'title' => $title,
-            'body'  => "The status of your meeting has changed to {$this->status}.",
-            // Pass the routing data to Flutter when the user taps the push notification
+            'title' => $content['title'],
+            'body'  => $content['body'],
             'data' => [
                 'screen' => '/b2b_detail',
                 'arg'    => (string) $this->appointment->id, // FCM data values MUST be strings

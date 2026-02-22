@@ -237,7 +237,7 @@ class HomeWidgetItemEditScreen extends Screen
 
         $item->fill($data)->save();
 
-        Toast::success($this->item->exists ? 'Item updated successfully!' : 'Item created successfully!');
+        Toast::success('Item updated successfully!' );
         return redirect()->route('platform.content.widgets.edit', $data['home_widget_id']);
     }
 

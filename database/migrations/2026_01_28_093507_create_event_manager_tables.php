@@ -173,6 +173,7 @@ return new class extends Migration
             $table->string('city')->nullable();
             $table->string('company_sector')->nullable();
             $table->string('company_name')->nullable();
+            $table->string('locale')->default('en');
         });
 
         // Push Notifications History
