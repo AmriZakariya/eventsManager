@@ -179,5 +179,11 @@
     "new_meeting_title": "New Meeting Request 🤝",
     "new_meeting_body": ":name from :company has requested a meeting with you on :date.",
     "meeting_confirmed_title": "Meeting Confirmed! ✅",
-    "meeting_confirmed_body": "Great news! Your meeting scheduled for :date has been confirmed."
+    "meeting_confirmed_body": "Great news! Your meeting scheduled for :date has been confirmed.",
+    "meeting_declined_title": "Meeting Declined ❌",
+    "meeting_declined_body": "Unfortunately, the meeting requested for :date was declined.",
+    "meeting_cancelled_title": "Meeting Cancelled ⚠️",
+    "meeting_cancelled_body": "The meeting scheduled for :date has been cancelled.",
+    "meeting_update_title": "Meeting Update",
+    "meeting_update_body": "Your meeting on :date is now :status."
 }

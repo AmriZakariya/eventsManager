@@ -44,9 +44,9 @@ class NewMeetingRequest extends Notification
 
         $companyName = $this->booker->company ? $this->booker->company->name : '';
 
-        // Fetch translations explicitly using the $locale parameter
-        $title = __('notifications.new_meeting_title', [], $locale);
-        $body  = __('notifications.new_meeting_body', [
+        // Removed the 'notifications.' prefix
+        $title = __('new_meeting_title', [], $locale);
+        $body  = __('new_meeting_body', [
             'name'    => $this->booker->name,
             'company' => $companyName,
             'date'    => $date

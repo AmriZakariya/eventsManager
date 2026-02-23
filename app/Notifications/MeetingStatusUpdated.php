@@ -39,17 +39,17 @@ class MeetingStatusUpdated extends Notification
             ->locale($locale)
             ->translatedFormat('M j \a\t g:i A');
 
-        // Determine the translation keys based on status
-        $titleKey = "notifications.meeting_{$this->status}_title";
-        $bodyKey  = "notifications.meeting_{$this->status}_body";
+        // Dynamic keys without the 'notifications.' prefix
+        $titleKey = "meeting_{$this->status}_title";
+        $bodyKey  = "meeting_{$this->status}_body";
 
         $title = __($titleKey, [], $locale);
         $body  = __($bodyKey, ['date' => $date], $locale);
 
         // Fallbacks in case the specific status translation doesn't exist
         if ($title === $titleKey) {
-            $title = __('notifications.meeting_update_title', [], $locale) ?? 'Meeting Update';
-            $body  = __('notifications.meeting_update_body', ['status' => $this->status, 'date' => $date], $locale) ?? "Your meeting on {$date} is now {$this->status}.";
+            $title = __('meeting_update_title', [], $locale) ?? 'Meeting Update';
+            $body  = __('meeting_update_body', ['status' => $this->status, 'date' => $date], $locale) ?? "Your meeting on {$date} is now {$this->status}.";
         }
 
         $type = match($this->status) {

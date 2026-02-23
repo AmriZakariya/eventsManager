@@ -141,5 +141,11 @@
     "new_meeting_title": "Nouvelle demande de réunion 🤝",
     "new_meeting_body": ":name de :company a demandé une réunion avec vous le :date.",
     "meeting_confirmed_title": "Réunion confirmée ! ✅",
-    "meeting_confirmed_body": "Excellente nouvelle ! Votre réunion prévue le :date a été confirmée."
+    "meeting_confirmed_body": "Excellente nouvelle ! Votre réunion prévue le :date a été confirmée.",
+    "meeting_declined_title": "Réunion refusée ❌",
+    "meeting_declined_body": "Malheureusement, la réunion demandée pour le :date a été refusée.",
+    "meeting_cancelled_title": "Réunion annulée ⚠️",
+    "meeting_cancelled_body": "La réunion prévue le :date a été annulée.",
+    "meeting_update_title": "Mise à jour de la réunion",
+    "meeting_update_body": "Votre réunion du :date est maintenant :status."
 }
