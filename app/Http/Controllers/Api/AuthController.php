@@ -10,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-use App\Http\Resources\UserResource;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
 use Orchid\Platform\Models\Role;
@@ -30,20 +29,12 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
             'job_title' => 'nullable|string|max:100',
-
-            // New Fields
             'phone' => 'required|string|max:20',
             'country' => 'required|string|max:100',
             'city' => 'required|string|max:100',
             'company_sector' => 'required|string|max:100',
-
-            // Profile Picture (Required)
             'avatar' => 'required|image|mimes:jpeg,png,jpg,webp|max:4096', // Max 4MB
-
-            // Role Validation
             'role' => ['required', 'string', Rule::in(['visitor', 'exhibitor'])],
-
-            // CONDITIONAL VALIDATION:
 
             // 1. Exhibitors need a valid company_id from DB
             'company_id' => [
@@ -65,8 +56,6 @@ class AuthController extends Controller
         // Handle File Upload
         $avatarPath = null;
         if ($request->hasFile('avatar')) {
-            // Store using YYYY/MM/DD structure on 'public' disk
-            // This matches the structure: /storage/2026/02/16/filename.png
             $path = date('Y/m/d');
             $avatarPath = $request->file('avatar')->store($path, 'public');
         }
@@ -89,10 +78,8 @@ class AuthController extends Controller
             'company_sector' => $request->company_sector,
             'job_title' => $request->job_title,
             'badge_code' => $badgeCode,
-            'avatar' => $avatarPath, // Save path
+            'avatar' => $avatarPath,
             'is_visible' => true,
-
-            // Assign Company Data based on Role
             'company_id' => ($request->role === 'exhibitor') ? $request->company_id : null,
             'company_name' => ($request->role === 'visitor') ? $request->company_name : null,
         ]);
@@ -115,7 +102,7 @@ class AuthController extends Controller
             'message' => 'Registration successful',
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'user' => new UserResource($user),
+            'user' => $this->formatUser($user),
         ], 201);
     }
 
@@ -138,7 +125,7 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $user->createToken('mobile_app')->plainTextToken,
             'token_type' => 'Bearer',
-            'user' => new UserResource($user),
+            'user' => $this->formatUser($user),
         ]);
     }
 
@@ -147,7 +134,9 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        return new UserResource($request->user());
+        return response()->json([
+            'data' => $this->formatUser($request->user())
+        ]);
     }
 
     /**
@@ -163,9 +152,6 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        // We will send the password reset link to this user.
-        // Once we have attempted to send the link, we will examine the response
-        // then return the message back to the application.
         $status = Password::sendResetLink(
             $request->only('email')
         );
@@ -185,7 +171,6 @@ class AuthController extends Controller
             'password' => 'required|min:6|confirmed',
         ]);
 
-        // Attempt to reset the password
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user, $password) {
@@ -215,14 +200,12 @@ class AuthController extends Controller
         $user = $request->user();
 
         // 1. Delete old avatar if it exists to save space
-        // Note: We check if it exists on the public disk
         if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
             Storage::disk('public')->delete($user->avatar);
         }
 
         // 2. Store new avatar
         if ($request->hasFile('avatar')) {
-            // Store using YYYY/MM/DD structure on 'public' disk
             $path = date('Y/m/d');
             $avatarPath = $request->file('avatar')->store($path, 'public');
 
@@ -231,7 +214,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Profile picture updated successfully',
-            'user' => new UserResource($user),
+            'user' => $this->formatUser($user),
         ]);
     }
 
@@ -239,19 +222,17 @@ class AuthController extends Controller
     {
         $userId = $request->user()->id;
 
-        // 1. Count Confirmed Connections
-        // Checks if user is either the requester OR the target, and status is accepted
+        // Count Confirmed Connections
         $connectionsCount = Connection::where(function ($q) use ($userId) {
             $q->where('requester_id', $userId)
                 ->orWhere('target_id', $userId);
         })->where('status', 'accepted')->count();
 
-        // 2. Count Active Meetings
-        // Checks if user is booker OR target, and status is not cancelled/declined
+        // Count Active Meetings
         $meetingsCount = Appointment::where(function ($q) use ($userId) {
             $q->where('booker_id', $userId)
                 ->orWhere('target_user_id', $userId);
-        })->whereIn('status', ['pending', 'confirmed'])->count();
+        })->whereIn('status', ['confirmed'])->count();
 
         return response()->json([
             'connections' => $connectionsCount,
@@ -261,7 +242,6 @@ class AuthController extends Controller
 
     public function updateLocale(Request $request)
     {
-        // Validate that the language is one of your supported options
         $request->validate([
             'locale' => 'required|string|in:en,fr,ar'
         ]);
@@ -273,7 +253,43 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Language updated successfully',
-            'user' => $user
+            'user' => $this->formatUser($user)
         ]);
+    }
+
+    /**
+     * Helper to format User Data safely without relying on UserResource
+     */
+    private function formatUser(User $user)
+    {
+        // Ensure relationships are loaded to prevent errors
+        $user->loadMissing(['company', 'roles']);
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'last_name' => $user->last_name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'job_title' => $user->job_title,
+            'job_function' => $user->job_function,
+
+            // Critical for Visitor Identity
+            'badge_code' => $user->badge_code,
+
+            // Avatar (Returns full URL if it exists)
+            'avatar_url' => $user->avatar ? asset('storage/' . $user->avatar) : null,
+            'locale' => $user->locale ?? 'en',
+
+            // Role Helper (returns 'visitor', 'exhibitor', or 'admin')
+            'role' => $user->roles->first()?->slug ?? 'visitor',
+
+            // Critical for Exhibitor Logic
+            'company_id' => $user->company_id,
+            // Prioritize the company table name, fallback to user's manual entry
+            'company_name' => $user->company ? $user->company->name : $user->company_name,
+
+            'created_at' => $user->created_at ? $user->created_at->format('Y-m-d H:i') : null,
+        ];
     }
 }

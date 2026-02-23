@@ -30,10 +30,6 @@ Route::get('/companies/{id}', [CompanyController::class, 'show']);
 
 // 3. USER ACTIONS (Auth Required)
 Route::middleware('auth:sanctum')->group(function () {
-    // User Profile
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
     Route::post('/companies/{id}/favorite', [CompanyController::class, 'toggleFavorite']);
 
     // Networking
@@ -75,6 +71,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/update-avatar', [AuthController::class, 'updateAvatar']);
     Route::get('/auth/stats', [AuthController::class, 'getStats']);
     Route::post('/auth/update-locale', [AuthController::class, 'updateLocale']);
+    Route::get('/auth/me', [AuthController::class, 'me']);
 
     // Notification Routes
     Route::post('/notifications/device-token', [NotificationController::class, 'saveDeviceToken']); // ADD THIS LINE
