@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use setasign\Fpdi\Tcpdf\Fpdi;  // FPDI with TCPDF driver
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
+use chillerlan\QRCode\Data\QRMatrix;
 
 class BadgeController extends Controller
 {
@@ -96,22 +99,50 @@ class BadgeController extends Controller
         $pdf->SetXY($panelX, 59);
         $pdf->Cell($panelW, 8, $company_name, 0, 1, 'C');
 
-        // ── Step 4 — Generate & place dynamic QR CODE ────────────────────────
-        // Center the 40 mm QR block in the right panel
-        $qrX = 157.5 - 11; // panelCenter - half of QR width
-        $pdf->write2DBarcode(
-            $qr_data,
-            'QRCODE,H',
-            $qrX, 76,     // X, Y (mm)
-            23,  23,       // width, height (mm)
-            [
-                'border'  => false,
-                'padding' => 1,
-                'fgcolor' => [10, 25, 60],    // dark navy dots
-                'bgcolor' => [255, 255, 255],
+
+        // ── Step 4 — Generate modern styled QR CODE ───────────────────────────────
+        $options = new QROptions([
+            'version'             => 5,
+            'eccLevel'            => QRCode::ECC_H,
+            'outputType'          => QRCode::OUTPUT_IMAGE_PNG,
+            'imageBase64'         => false,
+
+            'drawCircularModules' => true,
+            'circleRadius'        => 0.45,
+
+            'keepAsSquare' => [
+                QRMatrix::M_FINDER,       // ← QRMatrix, not QRCode
+                QRMatrix::M_FINDER_DOT,
+                QRMatrix::M_FINDER_DARK,
             ],
-            'N'
-        );
+
+            'moduleValues' => [
+                QRMatrix::M_FINDER_DARK => [10, 25, 60],
+                QRMatrix::M_FINDER_DOT  => [10, 25, 60],
+                QRMatrix::M_DATA_DARK   => [10, 25, 60],
+                QRMatrix::M_FINDER      => [255, 255, 255],
+                QRMatrix::M_DATA        => [255, 255, 255],
+                QRMatrix::M_LOGO        => [255, 255, 255],
+            ],
+
+            'scale'            => 10,
+            'imageTransparent' => false,
+            'bgColor'          => [255, 255, 255],
+        ]);
+
+        // Generate PNG to a temp file
+        $qrCode   = new QRCode($options);
+        $qrPng    = $qrCode->render($qr_data);           // raw PNG binary
+        $tmpQr    = tempnam(sys_get_temp_dir(), 'qr_') . '.png';
+        file_put_contents($tmpQr, $qrPng);
+
+        // Place it in the PDF — 23×23 mm, centered in right panel
+        $qrSize = 23;
+        $qrX    = 157.5 - ($qrSize / 2);   // panel center minus half width
+        $pdf->Image($tmpQr, $qrX, 76, $qrSize, $qrSize, 'PNG');
+
+        // Clean up temp file
+        @unlink($tmpQr);
 
         // ── Return raw PDF string ─────────────────────────────────────────────
         return $pdf->Output('badge.pdf', 'S');
