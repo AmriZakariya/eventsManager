@@ -271,6 +271,15 @@ class AuthController extends Controller
             'last_name' => $user->last_name,
             'email' => $user->email,
             'phone' => $user->phone,
+
+            // --- ADDED MISSING FIELDS FROM REGISTRATION ---
+            'country' => $user->country,
+            'city' => $user->city,
+            'company_sector' => $user->company_sector,
+            'is_visible' => (bool) $user->is_visible,
+            'about_me' => $user->about_me,
+            // ----------------------------------------------
+
             'job_title' => $user->job_title,
             'job_function' => $user->job_function,
 

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\B2BController;
+use App\Http\Controllers\Api\BadgeController;
 use App\Http\Controllers\Api\ChatController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\ConferenceController;
@@ -72,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/stats', [AuthController::class, 'getStats']);
     Route::post('/auth/update-locale', [AuthController::class, 'updateLocale']);
     Route::get('/auth/me', [AuthController::class, 'me']);
+    Route::get('/generateBadge', [BadgeController::class, 'generateBadge']);
 
     // Notification Routes
     Route::post('/notifications/device-token', [NotificationController::class, 'saveDeviceToken']); // ADD THIS LINE

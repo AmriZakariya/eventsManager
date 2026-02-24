@@ -83,15 +83,11 @@ class EventSettingScreen extends Screen
                             Cropper::make('settings.app_logo')
                                 ->title('App Logo')
                                 ->targetRelativeUrl()
-                                ->width(512)
-                                ->height(512)
                                 ->help('Recommended: 512×512px PNG with transparent background'),
 
                             Cropper::make('settings.venue_image')
                                 ->title('Venue Hero Image')
                                 ->targetRelativeUrl()
-                                ->width(1200)
-                                ->height(600)
                                 ->help('Main banner image (1200×600px)'),
                         ]),
                     ]),
@@ -126,8 +122,6 @@ class EventSettingScreen extends Screen
                             Cropper::make('settings.floor_plan_image')
                                 ->title('Floor Plan / Venue Map')
                                 ->targetRelativeUrl()
-                                ->width(800)
-                                ->height(800)
                                 ->help('Interactive navigation map'),
                         ])->title('Additional Assets'),
                     ]),

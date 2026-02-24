@@ -29,6 +29,7 @@ class HomeWidget extends Model
         'logo_cloud' => 'Logo Cloud',
         'single_banner' => 'Single Banner',
         'dynamic_list' => 'Dynamic List',
+        'sponsor_banner' => 'Sponsor Banner',
     ];
 
     public const DATA_SOURCES = [
