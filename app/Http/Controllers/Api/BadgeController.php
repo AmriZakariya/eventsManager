@@ -23,7 +23,7 @@ class BadgeController extends Controller
 
         // ── Pull data from User model ──────────────────────────────────────────
         $fullname     = strtoupper(trim($user->name . ' ' . $user->last_name));
-        $company_name = $user->company?->name ?? '';
+        $company_name = $user->company ? $user->company->name : $user->company_name;
         $qr_data      = url('/profile/' . $user->id); // or any unique URL / token
 
         // ── Build PDF ──────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ class BadgeController extends Controller
     {
         // Path to the original badge PDF  →  php artisan storage:link not needed,
         // just drop BADGE-HAYGE.pdf into storage/app/ and name it badge_template.pdf
-        $templatePath = storage_path('app/badge_template.pdf');
+        $templatePath = storage_path('app/bg.pdf');
 
         // ── Init FPDI (TCPDF driver) ───────────────────────────────────────────
         $pdf = new Fpdi('P', 'mm', 'A4', true, 'UTF-8', false);
@@ -78,32 +78,32 @@ class BadgeController extends Controller
         $panelW = 105;   // right panel width (goes to 210 mm)
 
         // ── Step 1 — Erase originals with white fill ──────────────────────────
-        $pdf->SetFillColor(255, 255, 255);
-
-        $pdf->Rect($panelX, 44, $panelW, 14, 'F');  // covers name  (y 44–58)
-        $pdf->Rect($panelX, 58, $panelW, 11, 'F');  // covers company (y 58–69)
-        $pdf->Rect($panelX, 68, $panelW, 45, 'F');  // covers QR code (y 68–113)
+//        $pdf->SetFillColor(255, 255, 255);
+//
+//        $pdf->Rect($panelX, 44, $panelW, 14, 'F');  // covers name  (y 44–58)
+//        $pdf->Rect($panelX, 58, $panelW, 11, 'F');  // covers company (y 58–69)
+//        $pdf->Rect($panelX, 68, $panelW, 45, 'F');  // covers QR code (y 68–113)
 
         // ── Step 2 — Write dynamic FULL NAME ─────────────────────────────────
         $pdf->SetFont('helvetica', 'B', 20);
-        $pdf->SetTextColor(10, 25, 60);
+        $pdf->SetTextColor(255, 255, 255);
         $pdf->SetXY($panelX, 46);
         $pdf->Cell($panelW, 10, $fullname, 0, 1, 'C');
 
         // ── Step 3 — Write dynamic COMPANY NAME ──────────────────────────────
         $pdf->SetFont('helvetica', '', 13);
-        $pdf->SetTextColor(60, 90, 140);
+        $pdf->SetTextColor(255, 255, 255);
         $pdf->SetXY($panelX, 59);
         $pdf->Cell($panelW, 8, $company_name, 0, 1, 'C');
 
         // ── Step 4 — Generate & place dynamic QR CODE ────────────────────────
         // Center the 40 mm QR block in the right panel
-        $qrX = 157.5 - 20; // panelCenter - half of QR width
+        $qrX = 157.5 - 11; // panelCenter - half of QR width
         $pdf->write2DBarcode(
             $qr_data,
             'QRCODE,H',
-            $qrX, 70,     // X, Y (mm)
-            40,  40,       // width, height (mm)
+            $qrX, 76,     // X, Y (mm)
+            23,  23,       // width, height (mm)
             [
                 'border'  => false,
                 'padding' => 1,

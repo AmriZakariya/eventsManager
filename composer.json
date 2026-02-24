@@ -16,6 +16,7 @@
         "orchid/platform": "^14.52",
         "setasign/fpdi": "^2.6",
         "setasign/fpdi-tcpdf": "^2.3",
+        "simplesoftwareio/simple-qrcode": "^4.2",
         "tecnickcom/tcpdf": "^6.10"
     },
     "require-dev": {
