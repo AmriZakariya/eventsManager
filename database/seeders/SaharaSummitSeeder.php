@@ -187,6 +187,8 @@ class SaharaSummitSeeder extends Seeder
             'primary_color'   => '#1A365B',
             'secondary_color' => '#02CA67',
             'accent_color'    => '#00A1EC',
+            'floor_plan_image'    => '/storage/floor_plan.png',
+            'app_logo'    => '/storage/2026/02/24/f778eee06b92b9053d7b63bbbbda12edf48dc267.png',
         ]);
     }
 

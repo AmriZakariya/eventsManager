@@ -133,6 +133,14 @@ class EventSetting extends Model
         return asset($this->image);
     }
 
+    // get floor_plan_image
+    public function getFloorPlanUrlAttribute()
+    {
+        if (!$this->floor_plan_image) return null;
+        if (str_starts_with($this->floor_plan_image, 'http')) return $this->floor_plan_image;
+        return asset($this->floor_plan_image);
+    }
+
     public function getAvailableLanguagesAttribute($value)
     {
         $languages = json_decode($value, true) ?? [];

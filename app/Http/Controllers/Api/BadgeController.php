@@ -28,9 +28,10 @@ class BadgeController extends Controller
         $fullname     = strtoupper(trim($user->name . ' ' . $user->last_name));
         $company_name = $user->company ? $user->company->name : $user->company_name;
         $qr_data      = url('/profile/' . $user->id); // or any unique URL / token
+        $user_role    =  $user->roles->first()?->slug ?? 'visitor';
 
         // ── Build PDF ──────────────────────────────────────────────────────────
-        $pdfContent = $this->overlayBadge($fullname, $company_name, $qr_data);
+        $pdfContent = $this->overlayBadge($fullname, $company_name, $qr_data, $user_role);
 
         // ── Stream response ────────────────────────────────────────────────────
         $filename = 'badge_' . str()->slug($fullname) . '.pdf';
@@ -46,11 +47,12 @@ class BadgeController extends Controller
     //  CORE: Import original PDF and overlay only the dynamic fields
     // ──────────────────────────────────────────────────────────────────────────
 
-    private function overlayBadge(string $fullname, string $company_name, string $qr_data): string
+    private function overlayBadge(string $fullname, string $company_name, string $qr_data, string $user_role): string
     {
-        // Path to the original badge PDF  →  php artisan storage:link not needed,
-        // just drop BADGE-HAYGE.pdf into storage/app/ and name it badge_template.pdf
-        $templatePath = storage_path('app/bg.pdf');
+        $templatePath = storage_path('app/badge_visitor.pdf');
+        if ($user_role == "exhibitor") {
+            $templatePath = storage_path('app/badge_exhibitor.pdf');
+        }
 
         // ── Init FPDI (TCPDF driver) ───────────────────────────────────────────
         $pdf = new Fpdi('P', 'mm', 'A4', true, 'UTF-8', false);

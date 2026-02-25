@@ -55,8 +55,8 @@ class AppConfigController extends Controller
                     'location_address' => $settings->location_address,
                     'latitude' => $settings->latitude,
                     'longitude' => $settings->longitude,
-                    'floor_plan_image' => $settings->floor_plan_image ? url('storage/' . $settings->floor_plan_image) : null,
-                    'venue_image' => $settings->venue_image ? url('storage/' . $settings->venue_image) : null,
+                    'floor_plan_image' => $settings->floor_plan_image ? asset( $settings->floor_plan_image) : null,
+                    'venue_image' => $settings->venue_image ? asset( $settings->venue_image) : null,
 
                     // Operational
                     'opening_hour' => $settings->opening_hour,
