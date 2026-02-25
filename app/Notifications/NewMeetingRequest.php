@@ -42,12 +42,12 @@ class NewMeetingRequest extends Notification
             ->locale($locale)
             ->translatedFormat('M j \a\t g:i A');
 
-        $companyName = $this->booker->company ? $this->booker->company->name : '';
+        $companyName = $this->booker->company ? $this->booker->company->name : $this->booker->company_name;
 
         // Removed the 'notifications.' prefix
         $title = __('new_meeting_title', [], $locale);
         $body  = __('new_meeting_body', [
-            'name'    => $this->booker->name,
+            'name'    => $this->booker->getFullNameAttribute(),
             'company' => $companyName,
             'date'    => $date
         ], $locale);
