@@ -115,7 +115,7 @@ class BadgeController extends Controller
             'imageBase64'         => false,
 
             'drawCircularModules' => true,
-            'circleRadius'        => 0.45,
+            'circleRadius'        => 3.45,
 
             'keepAsSquare' => [
                 QRMatrix::M_FINDER,
@@ -145,7 +145,7 @@ class BadgeController extends Controller
 
         // Place it in the PDF — 23×23 mm, centered in right panel
         $qrSize = 23;
-        $qrX    = 157.5 - ($qrSize / 2);   // panel center minus half width
+        $qrX    = 158 - ($qrSize / 2);   // panel center minus half width
         $pdf->Image($tmpQr, $qrX, 76, $qrSize, $qrSize, 'PNG');
 
         // Clean up temp file
