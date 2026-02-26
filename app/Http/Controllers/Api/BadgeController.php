@@ -27,7 +27,7 @@ class BadgeController extends Controller
         // ── Pull data from User model ──────────────────────────────────────────
         $fullname     = strtoupper(trim($user->name . ' ' . $user->last_name));
         $company_name = $user->company ? $user->company->name : $user->company_name;
-        $qr_data      = url('/profile/' . $user->id); // or any unique URL / token
+        $qr_data      = strtoupper(trim($user->name . ' ' . $user->last_name));
         $user_role    =  $user->roles->first()?->slug ?? 'visitor';
 
         // ── Build PDF ──────────────────────────────────────────────────────────
@@ -104,7 +104,12 @@ class BadgeController extends Controller
 
         // ── Step 4 — Generate modern styled QR CODE ───────────────────────────────
         $options = new QROptions([
-            'version'             => 5,
+            // REMOVE OR COMMENT OUT THIS LINE:
+            // 'version'             => 5,
+
+            // OPTIONAL: You can explicitly tell it to auto-size if you prefer:
+            'version'             => QRCode::VERSION_AUTO,
+
             'eccLevel'            => QRCode::ECC_H,
             'outputType'          => QRCode::OUTPUT_IMAGE_PNG,
             'imageBase64'         => false,
@@ -113,7 +118,7 @@ class BadgeController extends Controller
             'circleRadius'        => 0.45,
 
             'keepAsSquare' => [
-                QRMatrix::M_FINDER,       // ← QRMatrix, not QRCode
+                QRMatrix::M_FINDER,
                 QRMatrix::M_FINDER_DOT,
                 QRMatrix::M_FINDER_DARK,
             ],
