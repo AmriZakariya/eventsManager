@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/contact/send', [ContactRequestController::class, 'sendMessage']);
     Route::post('/auth/update-avatar', [AuthController::class, 'updateAvatar']);
+    Route::post('/auth/complete-profile', [AuthController::class, 'completeProfile']);
     Route::get('/auth/stats', [AuthController::class, 'getStats']);
     Route::post('/auth/update-locale', [AuthController::class, 'updateLocale']);
     Route::get('/auth/me', [AuthController::class, 'me']);
@@ -88,6 +89,7 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/auth/social-login', [AuthController::class, 'socialLogin']); // <--- ADD THIS
 
 Route::prefix('config')->group(function () {
     Route::get('/init', [AppConfigController::class, 'init']);
