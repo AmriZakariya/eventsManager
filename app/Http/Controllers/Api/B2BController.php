@@ -131,6 +131,7 @@ class B2BController extends Controller
             'notes'          => $request->notes,
             'table_location' => $request->table_location,
         ]);
+        $appointment->logAction('created');
 
         // --- NOTIFICATION TRIGGER ---
         // Notify the Target User (Exhibitor)
@@ -163,6 +164,7 @@ class B2BController extends Controller
         $appointment->update([
             'status' => $request->status
         ]);
+        $appointment->logAction($request->status, $request->reason);
 
         // --- NOTIFICATION TRIGGER ---
         // Notify the Booker (Visitor) about the decision
@@ -188,6 +190,7 @@ class B2BController extends Controller
         }
 
         $appointment->update(['status' => 'cancelled']);
+        $appointment->logAction('cancelled', $request->reason);
 
         // --- NOTIFICATION TRIGGER ---
         // Determine who cancelled and notify the OTHER party

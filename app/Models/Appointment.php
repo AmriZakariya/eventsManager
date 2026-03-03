@@ -13,11 +13,12 @@ class Appointment extends Model
     protected $fillable = [
         'booker_id', 'target_user_id',
         'scheduled_at', 'duration_minutes', 'table_location',
-        'status', 'notes', 'rating', 'feedback'
+        'status', 'notes', 'rating', 'feedback', 'history'
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
+        'history' => 'array',
     ];
 
     // ✅ ADDED: Allowed fields for sorting
@@ -50,5 +51,22 @@ class Appointment extends Model
     public function targetUser()
     {
         return $this->belongsTo(User::class, 'target_user_id');
+    }
+
+    public function logAction(string $action, ?string $reason = null)
+    {
+        // 1. Grab current history (or start an empty array if null)
+        $currentHistory = $this->history ?? [];
+
+        // 2. Add the new event
+        $currentHistory[] = [
+            'action' => $action,
+            'actor_id' => auth()->id(), // Who did it?
+            'reason' => $reason,
+            'timestamp' => now()->toDateTimeString(), // When?
+        ];
+
+        // 3. Save it back to the database
+        $this->update(['history' => $currentHistory]);
     }
 }

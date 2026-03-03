@@ -283,6 +283,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->integer('rating')->nullable();
             $table->text('feedback')->nullable();
+            $table->json('history')->nullable();
             $table->timestamps();
         });
 
