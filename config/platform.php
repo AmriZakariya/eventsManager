@@ -164,8 +164,8 @@ return [
      */
 
     'template' => [
-        'header' => '',
-        'footer' => '',
+        'header' => 'vendor.platform.header',
+        'footer' => 'vendor.platform.footer',
     ],
 
     /*

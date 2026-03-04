@@ -1,26 +1,29 @@
 @extends('platform::app')
 
 @section('body')
+    <div class="min-vh-100 d-flex flex-column justify-content-center" style="background-color: #f8fafc;">
+        <div class="container-md">
 
-    <div class="container-md">
-        <div class="form-signin h-full min-vh-100 d-flex flex-column justify-content-center">
+            <div class="row justify-content-center align-items-center min-vh-100">
+                <div class="col-12 col-md-8 col-lg-5 col-xxl-4 px-md-4 py-5">
 
-            <a class="d-flex justify-content-center mb-4 p-0 px-sm-5" href="{{Dashboard::prefix()}}">
-                @includeFirst([config('platform.template.header'), 'platform::header'])
-            </a>
+                    <div class="d-flex justify-content-center mb-4">
+                        <a class="text-decoration-none" href="{{ Dashboard::prefix() }}">
+                            @includeFirst([config('platform.template.header'), 'platform::header'])
+                        </a>
+                    </div>
 
-            <div class="row justify-content-center">
-                <div class="col-md-10 col-lg-6 col-xxl-5 px-md-5">
-
-                    <div class="bg-white p-4 p-sm-5 rounded shadow-sm">
+                    <div class="bg-white rounded-4 shadow-sm p-4 p-sm-5 border" style="border-color: #e2e8f0 !important;">
                         @yield('content')
                     </div>
+
+                    <div class="mt-4">
+                        @includeFirst([config('platform.template.footer'), 'platform::footer'])
+                    </div>
+
                 </div>
             </div>
 
-
-            @includeFirst([config('platform.template.footer'), 'platform::footer'])
         </div>
     </div>
-
 @endsection
