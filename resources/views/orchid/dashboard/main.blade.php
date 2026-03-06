@@ -174,8 +174,10 @@
     .cc-grid-charts   { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .cc-grid-charts-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
 
-    /* KPI Cards */
+    /* KPI Cards (Now configured for <a> tags) */
     .cc-kpi {
+        display: block; /* Important for a tags */
+        text-decoration: none !important;
         background: var(--bg-surface);
         border: 1px solid var(--bg-border);
         border-radius: var(--radius-lg);
@@ -185,7 +187,7 @@
         position: relative;
         overflow: hidden;
     }
-    .cc-kpi:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .cc-kpi:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: #cbd5e1; }
     .cc-kpi-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
     .cc-kpi-icon {
         width: 48px; height: 48px;
@@ -204,9 +206,10 @@
     .cc-kpi-value { font-size: 36px; font-weight: 800; color: var(--text-primary); line-height: 1; letter-spacing: -0.03em; }
     .cc-kpi-sub   { font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-top: 12px; display: flex; align-items: center; gap: 6px; }
 
-    /* Mini Status Cards */
+    /* Mini Status Cards (Now configured for <a> tags) */
     .cc-status-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;}
     .cc-status-mini {
+        text-decoration: none !important;
         background: var(--bg-surface);
         border: 1px solid var(--bg-border);
         border-radius: var(--radius-md);
@@ -215,7 +218,9 @@
         align-items: center;
         justify-content: space-between;
         box-shadow: var(--shadow-sm);
+        transition: transform 0.2s, box-shadow 0.2s;
     }
+    .cc-status-mini:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: #cbd5e1;}
     .cc-status-mini-left { display: flex; align-items: center; gap: 12px; }
     .cc-status-mini-val  { font-size: 24px; font-weight: 800; color: var(--text-primary); line-height: 1; }
     .cc-status-mini-lbl  { font-size: 13px; font-weight: 600; color: var(--text-muted); }
@@ -337,34 +342,38 @@
     <div class="cc-section animate-up delay-1">
         <div class="cc-section-label"><i class="bi bi-activity"></i> Live Pulse</div>
         <div class="cc-grid-4">
-            <div class="cc-kpi">
+            {{-- Registrations -> Links to Users List --}}
+            <a href="{{ route('platform.systems.users') }}" class="cc-kpi">
                 <div class="cc-kpi-top">
                     <div class="cc-kpi-label">Registrations</div>
                     <div class="cc-kpi-icon cc-icon-indigo"><i class="bi bi-people-fill"></i></div>
                 </div>
                 <div class="cc-kpi-value cc-counter" data-target="{{ $visitorCount }}">0</div>
                 <div class="cc-kpi-sub"><i class="bi bi-graph-up-arrow" style="color: var(--accent-green);"></i> <span style="color: var(--accent-green); font-weight: 700;">+{{ $checkedInToday }}</span> &nbsp;joined today</div>
-            </div>
+            </a>
 
-            <div class="cc-kpi">
+            {{-- Exhibitors -> Links to Companies List --}}
+            <a href="{{ route('platform.companies.list') }}" class="cc-kpi">
                 <div class="cc-kpi-top">
                     <div class="cc-kpi-label">Exhibitors</div>
                     <div class="cc-kpi-icon cc-icon-amber"><i class="bi bi-shop"></i></div>
                 </div>
                 <div class="cc-kpi-value cc-counter" data-target="{{ $exhibitorCount }}">0</div>
                 <div class="cc-kpi-sub"><i class="bi bi-check2-circle"></i> Total active booths</div>
-            </div>
+            </a>
 
-            <div class="cc-kpi">
+            {{-- B2B Meetings -> Links to Appointments --}}
+            <a href="{{ route('platform.appointments') }}" class="cc-kpi">
                 <div class="cc-kpi-top">
                     <div class="cc-kpi-label">B2B Meetings</div>
                     <div class="cc-kpi-icon cc-icon-blue"><i class="bi bi-briefcase-fill"></i></div>
                 </div>
                 <div class="cc-kpi-value cc-counter" data-target="{{ $totalMeetings }}">0</div>
                 <div class="cc-kpi-sub"><i class="bi bi-calendar-event"></i> <span style="color: var(--accent-primary); font-weight: 700;">{{ $todayMeetings }}</span> &nbsp;scheduled today</div>
-            </div>
+            </a>
 
-            <div class="cc-kpi">
+            {{-- Support Inbox -> Links to Contacts List --}}
+            <a href="{{ route('platform.contacts') }}" class="cc-kpi">
                 <div class="cc-kpi-top">
                     <div class="cc-kpi-label">Support Inbox</div>
                     <div class="cc-kpi-icon cc-icon-red"><i class="bi bi-envelope-paper-fill"></i></div>
@@ -373,7 +382,7 @@
                 <div class="cc-kpi-sub" style="color: {{ $unreadMessages > 0 ? 'var(--accent-red)' : 'var(--text-muted)' }}">
                     {!! $unreadMessages > 0 ? '<i class="bi bi-exclamation-triangle-fill"></i> Needs attention' : '<i class="bi bi-shield-check" style="color: var(--accent-green);"></i> All caught up' !!}
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 
@@ -381,38 +390,43 @@
     <div class="cc-section animate-up delay-2">
         <div class="cc-section-label"><i class="bi bi-diagram-3-fill"></i> Content & Networking</div>
         <div class="cc-grid-4">
-            <div class="cc-kpi" style="padding: 20px;">
+
+            {{-- Conferences -> Links to Agenda/Conferences List --}}
+            <a href="{{ route('platform.conferences.list') }}" class="cc-kpi" style="padding: 20px;">
                 <div class="cc-kpi-top" style="margin-bottom: 12px;">
                     <div class="cc-kpi-label">Conferences</div>
                     <div class="cc-kpi-icon cc-icon-purple" style="width: 38px; height: 38px; font-size: 18px;"><i class="bi bi-mic-fill"></i></div>
                 </div>
                 <div class="cc-kpi-value cc-counter" style="font-size: 28px;" data-target="{{ $conferenceCount }}">0</div>
-            </div>
+            </a>
 
-            <div class="cc-kpi" style="padding: 20px;">
+            {{-- Speakers -> Links to Speakers List --}}
+            <a href="{{ route('platform.speakers.list') }}" class="cc-kpi" style="padding: 20px;">
                 <div class="cc-kpi-top" style="margin-bottom: 12px;">
                     <div class="cc-kpi-label">Speakers</div>
                     <div class="cc-kpi-icon cc-icon-green" style="width: 38px; height: 38px; font-size: 18px;"><i class="bi bi-person-video3"></i></div>
                 </div>
                 <div class="cc-kpi-value cc-counter" style="font-size: 28px;" data-target="{{ $speakerCount }}">0</div>
-            </div>
+            </a>
 
-            <div class="cc-kpi" style="padding: 20px;">
+            {{-- Products Showcased -> Links to Products List --}}
+            <a href="{{ route('platform.products.list') }}" class="cc-kpi" style="padding: 20px;">
                 <div class="cc-kpi-top" style="margin-bottom: 12px;">
                     <div class="cc-kpi-label">Products Showcased</div>
                     <div class="cc-kpi-icon cc-icon-blue" style="width: 38px; height: 38px; font-size: 18px;"><i class="bi bi-box-seam-fill"></i></div>
                 </div>
                 <div class="cc-kpi-value cc-counter" style="font-size: 28px;" data-target="{{ $productCount }}">0</div>
-            </div>
+            </a>
 
-            <div class="cc-kpi" style="padding: 20px;">
+            {{-- User Connections -> Links to Networking Requests --}}
+            <a href="{{ route('platform.networking.requests') }}" class="cc-kpi" style="padding: 20px;">
                 <div class="cc-kpi-top" style="margin-bottom: 12px;">
                     <div class="cc-kpi-label">User Connections</div>
                     <div class="cc-kpi-icon cc-icon-indigo" style="width: 38px; height: 38px; font-size: 18px;"><i class="bi bi-link-45deg"></i></div>
                 </div>
                 <div class="cc-kpi-value cc-counter" style="font-size: 28px;" data-target="{{ $connectionCount }}">0</div>
                 <div class="cc-kpi-sub" style="font-size: 11px; margin-top: 8px;">+{{ $pendingConnections }} pending</div>
-            </div>
+            </a>
         </div>
     </div>
 
@@ -421,7 +435,8 @@
         <div class="cc-section-label"><i class="bi bi-calendar2-week-fill"></i> Meeting Pipeline</div>
 
         <div class="cc-status-row">
-            <div class="cc-status-mini" style="border-left: 4px solid var(--text-muted);">
+            {{-- Wrap each mini status in a link pointing to the Appointments list --}}
+            <a href="{{ route('platform.appointments') }}" class="cc-status-mini" style="border-left: 4px solid var(--text-muted);">
                 <div class="cc-status-mini-left">
                     <div>
                         <div class="cc-status-mini-val">{{ $pendingMeetings }}</div>
@@ -429,8 +444,9 @@
                     </div>
                 </div>
                 <i class="bi bi-hourglass-split cc-status-mini-icon" style="color: var(--text-muted)"></i>
-            </div>
-            <div class="cc-status-mini" style="border-left: 4px solid var(--accent-blue);">
+            </a>
+
+            <a href="{{ route('platform.appointments') }}" class="cc-status-mini" style="border-left: 4px solid var(--accent-blue);">
                 <div class="cc-status-mini-left">
                     <div>
                         <div class="cc-status-mini-val">{{ $confirmedMeetings }}</div>
@@ -438,8 +454,9 @@
                     </div>
                 </div>
                 <i class="bi bi-calendar-check cc-status-mini-icon" style="color: var(--accent-blue)"></i>
-            </div>
-            <div class="cc-status-mini" style="border-left: 4px solid var(--accent-green);">
+            </a>
+
+            <a href="{{ route('platform.appointments') }}" class="cc-status-mini" style="border-left: 4px solid var(--accent-green);">
                 <div class="cc-status-mini-left">
                     <div>
                         <div class="cc-status-mini-val">{{ $completedMeetings }}</div>
@@ -447,8 +464,9 @@
                     </div>
                 </div>
                 <i class="bi bi-check2-all cc-status-mini-icon" style="color: var(--accent-green)"></i>
-            </div>
-            <div class="cc-status-mini" style="border-left: 4px solid var(--accent-red);">
+            </a>
+
+            <a href="{{ route('platform.appointments') }}" class="cc-status-mini" style="border-left: 4px solid var(--accent-red);">
                 <div class="cc-status-mini-left">
                     <div>
                         <div class="cc-status-mini-val">{{ $cancelledMeetings }}</div>
@@ -456,7 +474,7 @@
                     </div>
                 </div>
                 <i class="bi bi-x-circle cc-status-mini-icon" style="color: var(--accent-red)"></i>
-            </div>
+            </a>
         </div>
 
         <div class="cc-grid-charts-3">
@@ -509,37 +527,14 @@
         </div>
     </div>
 
-    {{-- ── SECTION 4: Quick Links ───────────────────────── --}}
-    <div class="cc-section animate-up delay-3">
-        <div class="cc-section-label"><i class="bi bi-lightning-fill"></i> Quick Actions</div>
-        <div class="cc-actions-grid">
-            <a href="{{ route('platform.appointments') }}" class="cc-action-btn">
-                <i class="bi bi-calendar-event-fill"></i> Manage Appointments
-            </a>
-            <a href="{{ route('platform.contacts') }}" class="cc-action-btn">
-                <i class="bi bi-envelope-paper-fill"></i> Support Inbox
-                @if($unreadMessages > 0)
-                    <span style="background:var(--accent-red);color:white;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700;">{{ $unreadMessages }}</span>
-                @endif
-            </a>
-            <a href="{{ route('platform.companies.list') }}" class="cc-action-btn">
-                <i class="bi bi-buildings-fill"></i> Exhibitors
-            </a>
-            <a href="{{ route('platform.conferences.list') }}" class="cc-action-btn">
-                <i class="bi bi-mic-fill"></i> Agenda & Speakers
-            </a>
-            <a href="{{ route('platform.event.settings') }}" class="cc-action-btn">
-                <i class="bi bi-gear-fill"></i> Event Settings
-            </a>
-        </div>
-    </div>
-
 </div>
 
 {{-- ══ CHART.JS + SCRIPTS ══════════════════════════════════ --}}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
     document.addEventListener('turbo:load', function () {
+        if (!document.getElementById('chart-visitors')) return;
+
         Chart.defaults.color           = '#64748b';
         Chart.defaults.borderColor     = '#f1f5f9';
         Chart.defaults.font.family     = "'Inter', sans-serif";
