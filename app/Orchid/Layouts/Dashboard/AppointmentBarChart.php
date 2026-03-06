@@ -4,17 +4,17 @@ namespace App\Orchid\Layouts\Dashboard;
 
 use Orchid\Screen\Layouts\Chart;
 
-class RegistrationLineChart extends Chart
+class AppointmentBarChart extends Chart
 {
     /**
      * The key from the screen's query() that contains the chart data.
      */
-    protected $target = 'visitor_growth';
+    protected $target = 'appointment_trend';
 
     /**
      * Chart title shown above the graph.
      */
-    protected $title = 'Visitor Registrations (Last 14 Days)';
+    protected $title = 'B2B Appointments Scheduled (Last 14 Days)';
 
     /**
      * Chart height in pixels.
@@ -22,9 +22,9 @@ class RegistrationLineChart extends Chart
     protected $height = 250;
 
     /**
-     * Available types: 'bar', 'line', 'pie', 'percentage', 'axis-mixed'
+     * Bar chart to contrast with the line chart beside it.
      */
-    protected $type = 'line';
+    protected $type = 'bar';
 
     /**
      * Export options.

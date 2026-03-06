@@ -4,141 +4,154 @@ declare(strict_types=1);
 
 namespace App\Orchid\Screens;
 
+use Carbon\Carbon;
 use Orchid\Screen\Screen;
 use Orchid\Support\Facades\Layout;
-use Orchid\Screen\Actions\Link;
-use Orchid\Support\Color;
 use Illuminate\Support\Facades\DB;
 
-// Models
 use App\Models\User;
 use App\Models\Company;
 use App\Models\Appointment;
 use App\Models\ContactRequest;
-use App\Models\EventSetting; // Changed from Event
-
-// Layouts
-use App\Orchid\Layouts\Dashboard\RegistrationLineChart;
+use App\Models\EventSetting;
+use App\Models\Conference;
+use App\Models\Speaker;
 
 class PlatformScreen extends Screen
 {
-    /**
-     * Fetch data to be displayed on the screen.
-     *
-     * @return array
-     */
     public function query(): iterable
     {
-        // 1. Get Global Settings (Single Event Logic)
-        $settings = EventSetting::first();
-        $eventName = $settings ? $settings->event_name : '⚠️ Event Not Configured';
+        // ── Event Settings ─────────────────────────────────────────────
+        $settings  = EventSetting::first();
+        $eventName = $settings?->event_name ?? 'Event Not Configured';
 
-        // 2. Calculate KPIs
-        // Visitors: Users with 'visitor' role
-        $visitorCount = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))->count();
+        $eventStatus  = 'upcoming';
+        $daysUntil    = null;
+        $daysProgress = 0;
 
-        // Exhibitors: Total Companies
+        if ($settings?->start_date && $settings?->end_date) {
+            $start = Carbon::parse($settings->start_date);
+            $end   = Carbon::parse($settings->end_date);
+            $now   = now();
+
+            if ($now->lt($start)) {
+                $eventStatus = 'upcoming';
+                $daysUntil   = (int) $now->diffInDays($start);
+            } elseif ($now->between($start, $end)) {
+                $eventStatus  = 'live';
+                $totalDays    = $start->diffInDays($end) ?: 1;
+                $elapsed      = $start->diffInDays($now);
+                $daysProgress = min(100, (int) round(($elapsed / $totalDays) * 100));
+                $daysUntil    = (int) $now->diffInDays($end);
+            } else {
+                $eventStatus = 'ended';
+            }
+        }
+
+        // ── Core KPIs ─────────────────────────────────────────────────
+        $visitorCount   = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))->count();
         $exhibitorCount = Company::count();
-
-        // 3. Action Items
-        // B2B: Appointments in 'pending' status (Table is now exclusive to B2B)
-        $pendingMeetings = Appointment::where('status', 'pending')->count();
-
-        // Inbox: Unhandled support requests
         $unreadMessages = ContactRequest::where('is_handled', false)->count();
 
-        // 4. Chart Data: New Visitors (Last 14 Days)
-        $visitorChartData = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))
+        // ── Appointment Stats ─────────────────────────────────────────
+        $apptStats = Appointment::selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $pendingMeetings   = (int) $apptStats->get('pending', 0);
+        $confirmedMeetings = (int) $apptStats->get('confirmed', 0);
+        $completedMeetings = (int) $apptStats->get('completed', 0);
+        $cancelledMeetings = (int) ($apptStats->get('cancelled', 0) + $apptStats->get('declined', 0));
+        $totalMeetings     = (int) $apptStats->sum();
+
+        $todayMeetings = Appointment::whereDate('scheduled_at', today())
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->count();
+
+        // ── Content & Network ─────────────────────────────────────────
+        $conferenceCount    = Conference::count();
+        $speakerCount       = Speaker::count();
+        $productCount       = DB::table('products')->count();
+        $connectionCount    = DB::table('connections')->where('status', 'accepted')->count();
+        $pendingConnections = DB::table('connections')->where('status', 'pending')->count();
+
+        $checkedInToday = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))
+            ->whereDate('created_at', today())
+            ->count();
+
+        // ── Chart: Visitor Registrations (last 14 days) ───────────────
+        $last14 = collect(range(13, 0))->map(fn($d) => now()->subDays($d)->format('Y-m-d'));
+        $rawVisitors = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->where('created_at', '>=', now()->subDays(14))
             ->groupBy('date')
-            ->orderBy('date')
-            ->pluck('count', 'date')
-            ->toArray();
+            ->pluck('count', 'date');
+        $visitorChartLabels = $last14->map(fn($d) => Carbon::parse($d)->format('d M'))->values()->toArray();
+        $visitorChartValues = $last14->map(fn($d) => (int) ($rawVisitors[$d] ?? 0))->values()->toArray();
 
-        return [
-            'event_status'   => $eventName,
-            'visitor_count'  => $visitorCount,
-            'exhibitor_count'=> $exhibitorCount,
-            'pending_b2b'    => $pendingMeetings,
-            'unread_msg'     => $unreadMessages,
+        // ── Chart: Appointments per day (last 14 days) ────────────────
+        $rawAppts = Appointment::select(DB::raw('DATE(scheduled_at) as date'), DB::raw('count(*) as count'))
+            ->where('scheduled_at', '>=', now()->subDays(14))
+            ->groupBy('date')
+            ->pluck('count', 'date');
+        $apptChartLabels = $last14->map(fn($d) => Carbon::parse($d)->format('d M'))->values()->toArray();
+        $apptChartValues = $last14->map(fn($d) => (int) ($rawAppts[$d] ?? 0))->values()->toArray();
 
-            // Data for the RegistrationLineChart
-            'visitor_growth' => [
-                [
-                    'name'   => 'New Registrations',
-                    'values' => $visitorChartData,
-                    'labels' => array_keys($visitorChartData),
-                ],
-            ],
-        ];
+        // ── Chart: Weekly cumulative growth (last 8 weeks) ───────────
+        $weeklyLabels = [];
+        $weeklyValues = [];
+        for ($i = 7; $i >= 0; $i--) {
+            $weekStart      = now()->startOfWeek()->subWeeks($i);
+            $weekEnd        = (clone $weekStart)->endOfWeek();
+            $weeklyLabels[] = 'W' . $weekStart->week;
+            $weeklyValues[] = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))
+                ->whereBetween('created_at', [$weekStart, $weekEnd])
+                ->count();
+        }
+
+        // ── Chart: Appointment status donut ───────────────────────────
+        $donutLabels = ['Pending', 'Confirmed', 'Completed', 'Cancelled'];
+        $donutValues = [$pendingMeetings, $confirmedMeetings, $completedMeetings, $cancelledMeetings];
+
+        // ── Chart: Hourly registrations today ─────────────────────────
+        // Uses strftime('%H') for SQLite compatibility (HOUR() is MySQL-only)
+//        $hourlyRaw = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))
+//            ->whereDate('created_at', today())
+//            ->select(DB::raw("strftime('%H', created_at) as hour"), DB::raw('count(*) as count'))
+//            ->groupBy('hour')
+//            ->pluck('count', 'hour');
+        // strftime returns zero-padded strings ('00'..'23'), cast keys to int for lookup
+//        $hourlyRawInt = [];
+//        foreach ($hourlyRaw as $h => $cnt) {
+//            $hourlyRawInt[(int) $h] = (int) $cnt;
+//        }
+//        $hourlyLabels = array_map(fn($h) => str_pad($h, 2, '0', STR_PAD_LEFT) . ':00', range(0, 23));
+//        $hourlyValues = array_map(fn($h) => $hourlyRawInt[$h] ?? 0, range(0, 23));
+
+        $hourlyLabels = null;
+        $hourlyValues = null;
+
+        return compact(
+            'eventName', 'eventStatus', 'daysUntil', 'daysProgress', 'settings',
+            'visitorCount', 'exhibitorCount', 'unreadMessages', 'totalMeetings',
+            'pendingMeetings', 'confirmedMeetings', 'completedMeetings', 'cancelledMeetings',
+            'todayMeetings', 'checkedInToday',
+            'conferenceCount', 'speakerCount', 'productCount', 'connectionCount', 'pendingConnections',
+            'visitorChartLabels', 'visitorChartValues',
+            'apptChartLabels', 'apptChartValues',
+            'weeklyLabels', 'weeklyValues',
+            'donutLabels', 'donutValues',
+            'hourlyLabels', 'hourlyValues'
+        );
     }
 
-    /**
-     * The name of the screen displayed in the header.
-     */
-    public function name(): ?string
-    {
-        return 'Command Center';
-    }
+    public function name(): ?string        { return 'Command Center'; }
+    public function description(): ?string { return null; }
 
-    /**
-     * Display header description.
-     */
-    public function description(): ?string
-    {
-        return 'Overview of Hygie Clean Expo logistics and attendance.';
-    }
-
-    /**
-     * The screen's layout elements.
-     *
-     * @return \Orchid\Screen\Layout[]
-     */
     public function layout(): iterable
     {
         return [
-            // ROW 1: Event Status Banner
-            Layout::rows([
-                \Orchid\Screen\Fields\Label::make('event_status')
-                    ->title('Active Event Profile')
-                    ->popover('To change this name, go to Event Configuration.'),
-            ]),
-
-            // ROW 2: The 4 Key Metrics
-            Layout::metrics([
-                'Total Visitors'    => 'visitor_count',
-                'Exhibitors'        => 'exhibitor_count',
-                'Pending Meetings'  => 'pending_b2b', // Needs attention
-                'Inbox Messages'    => 'unread_msg',  // Needs attention
-            ]),
-
-            // ROW 3: Charts and Quick Links
-            Layout::columns([
-                // Left Column: The Analytics Chart
-                RegistrationLineChart::class,
-
-                // Right Column: Quick Action Buttons
-                Layout::rows([
-                    Link::make('Manage Appointments')
-                        ->icon('bs.briefcase')
-                        ->route('platform.appointments') // Route verified
-                        ->type(Color::INFO)
-                        ->block(),
-
-                    Link::make('Go to Inbox')
-                        ->icon('bs.envelope')
-                        ->route('platform.contacts') // Route verified
-                        ->type(Color::DANGER)
-                        ->block(),
-
-                    Link::make('Manage Companies')
-                        ->icon('bs.building')
-                        ->route('platform.companies.list') // Route verified (Updated)
-                        ->type(Color::PRIMARY)
-                        ->block(),
-                ])->title('Quick Actions'),
-            ]),
+            Layout::view('orchid.dashboard.main'),
         ];
     }
 }
