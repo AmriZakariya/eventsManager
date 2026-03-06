@@ -27,6 +27,8 @@ class PlatformScreen extends Screen
 
         $eventStatus  = 'upcoming';
         $daysUntil    = null;
+        $hoursUntil   = null;
+        $minutesUntil = null;
         $daysProgress = 0;
 
         if ($settings?->start_date && $settings?->end_date) {
@@ -35,14 +37,21 @@ class PlatformScreen extends Screen
             $now   = now();
 
             if ($now->lt($start)) {
-                $eventStatus = 'upcoming';
-                $daysUntil   = (int) $now->diffInDays($start);
+                // Single diff object — days/hours/minutes always consistent
+                $diff         = $now->diff($start);
+                $eventStatus  = 'upcoming';
+                $daysUntil    = $diff->days;   // total full days remaining
+                $hoursUntil   = $diff->h;      // remaining hours after full days
+                $minutesUntil = $diff->i;      // remaining minutes after full hours
             } elseif ($now->between($start, $end)) {
+                $diff         = $now->diff($end);
                 $eventStatus  = 'live';
-                $totalDays    = $start->diffInDays($end) ?: 1;
-                $elapsed      = $start->diffInDays($now);
-                $daysProgress = min(100, (int) round(($elapsed / $totalDays) * 100));
-                $daysUntil    = (int) $now->diffInDays($end);
+                $daysUntil    = $diff->days;
+                $hoursUntil   = $diff->h;
+                $minutesUntil = $diff->i;
+                $totalSeconds = $start->diffInSeconds($end) ?: 1;
+                $elapsed      = $start->diffInSeconds($now);
+                $daysProgress = min(100, (int) round(($elapsed / $totalSeconds) * 100));
             } else {
                 $eventStatus = 'ended';
             }
@@ -132,7 +141,7 @@ class PlatformScreen extends Screen
         $hourlyValues = null;
 
         return compact(
-            'eventName', 'eventStatus', 'daysUntil', 'daysProgress', 'settings',
+            'eventName', 'eventStatus', 'daysUntil', 'hoursUntil', 'minutesUntil', 'daysProgress', 'settings',
             'visitorCount', 'exhibitorCount', 'unreadMessages', 'totalMeetings',
             'pendingMeetings', 'confirmedMeetings', 'completedMeetings', 'cancelledMeetings',
             'todayMeetings', 'checkedInToday',

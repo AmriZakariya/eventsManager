@@ -1,27 +1,22 @@
 {{-- resources/views/orchid/dashboard/main.blade.php --}}
 <style>
-    /* ═══════════════════════════════════════════════════════════
-       COMMAND CENTER — Premium Light SaaS Design System
-       Font: Inter
-       Palette: Slate (Light Mode) + Indigo Accents
-    ═══════════════════════════════════════════════════════════ */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
     :root {
-        --bg-base:     #f8fafc; /* Slate 50 - Main background */
-        --bg-surface:  #ffffff; /* White - Cards and panels */
+        --bg-base:     #f8fafc;
+        --bg-surface:  #ffffff;
         --bg-elevated: #ffffff;
-        --bg-border:   #e2e8f0; /* Slate 200 - Soft borders */
+        --bg-border:   #e2e8f0;
 
-        --text-primary:   #0f172a; /* Slate 900 - Headings */
-        --text-secondary: #475569; /* Slate 600 - Body text */
-        --text-muted:     #64748b; /* Slate 500 - Labels */
+        --text-primary:   #0f172a;
+        --text-secondary: #475569;
+        --text-muted:     #64748b;
 
-        --accent-primary: #4f46e5; /* Indigo 600 - Main brand color */
-        --accent-blue:    #2563eb; /* Blue 600 */
-        --accent-green:   #059669; /* Emerald 600 */
-        --accent-red:     #dc2626; /* Red 600 */
-        --accent-amber:   #d97706; /* Amber 600 */
+        --accent-primary: #4f46e5;
+        --accent-blue:    #2563eb;
+        --accent-green:   #059669;
+        --accent-red:     #dc2626;
+        --accent-amber:   #d97706;
 
         --radius-sm: 8px;
         --radius-md: 12px;
@@ -31,7 +26,6 @@
         --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.02);
     }
 
-    /* ── Base Overrides ─────────────────────────────────────── */
     .cc-wrapper * { box-sizing: border-box; }
     .cc-wrapper {
         font-family: 'Inter', sans-serif;
@@ -41,7 +35,6 @@
         padding: 24px;
     }
 
-    /* ── Section Header ─────────────────────────────────────── */
     .cc-section { margin-bottom: 40px; }
     .cc-section-label {
         font-size: 13px;
@@ -54,12 +47,8 @@
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
-    .cc-section-label i {
-        color: var(--text-muted);
-        font-size: 16px;
-    }
+    .cc-section-label i { color: var(--text-muted); font-size: 16px; }
 
-    /* ── Hero / Event Banner ────────────────────────────────── */
     .cc-hero {
         background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
         border: 1px solid var(--bg-border);
@@ -113,11 +102,10 @@
         font-weight: 600;
         box-shadow: var(--shadow-sm);
     }
-    .cc-status-badge.live { background: #ecfdf5; color: var(--accent-green); border: 1px solid #a7f3d0; }
-    .cc-status-badge.upcoming { background: #eff6ff; color: var(--accent-blue); border: 1px solid #bfdbfe; }
-    .cc-status-badge.ended { background: #f8fafc; color: var(--text-secondary); border: 1px solid var(--bg-border); }
+    .cc-status-badge.live     { background: #ecfdf5; color: var(--accent-green); border: 1px solid #a7f3d0; }
+    .cc-status-badge.upcoming { background: #eff6ff; color: var(--accent-blue);  border: 1px solid #bfdbfe; }
+    .cc-status-badge.ended    { background: #f8fafc; color: var(--text-secondary); border: 1px solid var(--bg-border); }
 
-    /* Progress & Countdown */
     .cc-progress-track {
         height: 8px;
         background: #e2e8f0;
@@ -132,21 +120,23 @@
         border-radius: 99px;
         transition: width 1s ease;
     }
-    .cc-countdown {
-        display: flex;
-        gap: 24px;
-        margin-top: 24px;
+
+    .cc-countdown { display: flex; gap: 24px; margin-top: 24px; align-items: flex-end; }
+    .cc-countdown-sep {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--text-muted);
+        line-height: 1;
+        padding-bottom: 18px;
     }
     .cc-countdown-unit { display: flex; flex-direction: column; gap: 4px; }
-    .cc-countdown-num { font-size: 28px; font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -0.02em; }
-    .cc-countdown-lbl { font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .cc-countdown-num  { font-size: 28px; font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -0.02em; }
+    .cc-countdown-lbl  { font-size: 12px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
-    /* ── Grids ─────────────────────────────────────────────── */
-    .cc-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
-    .cc-grid-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .cc-grid-4        { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .cc-grid-charts   { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
     .cc-grid-charts-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; }
 
-    /* ── KPI Cards ───────────────────────────────────────────── */
     .cc-kpi {
         background: var(--bg-surface);
         border: 1px solid var(--bg-border);
@@ -155,10 +145,7 @@
         box-shadow: var(--shadow-sm);
         transition: transform 0.2s, box-shadow 0.2s;
     }
-    .cc-kpi:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
+    .cc-kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
     .cc-kpi-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
     .cc-kpi-icon {
         width: 40px; height: 40px;
@@ -166,7 +153,6 @@
         display: flex; align-items: center; justify-content: center;
         font-size: 18px;
     }
-    /* Soft tinted backgrounds for icons */
     .cc-icon-indigo { background: #e0e7ff; color: var(--accent-primary); }
     .cc-icon-amber  { background: #fef3c7; color: var(--accent-amber); }
     .cc-icon-blue   { background: #dbeafe; color: var(--accent-blue); }
@@ -174,9 +160,8 @@
 
     .cc-kpi-label { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em; }
     .cc-kpi-value { font-size: 32px; font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -0.03em; }
-    .cc-kpi-sub { font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-top: 10px; display: flex; align-items: center; gap: 4px; }
+    .cc-kpi-sub   { font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-top: 10px; display: flex; align-items: center; gap: 4px; }
 
-    /* ── Status Breakdown Row ─────────────────────────────── */
     .cc-status-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
     .cc-status-mini {
         background: var(--bg-surface);
@@ -188,11 +173,10 @@
         gap: 16px;
         box-shadow: var(--shadow-sm);
     }
-    .cc-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .cc-status-mini-val { font-size: 20px; font-weight: 700; color: var(--text-primary); line-height: 1; }
-    .cc-status-mini-lbl { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-top: 4px; }
+    .cc-status-dot       { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .cc-status-mini-val  { font-size: 20px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+    .cc-status-mini-lbl  { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-top: 4px; }
 
-    /* ── Chart Card ─────────────────────────────────────────── */
     .cc-chart-card {
         background: var(--bg-surface);
         border: 1px solid var(--bg-border);
@@ -200,11 +184,10 @@
         padding: 24px;
         box-shadow: var(--shadow-sm);
     }
-    .cc-chart-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
-    .cc-chart-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+    .cc-chart-header   { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+    .cc-chart-title    { font-size: 15px; font-weight: 600; color: var(--text-primary); }
     .cc-chart-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
 
-    /* ── Quick Actions ───────────────────────────────────────── */
     .cc-actions-grid { display: flex; gap: 12px; flex-wrap: wrap; }
     .cc-action-btn {
         display: flex;
@@ -221,15 +204,9 @@
         transition: all 0.2s;
         box-shadow: var(--shadow-sm);
     }
-    .cc-action-btn:hover {
-        background: var(--bg-base);
-        border-color: #cbd5e1;
-        text-decoration: none;
-        transform: translateY(-1px);
-    }
+    .cc-action-btn:hover { background: var(--bg-base); border-color: #cbd5e1; text-decoration: none; transform: translateY(-1px); }
     .cc-action-btn i { color: var(--accent-primary); font-size: 16px; }
 
-    /* ── Responsive ─────────────────────────────────────────── */
     @media (max-width: 1024px) {
         .cc-grid-4, .cc-status-row { grid-template-columns: repeat(2, 1fr); }
         .cc-grid-charts, .cc-grid-charts-3 { grid-template-columns: 1fr; }
@@ -249,7 +226,7 @@
 
         <div class="cc-hero-meta">
             @php
-                $statusMap = ['live' => 'live', 'upcoming' => 'upcoming', 'ended' => 'ended'];
+                $statusMap      = ['live' => 'live', 'upcoming' => 'upcoming', 'ended' => 'ended'];
                 $statusLabelMap = ['live' => 'Live Now', 'upcoming' => 'Upcoming', 'ended' => 'Ended'];
             @endphp
             <span class="cc-status-badge {{ $statusMap[$eventStatus] ?? 'upcoming' }}">
@@ -285,17 +262,25 @@
                 <div class="cc-progress-fill" style="width:{{ $daysProgress }}%"></div>
             </div>
             <div style="margin-top:10px;font-size:13px;font-weight:500;color:var(--text-secondary);">
-                {{ $daysProgress }}% completed &nbsp;&middot;&nbsp; {{ $daysUntil }} days remaining
+                {{ $daysProgress }}% completed &nbsp;&middot;&nbsp;
+                {{ $daysUntil }}d {{ $hoursUntil }}h {{ str_pad($minutesUntil, 2, '0', STR_PAD_LEFT) }}m remaining
             </div>
+
         @elseif($eventStatus === 'upcoming' && $daysUntil !== null)
             <div class="cc-countdown">
                 <div class="cc-countdown-unit">
                     <div class="cc-countdown-num">{{ $daysUntil }}</div>
                     <div class="cc-countdown-lbl">Days</div>
                 </div>
+                <div class="cc-countdown-sep">:</div>
                 <div class="cc-countdown-unit">
-                    <div class="cc-countdown-num">{{ now()->diffInHours(\Carbon\Carbon::parse($settings->start_date)) % 24 }}</div>
+                    <div class="cc-countdown-num">{{ str_pad($hoursUntil, 2, '0', STR_PAD_LEFT) }}</div>
                     <div class="cc-countdown-lbl">Hours</div>
+                </div>
+                <div class="cc-countdown-sep">:</div>
+                <div class="cc-countdown-unit">
+                    <div class="cc-countdown-num">{{ str_pad($minutesUntil, 2, '0', STR_PAD_LEFT) }}</div>
+                    <div class="cc-countdown-lbl">Minutes</div>
                 </div>
             </div>
         @endif
@@ -459,29 +444,25 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
     (function () {
-        /* ── Light Mode Chart Config ────────────────────────────── */
-        Chart.defaults.color           = '#64748b'; // Slate 500
-        Chart.defaults.borderColor     = '#f1f5f9'; // Slate 100 for very subtle gridlines
+        Chart.defaults.color           = '#64748b';
+        Chart.defaults.borderColor     = '#f1f5f9';
         Chart.defaults.font.family     = "'Inter', sans-serif";
         Chart.defaults.font.size       = 12;
-        Chart.defaults.plugins.legend.labels.boxWidth  = 8;
-        Chart.defaults.plugins.legend.labels.usePointStyle = true;
+        Chart.defaults.plugins.legend.labels.boxWidth        = 8;
+        Chart.defaults.plugins.legend.labels.usePointStyle   = true;
+        Chart.defaults.plugins.tooltip.backgroundColor       = '#0f172a';
+        Chart.defaults.plugins.tooltip.titleColor            = '#ffffff';
+        Chart.defaults.plugins.tooltip.bodyColor             = '#cbd5e1';
+        Chart.defaults.plugins.tooltip.padding               = 12;
+        Chart.defaults.plugins.tooltip.cornerRadius          = 8;
 
-        // Dark premium tooltips
-        Chart.defaults.plugins.tooltip.backgroundColor = '#0f172a'; // Slate 900
-        Chart.defaults.plugins.tooltip.titleColor      = '#ffffff';
-        Chart.defaults.plugins.tooltip.bodyColor       = '#cbd5e1'; // Slate 300
-        Chart.defaults.plugins.tooltip.padding         = 12;
-        Chart.defaults.plugins.tooltip.cornerRadius    = 8;
+        const COLOR_INDIGO = '#4f46e5';
+        const COLOR_BLUE   = '#2563eb';
+        const COLOR_GREEN  = '#059669';
+        const COLOR_RED    = '#dc2626';
+        const COLOR_MUTED  = '#94a3b8';
+        const COLOR_FILL   = 'rgba(79, 70, 229, 0.08)';
 
-        const COLOR_INDIGO  = '#4f46e5';
-        const COLOR_BLUE    = '#2563eb';
-        const COLOR_GREEN   = '#059669';
-        const COLOR_RED     = '#dc2626';
-        const COLOR_MUTED   = '#94a3b8'; // Slate 400
-        const COLOR_FILL    = 'rgba(79, 70, 229, 0.08)'; // Very light indigo fill
-
-        /* ── Visitor Line Chart ─────────────────────────────────── */
         new Chart(document.getElementById('chart-visitors'), {
             type: 'line',
             data: {
@@ -509,7 +490,6 @@
             }
         });
 
-        /* ── Appointments Bar Chart ─────────────────────────────── */
         new Chart(document.getElementById('chart-appt'), {
             type: 'bar',
             data: {
@@ -518,7 +498,7 @@
                     label: 'Appointments',
                     data:  @json($apptChartValues),
                     backgroundColor: COLOR_BLUE,
-                    hoverBackgroundColor: '#1d4ed8', // Darker blue on hover
+                    hoverBackgroundColor: '#1d4ed8',
                     borderRadius: 4,
                 }]
             },
@@ -532,7 +512,6 @@
             }
         });
 
-        /* ── Status Donut ───────────────────────────────────────── */
         new Chart(document.getElementById('chart-donut'), {
             type: 'doughnut',
             data: {
@@ -541,20 +520,17 @@
                     data: @json($donutValues),
                     backgroundColor: [COLOR_MUTED, COLOR_BLUE, COLOR_GREEN, COLOR_RED],
                     borderWidth: 2,
-                    borderColor: '#ffffff', // Match card background to create gaps
+                    borderColor: '#ffffff',
                     hoverOffset: 4,
                 }]
             },
             options: {
                 responsive: true,
                 cutout: '75%',
-                plugins: {
-                    legend: { position: 'bottom' }
-                }
+                plugins: { legend: { position: 'bottom' } }
             }
         });
 
-        /* ── Weekly Bar Chart ───────────────────────────────────── */
         new Chart(document.getElementById('chart-weekly'), {
             type: 'bar',
             data: {
@@ -576,12 +552,10 @@
             }
         });
 
-        /* ── Animated Counters ──────────────────────────────────── */
         function animateCounter(el) {
             const target = parseInt(el.dataset.target) || 0;
             if (target === 0) { el.textContent = '0'; return; }
-            const duration = 800;
-            let current    = 0;
+            let current = 0;
             const timer = setInterval(() => {
                 current += Math.max(1, Math.ceil(target / 40));
                 if (current >= target) { el.textContent = target.toLocaleString(); clearInterval(timer); }
