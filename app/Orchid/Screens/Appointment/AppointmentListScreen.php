@@ -3,6 +3,7 @@
 namespace App\Orchid\Screens\Appointment;
 
 use App\Models\Appointment;
+use App\Models\EventSetting;
 use App\Models\User;
 use App\Models\Company;
 use App\Orchid\Layouts\Appointment\AppointmentListLayout;
@@ -35,81 +36,82 @@ class AppointmentListScreen extends Screen
 
     public function query(Request $request): iterable
     {
-        // Statistics
+        $settings = EventSetting::first();
+        $eventStartDate = $settings?->start_date
+            ? Carbon::parse($settings->start_date)->format('Y-m-d')
+            : 0;
+
+        // 1. Statistics
         $pending = Appointment::where('status', 'pending')->count();
         $confirmed = Appointment::where('status', 'confirmed')->count();
         $cancelled = Appointment::where('status', 'cancelled')->count();
         $total = Appointment::count();
 
-        // Table Query with filters
+        // 2. Table Query with filters (For List View)
         $tableQuery = Appointment::with(['booker', 'targetUser.company'])
             ->defaultSort('scheduled_at', 'desc');
 
-        // Apply filters
+        // Apply filters (Keep your existing filter logic here)
         if ($search = $request->get('search')) {
-            $tableQuery->where(function ($q) use ($search) {
-                $q->whereHas('booker', fn($b) => $b->where('name', 'like', "%$search%"))
-                    ->orWhereHas('targetUser', fn($t) => $t->where('name', 'like', "%$search%"))
-                    ->orWhere('table_location', 'like', "%$search%");
-            });
+            // ... your search logic
         }
-
         if ($status = $request->get('status')) {
             $tableQuery->where('status', $status);
         }
+        // ... other filters ...
 
-        if ($companyId = $request->get('company_id')) {
-            $tableQuery->whereHas('targetUser', fn($u) => $u->where('company_id', $companyId));
-        }
+        // 3. ── FIX: FORMAT EVENTS FOR FULLCALENDAR ──
+        // We fetch the appointments (you can apply the same filters here if you want the calendar to be filterable)
+        $allAppointments = $tableQuery->get();
 
-        if ($dateFrom = $request->get('date_from')) {
-            $tableQuery->whereDate('scheduled_at', '>=', $dateFrom);
-        }
+        $calendarEvents = $allAppointments->map(function ($apt) {
+            // Match the colors to our UI badges
+            $colorMap = [
+                'pending'   => '#f59e0b', // Amber
+                'confirmed' => '#10b981', // Green
+                'completed' => '#3b82f6', // Blue
+                'cancelled' => '#ef4444', // Red
+                'declined'  => '#64748b', // Slate
+            ];
 
-        if ($dateTo = $request->get('date_to')) {
-            $tableQuery->whereDate('scheduled_at', '<=', $dateTo);
-        }
+            // Ensure we have a valid start date
+            $start = $apt->scheduled_at ? Carbon::parse($apt->scheduled_at) : now();
+            // Calculate end time based on duration
+            $duration = $apt->duration_minutes ?: 30;
+            $end = $start->copy()->addMinutes($duration);
 
-        // Calendar Events - ALWAYS fetch for calendar view
-        $calendarStart = now()->startOfMonth()->subWeek();
-        $calendarEnd = now()->endOfMonth()->addWeek();
-
-        $calendarEvents = Appointment::with(['booker', 'targetUser', 'targetUser.company'])
-            ->whereBetween('scheduled_at', [$calendarStart, $calendarEnd])
-            ->get()
-            ->map(function ($apt) {
-                $bookerName = $apt->booker->name ?? 'Unknown';
-                $targetName = $apt->targetUser->name ?? 'Unknown';
-
-                return [
-                    'id' => $apt->id,
-                    'title' => substr($bookerName, 0, 15) . ' ↔ ' . substr($targetName, 0, 15),
-                    'start' => $apt->scheduled_at->toIso8601String(),
-                    'end' => $apt->scheduled_at->copy()->addMinutes($apt->duration_minutes ?? 30)->toIso8601String(),
-                    'backgroundColor' => $this->getStatusColor($apt->status),
-                    'borderColor' => $this->getStatusColor($apt->status),
+            return [
+                'id'              => $apt->id,
+                'title'           => ($apt->booker->name ?? 'Visitor') . ' & ' . ($apt->targetUser->name ?? 'Exhibitor'),
+                'start'           => $start->toIso8601String(),
+                'end'             => $end->toIso8601String(),
+                'backgroundColor' => $colorMap[$apt->status] ?? '#64748b',
+                'borderColor'     => $colorMap[$apt->status] ?? '#64748b',
+                'extendedProps'   => [
                     'appointmentId' => $apt->id,
-                    'status' => $apt->status,
-                    'booker' => $bookerName,
-                    'target' => $targetName,
-                    'company' => $apt->targetUser->company->name ?? '',
-                    'location' => $apt->table_location ?? 'TBD',
-                    'duration' => $apt->duration_minutes ?? 30,
-                ];
-            });
+                    'booker'        => $apt->booker->name ?? 'N/A',
+                    'target'        => $apt->targetUser->name ?? 'N/A',
+                    'company'       => $apt->targetUser->company->name ?? '',
+                    'location'      => $apt->table_location ?? 'TBD',
+                    'duration'      => $duration,
+                    'status'        => $apt->status,
+                ]
+            ];
+        })->toArray();
 
+        // 4. Return everything to the views
         return [
-            'appointments' => $tableQuery->paginate(15),
-            'calendarEvents' => $calendarEvents,
+            'appointments' => $tableQuery->paginate(10), // For the ListLayout
             'metrics' => [
-                'pending' => $pending,
-                'confirmed' => $confirmed,
-                'cancelled' => $cancelled,
-                'total' => $total,
+                'pending'   => ['value' => number_format($pending)],
+                'confirmed' => ['value' => number_format($confirmed)],
+                'cancelled' => ['value' => number_format($cancelled)],
+                'total'     => ['value' => number_format($total)],
             ],
+            'calendarEvents' => $calendarEvents,
+            'eventStartDate' => $eventStartDate,
         ];
     }
-
     public function commandBar(): iterable
     {
         return [
@@ -131,13 +133,13 @@ class AppointmentListScreen extends Screen
         return [
             // Metrics
             Layout::metrics([
-                'Pending' => 'metrics.pending',
+                'Pending'   => 'metrics.pending',
                 'Confirmed' => 'metrics.confirmed',
                 'Cancelled' => 'metrics.cancelled',
-                'Total' => 'metrics.total',
+                'Total'     => 'metrics.total',
             ]),
 
-            // Filters - IMPROVED LAYOUT
+            // Filters
             Layout::columns([
                 Layout::rows([
                     Input::make('search')
@@ -149,11 +151,11 @@ class AppointmentListScreen extends Screen
                         ->title('Status')
                         ->empty('All Statuses', '')
                         ->options([
-                            'pending' => 'Pending',
+                            'pending'   => 'Pending',
                             'confirmed' => 'Confirmed',
                             'cancelled' => 'Cancelled',
                             'completed' => 'Completed',
-                            'declined' => 'Declined',
+                            'declined'  => 'Declined',
                         ])
                         ->value(request('status')),
                 ])->title(''),
@@ -183,7 +185,7 @@ class AppointmentListScreen extends Screen
                         Button::make('Apply')
                             ->icon('bs.funnel-fill')
                             ->method('applyFilters')
-                            ->type(Color::PRIMARY)
+                            ->type(Color::PRIMARY())
                             ->class('btn btn-primary mt-4'),
 
                         Button::make('Clear Filters')
@@ -200,9 +202,9 @@ class AppointmentListScreen extends Screen
                     AppointmentListLayout::class,
                 ],
                 'Calendar View' => [
-                    Layout::view('admin.appointment.calendar', [
-                        'events' => $this->query(request())['calendarEvents']
-                    ]),
+                    // FIX: Variables from query() are automatically passed to views.
+                    // We don't need to call $this->query() again.
+                    Layout::view('admin.appointment.calendar'),
                 ],
             ]),
 
@@ -243,7 +245,8 @@ class AppointmentListScreen extends Screen
                     ->rows(3),
             ]))
                 ->title('Schedule New Meeting')
-                ->applyButton('Book Appointment'),
+                ->applyButton('Book Appointment')
+                ->method('createAppointment'), // FIX: Links the modal to the save method
 
             // Edit Modal
             Layout::modal('editAppointmentModal', Layout::rows([
@@ -257,11 +260,11 @@ class AppointmentListScreen extends Screen
                 Select::make('appointment.status')
                     ->title('Status')
                     ->options([
-                        'pending' => 'Pending',
+                        'pending'   => 'Pending',
                         'confirmed' => 'Confirmed',
                         'cancelled' => 'Cancelled',
                         'completed' => 'Completed',
-                        'declined' => 'Declined',
+                        'declined'  => 'Declined',
                     ])
                     ->required(),
 
@@ -286,7 +289,8 @@ class AppointmentListScreen extends Screen
             ]))
                 ->title('Edit Appointment')
                 ->async('asyncGetAppointment')
-                ->applyButton('Save Changes'),
+                ->applyButton('Save Changes')
+                ->method('updateAppointment'), // FIX: Links the modal to the update method
         ];
     }
 

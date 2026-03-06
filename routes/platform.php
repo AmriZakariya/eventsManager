@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Orchid\Screens\Appointment\AppointmentDetailScreen;
 use App\Orchid\Screens\Content\HomeWidgetEditScreen;
 use App\Orchid\Screens\Content\HomeWidgetItemEditScreen;
 use App\Orchid\Screens\Content\HomeWidgetListScreen;
@@ -204,6 +205,11 @@ Route::screen('appointments', AppointmentListScreen::class)
         ->parent('platform.index')
         ->push('B2B Meetings', route('platform.appointments')));
 
+Route::screen('appointments/{appointment}', AppointmentDetailScreen::class)
+    ->name('platform.appointments.detail')
+    ->breadcrumbs(fn ($trail, $appointment) => $trail
+        ->parent('platform.appointments') // Assuming this is the name of your list screen route
+        ->push('Meeting Details', route('platform.appointments.detail', $appointment)));
 
 // AJAX endpoint for getting exhibitors
 Route::get('appointments/get-exhibitors', [AppointmentListScreen::class, 'getExhibitors'])

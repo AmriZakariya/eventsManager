@@ -1,38 +1,28 @@
 {{-- resources/views/admin/appointment/calendar.blade.php --}}
 <div class="mb-3">
-    <div class="card border-0 shadow-sm">
-        <div class="card-header bg-white border-bottom">
-            <div class="d-flex justify-content-between align-items-center flex-wrap">
-                <h5 class="mb-0">
-                    <i class="text-muted me-2">📅</i>Appointment Calendar
+    <div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+        <div class="card-header bg-white border-bottom py-3">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0 fw-bold" style="color: #0f172a;">
+                    <i class="bi bi-calendar3 text-primary me-2"></i> Meeting Schedule
                 </h5>
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-primary" id="calendarToday">Today</button>
-                    <button type="button" class="btn btn-outline-primary" id="calendarPrev">‹</button>
-                    <button type="button" class="btn btn-outline-primary" id="calendarNext">›</button>
+                <div class="btn-group shadow-sm" role="group">
+                    <button type="button" class="btn btn-light border" id="calendarPrev">‹ Prev</button>
+                    <button type="button" class="btn btn-light border fw-bold" id="calendarToday">Today</button>
+                    <button type="button" class="btn btn-light border" id="calendarNext">Next ›</button>
                 </div>
             </div>
         </div>
-        <div class="card-body p-3">
-            <div id="appointment-calendar"></div>
+        <div class="card-body p-0">
+            <div id="appointment-calendar" class="p-3"></div>
         </div>
-        <div class="card-footer bg-white border-top">
-            <div class="d-flex flex-wrap gap-2 justify-content-center">
-                <span class="badge bg-warning text-dark px-3 py-2">
-                    <span style="font-size: 10px;">●</span> Pending
-                </span>
-                <span class="badge bg-success px-3 py-2">
-                    <span style="font-size: 10px;">●</span> Confirmed
-                </span>
-                <span class="badge bg-info px-3 py-2">
-                    <span style="font-size: 10px;">●</span> Completed
-                </span>
-                <span class="badge bg-danger px-3 py-2">
-                    <span style="font-size: 10px;">●</span> Cancelled
-                </span>
-                <span class="badge bg-secondary px-3 py-2">
-                    <span style="font-size: 10px;">●</span> Declined
-                </span>
+        <div class="card-footer bg-light border-top py-3">
+            <div class="d-flex flex-wrap gap-3 justify-content-center">
+                <span class="badge text-dark bg-white border shadow-sm px-3 py-2"><span style="color: #ffc107;">●</span> Pending</span>
+                <span class="badge text-dark bg-white border shadow-sm px-3 py-2"><span style="color: #198754;">●</span> Confirmed</span>
+                <span class="badge text-dark bg-white border shadow-sm px-3 py-2"><span style="color: #0d6efd;">●</span> Completed</span>
+                <span class="badge text-dark bg-white border shadow-sm px-3 py-2"><span style="color: #dc3545;">●</span> Cancelled</span>
+                <span class="badge text-dark bg-white border shadow-sm px-3 py-2"><span style="color: #6c757d;">●</span> Declined</span>
             </div>
         </div>
     </div>
@@ -42,56 +32,36 @@
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
     <style>
         #appointment-calendar {
-            min-height: 600px;
+            min-height: 650px;
+            font-family: 'Inter', sans-serif;
         }
+
+        .fc-theme-standard td, .fc-theme-standard th { border-color: #e2e8f0; }
+        .fc-col-header-cell { background-color: #f8fafc; padding: 12px 0; font-weight: 600; color: #475569; text-transform: uppercase; font-size: 13px;}
 
         .fc-event {
             cursor: pointer !important;
             border: none !important;
-            padding: 2px 4px;
-            font-size: 0.8rem;
-            transition: all 0.2s ease;
+            padding: 3px 6px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
-
         .fc-event:hover {
-            opacity: 0.85;
             transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            filter: brightness(0.95);
         }
 
-        .fc-daygrid-event {
-            margin-bottom: 2px;
-            border-radius: 4px;
-        }
+        .fc-toolbar-title { font-size: 1.25rem !important; font-weight: 700; color: #0f172a; }
+        .fc-button-primary { background-color: #ffffff !important; color: #475569 !important; border-color: #e2e8f0 !important; text-transform: capitalize !important;}
+        .fc-button-active { background-color: #f1f5f9 !important; color: #0f172a !important; font-weight: 600; }
+        .fc-day-today { background-color: rgba(79, 70, 229, 0.03) !important; }
+        .fc-timegrid-slot { height: 3.5em; }
 
-        .fc-toolbar-title {
-            font-size: 1.5rem !important;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-
-        .fc-button {
-            text-transform: capitalize !important;
-            border-radius: 6px !important;
-        }
-
-        .fc-day-today {
-            background-color: rgba(13, 110, 253, 0.08) !important;
-        }
-
-        .fc-timegrid-slot {
-            height: 3em;
-        }
-
-        .fc-col-header-cell {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            padding: 10px 0;
-        }
-
-        .fc-event-title {
-            font-weight: 500;
-        }
+        /* Tooltip cleanup */
+        .tooltip-inner { text-align: left; padding: 12px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
     </style>
 @endpush
 
@@ -100,76 +70,68 @@
     <script>
         let appointmentCalendar;
 
-        document.addEventListener('DOMContentLoaded', function() {
+        // Changed to turbo:load for SPA support
+        document.addEventListener('turbo:load', function() {
             const calendarEl = document.getElementById('appointment-calendar');
-            if (!calendarEl) {
-                console.error('Calendar element not found!');
-                return;
-            }
+            if (!calendarEl) return;
 
-            // Parse events from Laravel - CRITICAL FIX
+            // Use $calendarEvents from the PHP Screen query
             let calendarEvents = [];
+            let eventStartDate = @json(isset($eventStartDate) ? $eventStartDate : null);
+
             try {
-                calendarEvents = @json($events ?? []);
-                console.log('Calendar events loaded:', calendarEvents.length);
+                calendarEvents = @json($calendarEvents ?? []);
             } catch (e) {
                 console.error('Failed to parse calendar events:', e);
             }
 
-            // Initialize FullCalendar
+            // Destroy previous instance if it exists (prevents duplicates on turbo back/forward)
+            if (appointmentCalendar) {
+                appointmentCalendar.destroy();
+            }
+
             appointmentCalendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
+                initialView: 'timeGridWeek', // Default to week view for appointments (better UX)
+                initialDate: eventStartDate || new Date(),
                 headerToolbar: {
                     left: '',
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
                 },
                 buttonText: {
-                    today: 'Today',
-                    month: 'Month',
-                    week: 'Week',
-                    day: 'Day',
-                    list: 'List'
+                    today: 'Today', month: 'Month', week: 'Week', day: 'Day', list: 'List'
                 },
                 events: calendarEvents,
                 eventClick: function(info) {
                     info.jsEvent.preventDefault();
-
-                    const appointmentId = info.event.extendedProps.appointmentId;
-                    console.log('Event clicked, ID:', appointmentId);
-
-                    if (appointmentId) {
-                        openEditModal(appointmentId);
+                    if (info.event.extendedProps.appointmentId) {
+                        // Redirect to the detail screen URL.
+                        // Note: Update '/admin/appointments/' if your route prefix is different!
+                        window.location.href = '/admin/appointments/' + info.event.extendedProps.appointmentId;
                     }
                 },
                 eventDidMount: function(info) {
-                    // Add rich tooltip
                     const props = info.event.extendedProps;
-                    const startTime = new Date(info.event.start).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
+                    const startTime = new Date(info.event.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
                     const tooltipHtml = `
-                <div style="max-width: 250px;">
-                    <strong>${info.event.title}</strong><br>
-                    <small>
-                        👤 ${props.booker} → ${props.target}<br>
-                        ${props.company ? '🏢 ' + props.company + '<br>' : ''}
-                        📍 ${props.location}<br>
-                        ⏰ ${startTime} (${props.duration} min)<br>
-                        <span class="badge bg-${getStatusBadge(props.status)} mt-1">${props.status.toUpperCase()}</span>
-                    </small>
-                </div>
-            `;
+                        <div style="max-width: 250px;">
+                            <strong style="display:block;margin-bottom:6px;font-size:14px;">Meeting Details</strong>
+                            <div style="font-size:13px; line-height:1.5;">
+                                👤 <b>${props.booker}</b><br>
+                                🤝 <b>${props.target}</b><br>
+                                ${props.company ? '🏢 ' + props.company + '<br>' : ''}
+                                📍 ${props.location}<br>
+                                ⏰ ${startTime} (${props.duration} min)<br>
+                                <span class="badge bg-${getStatusBadge(props.status)} mt-2">${props.status.toUpperCase()}</span>
+                            </div>
+                        </div>
+                    `;
 
-                    // Bootstrap tooltip
                     info.el.setAttribute('data-bs-toggle', 'tooltip');
                     info.el.setAttribute('data-bs-html', 'true');
-                    info.el.setAttribute('data-bs-placement', 'top');
                     info.el.setAttribute('title', tooltipHtml);
 
-                    // Initialize tooltip
                     if (typeof bootstrap !== 'undefined') {
                         new bootstrap.Tooltip(info.el);
                     }
@@ -181,59 +143,28 @@
                 nowIndicator: true,
                 navLinks: true,
                 selectable: true,
-                businessHours: {
-                    daysOfWeek: [1, 2, 3, 4, 5],
-                    startTime: '08:00',
-                    endTime: '18:00',
-                },
-                eventTimeFormat: {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    meridiem: 'short'
-                },
-                slotLabelFormat: {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    meridiem: 'short'
+                businessHours: { daysOfWeek: [1, 2, 3, 4, 5, 6], startTime: '08:00', endTime: '18:00' },
+                eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: 'short' },
+            });
+
+            appointmentCalendar.render();
+
+            // FIX: Hidden Tab Rendering Issue
+            // Use ResizeObserver so FullCalendar redraws itself properly the moment the tab becomes visible
+            const resizeObserver = new ResizeObserver(() => {
+                if (calendarEl.offsetWidth > 0) {
+                    appointmentCalendar.updateSize();
                 }
             });
+            resizeObserver.observe(calendarEl);
 
-            // Render calendar
-            appointmentCalendar.render();
-            console.log('Calendar rendered successfully');
-
-            // Navigation buttons
-            document.getElementById('calendarToday')?.addEventListener('click', function() {
-                appointmentCalendar.today();
-            });
-
-            document.getElementById('calendarPrev')?.addEventListener('click', function() {
-                appointmentCalendar.prev();
-            });
-
-            document.getElementById('calendarNext')?.addEventListener('click', function() {
-                appointmentCalendar.next();
-            });
+            // Custom Navigation buttons
+            document.getElementById('calendarToday')?.addEventListener('click', () => appointmentCalendar.today());
+            document.getElementById('calendarPrev')?.addEventListener('click', () => appointmentCalendar.prev());
+            document.getElementById('calendarNext')?.addEventListener('click', () => appointmentCalendar.next());
         });
 
-        /**
-         * Open edit modal for appointment
-         */
         function openEditModal(appointmentId) {
-            console.log('Opening modal for appointment:', appointmentId);
-
-            // Method 1: Find existing modal link and trigger it
-            const existingLink = document.querySelector('[data-async-route*="asyncGetAppointment"]');
-
-            if (existingLink) {
-                // Clone and modify
-                const link = existingLink.cloneNode(true);
-                link.setAttribute('data-async-parameters', JSON.stringify({appointment: appointmentId}));
-                link.click();
-                return;
-            }
-
-            // Method 2: Create new link programmatically
             const tempLink = document.createElement('a');
             tempLink.setAttribute('data-turbo-method', 'get');
             tempLink.setAttribute('data-turbo', 'true');
@@ -244,36 +175,15 @@
             tempLink.style.display = 'none';
             document.body.appendChild(tempLink);
 
-            // Trigger click
             setTimeout(() => {
                 tempLink.click();
-                setTimeout(() => {
-                    document.body.removeChild(tempLink);
-                }, 100);
+                setTimeout(() => document.body.removeChild(tempLink), 100);
             }, 10);
         }
 
-        /**
-         * Get badge color class for status
-         */
         function getStatusBadge(status) {
-            const badges = {
-                'confirmed': 'success',
-                'pending': 'warning',
-                'cancelled': 'danger',
-                'completed': 'info',
-                'declined': 'secondary'
-            };
+            const badges = { 'confirmed': 'success', 'pending': 'warning', 'cancelled': 'danger', 'completed': 'primary', 'declined': 'secondary' };
             return badges[status] || 'light';
-        }
-
-        /**
-         * Refresh calendar after updates
-         */
-        function refreshCalendar() {
-            if (appointmentCalendar) {
-                location.reload();
-            }
         }
     </script>
 @endpush
