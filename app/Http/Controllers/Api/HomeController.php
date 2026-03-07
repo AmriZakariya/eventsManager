@@ -61,7 +61,8 @@ class HomeController extends Controller
             'slider'        => 'main_slider',
             'menu_grid'     => 'menu_grid', // We'll handle this special case in Flutter
             'logo_cloud'    => 'sponsors',   // Default to sponsors, logic can vary
-            'single_banner' => 'sponsor_banner',
+            'single_banner' => 'single_banner',
+            'sponsor_banner' => 'sponsor_banner',
             default         => 'generic_section',
         };
     }
