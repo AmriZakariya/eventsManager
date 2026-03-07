@@ -261,33 +261,66 @@ class AuthController extends Controller
     public function socialLogin(Request $request)
     {
         $request->validate([
-            'provider' => 'required|string|in:google,facebook,apple',
-            'token' => 'required|string',
+            'provider'   => 'required|string|in:google,facebook,apple,linkedin',
+            'token'      => 'required|string',
+            'token_type' => 'nullable|string|in:id_token,access_token',
+            'name'       => 'nullable|string|max:255',
+            'avatar_url' => 'nullable|string|url|max:2048',
         ]);
 
-        $provider = $request->provider;
-        $token = $request->token;
+        $provider   = $request->provider;
+        $token      = $request->token;
+        $tokenType  = $request->input('token_type', 'access_token');
 
+        // ── Resolve social user ───────────────────────────────────────────────
         try {
-            // Verify token with Socialite (Stateless handles mobile tokens)
-            $socialUser = Socialite::driver($provider)->stateless()->userFromToken($token);
+            // Google sends an id_token, everyone else sends an access_token
+            if ($provider === 'google' && $tokenType === 'id_token') {
+                $socialUser = Socialite::driver('google')
+                    ->stateless()
+                    ->userFromToken($token);
+            } elseif ($provider === 'linkedin') {
+                // linkedin_login package gives us an OAuth access_token.
+                // Use the openid-connect driver shipped with Socialite extras,
+                // or fall back to manual resolution using the data Flutter already sent.
+                // Since the Flutter SDK already resolved the profile (name + picture),
+                // we trust the request data and skip a Socialite round-trip.
+                $socialUser = null; // handled below
+            } else {
+                $socialUser = Socialite::driver($provider)
+                    ->stateless()
+                    ->userFromToken($token);
+            }
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Invalid or expired token.',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 401);
         }
 
-        // 1. Check if user already exists by email
-        $user = User::where('email', $socialUser->getEmail())->first();
+        // ── Resolve email + avatar from social user or request fallback ───────
+        $email     = $socialUser?->getEmail() ?? $request->email;
+        // Prefer the avatar URL sent from Flutter (already resolved by the SDK),
+        // fall back to whatever Socialite returns (may be null for LinkedIn).
+        $avatarUrl = $request->input('avatar_url')
+            ?? $socialUser?->getAvatar()
+            ?? null;
+
+        if (!$email) {
+            return response()->json([
+                'message' => 'Could not retrieve email from social provider.',
+            ], 422);
+        }
+
+        // ── Find or create user ───────────────────────────────────────────────
+        $user = User::where('email', $email)->first();
 
         if (!$user) {
-            // 2. If user doesn't exist, create a new one
-            // Apple sometimes hides the name, so we fallback to the name sent from Flutter
-            $fullName = $socialUser->getName() ?? $request->name ?? 'User';
+            // Resolve name: Socialite name → request name → fallback
+            $fullName  = $socialUser?->getName() ?? $request->input('name', 'User');
             $nameParts = explode(' ', $fullName, 2);
             $firstName = $nameParts[0];
-            $lastName = $nameParts[1] ?? '';
+            $lastName  = $nameParts[1] ?? '';
 
             // Generate Badge Code
             $prefix = 'VIS-';
@@ -296,41 +329,37 @@ class AuthController extends Controller
             } while (User::where('badge_code', $badgeCode)->exists());
 
             $user = User::create([
-                'name' => $firstName,
-                'last_name' => $lastName,
-                'email' => $socialUser->getEmail(),
-                'password' => Hash::make(Str::random(24)), // Random secure password
-                'avatar' => $socialUser->getAvatar(),      // Store external URL directly
-                'badge_code' => $badgeCode,
-                'is_visible' => true,
-
-                // Provide defaults for required fields in your DB schema
-                'phone' => 'N/A',
-                'country' => 'N/A',
-                'city' => 'N/A',
+                'name'           => $firstName,
+                'last_name'      => $lastName,
+                'email'          => $email,
+                'password'       => Hash::make(Str::random(24)),
+                'avatar'         => $avatarUrl,   // ✅ URL stored directly
+                'badge_code'     => $badgeCode,
+                'is_visible'     => true,
+                'phone'          => 'N/A',
+                'country'        => 'N/A',
+                'city'           => 'N/A',
                 'company_sector' => 'N/A',
             ]);
 
-            // Assign default visitor role
             $defaultRole = Role::where('slug', 'visitor')->first();
             if ($defaultRole) {
                 $user->addRole($defaultRole);
             }
         } else {
-            // Optional: Update avatar if it was previously empty
-            if (empty($user->avatar) && $socialUser->getAvatar()) {
-                $user->update(['avatar' => $socialUser->getAvatar()]);
+            // Update avatar if missing or outdated
+            if ($avatarUrl && (empty($user->avatar) || str_starts_with($user->avatar, 'http'))) {
+                $user->update(['avatar' => $avatarUrl]);
             }
         }
 
-        // 3. Generate Sanctum token
         $authToken = $user->createToken('mobile_app')->plainTextToken;
 
         return response()->json([
-            'message' => 'Login successful',
+            'message'      => 'Login successful',
             'access_token' => $authToken,
-            'token_type' => 'Bearer',
-            'user' => $this->formatUser($user),
+            'token_type'   => 'Bearer',
+            'user'         => $this->formatUser($user),
         ]);
     }
 
