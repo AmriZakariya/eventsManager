@@ -72,6 +72,7 @@ class User extends Authenticatable
 
     protected $appends = [
         'avatar_url',
+        'role', // 👈 Add this line
     ];
 
     // --- Relationships ---
@@ -159,5 +160,12 @@ class User extends Authenticatable
                 // Match "First Last" (e.g. "John Doe")
                 ->orWhereRaw("CONCAT(name, ' ', last_name) LIKE ?", [$term]);
         });
+    }
+
+    public function getRoleAttribute(): string
+    {
+        // If they are attached to a company, they are an exhibitor.
+        // Otherwise, they are a visitor.
+        return $this->company_id ? 'exhibitor' : 'visitor';
     }
 }
