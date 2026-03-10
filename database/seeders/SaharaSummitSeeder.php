@@ -195,10 +195,18 @@ class SaharaSummitSeeder extends Seeder
     private function createProductCategories()
     {
         $categories = [
-            'Software Solutions', 'Cloud & Infrastructure', 'Artificial Intelligence',
-            'Cybersecurity', 'Fintech & Payments', 'IoT & Smart Devices',
-            'Data Analytics', 'E-commerce Platforms', 'Mobile Applications',
-            'Blockchain', 'EdTech Solutions', 'HealthTech',
+            'Professional Cleaning Equipment',
+            'Industrial Hygiene Solutions',
+            'Sanitation & Disinfection',
+            'Facility Management',
+            'Waste Management & Recycling',
+            'Water Treatment & Purification',
+            'Smart Cleaning Technologies',
+            'Green & Eco-Friendly Cleaning',
+            'Pest Control Solutions',
+            'Laundry & Textile Care',
+            'Hospital & Healthcare Hygiene',
+            'Food Industry Sanitation',
         ];
 
         $ids = [];
@@ -217,16 +225,16 @@ class SaharaSummitSeeder extends Seeder
     {
         // Converted to associative array for better readability and added domains/types
         $companiesData = [
-            ['name' => 'Orange Maroc', 'category' => 'Telecommunications', 'country' => 'Morocco', 'desc' => 'Leading telecom provider.', 'featured' => true, 'domain' => 'orange.ma', 'types' => ['SPONSOR']],
-            ['name' => 'Microsoft Africa', 'category' => 'Cloud Computing', 'country' => 'USA', 'desc' => 'Global technology leader.', 'featured' => true, 'domain' => 'microsoft.com', 'types' => ['INSTITUTIONAL_PARTNER']],
-            ['name' => 'OCP Group', 'category' => 'Industrial Technology', 'country' => 'Morocco', 'desc' => 'World leader in phosphate.', 'featured' => true, 'domain' => 'ocpgroup.ma', 'types' => ['SPONSOR', 'EXHIBITIONS_PARTNERS']],
-            ['name' => 'Huawei Technologies', 'category' => 'Telecommunications', 'country' => 'China', 'desc' => 'Global ICT solutions provider.', 'featured' => true, 'domain' => 'huawei.com', 'types' => ['SPONSOR']],
-            ['name' => 'Salesforce', 'category' => 'Enterprise Software', 'country' => 'USA', 'desc' => 'CRM and cloud solutions.', 'featured' => false, 'domain' => 'salesforce.com', 'types' => ['EXHIBITIONS_PARTNERS']],
-            ['name' => 'HPS Worldwide', 'category' => 'Fintech', 'country' => 'Morocco', 'desc' => 'Global payment solutions.', 'featured' => true, 'domain' => 'hps-worldwide.com', 'types' => ['EXHIBITIONS_PARTNERS']],
-            ['name' => 'Jumia Technologies', 'category' => 'E-commerce', 'country' => 'Nigeria', 'desc' => 'Africa leading e-commerce.', 'featured' => true, 'domain' => 'jumia.ma', 'types' => ['MEDIA PARTNERS']],
-            ['name' => 'Maroc Telecom', 'category' => 'Telecommunications', 'country' => 'Morocco', 'desc' => 'Integrated telecom operator.', 'featured' => false, 'domain' => 'iam.ma', 'types' => ['SPONSOR']],
-            ['name' => 'SAP Africa', 'category' => 'Enterprise Software', 'country' => 'Germany', 'desc' => 'Business software solutions.', 'featured' => false, 'domain' => 'sap.com', 'types' => ['EXHIBITIONS_PARTNERS']],
-            ['name' => 'Schneider Electric', 'category' => 'Energy Management', 'country' => 'France', 'desc' => 'Digital automation solutions.', 'featured' => false, 'domain' => 'se.com', 'types' => ['SPONSOR']],
+            ['name' => 'Diversey', 'category' => 'Professional Cleaning Solutions', 'country' => 'USA', 'desc' => 'Global provider of cleaning, hygiene, and infection prevention solutions.', 'featured' => true, 'domain' => 'diversey.com', 'types' => ['SPONSOR']],
+            ['name' => 'Ecolab', 'category' => 'Water, Hygiene & Infection Prevention', 'country' => 'USA', 'desc' => 'Leader in water treatment, hygiene, and energy technologies.', 'featured' => true, 'domain' => 'ecolab.com', 'types' => ['SPONSOR', 'EXHIBITIONS_PARTNERS']],
+            ['name' => 'Kärcher', 'category' => 'Cleaning Equipment', 'country' => 'Germany', 'desc' => 'World-renowned manufacturer of pressure washers and cleaning equipment.', 'featured' => true, 'domain' => 'kaercher.com', 'types' => ['SPONSOR']],
+            ['name' => 'Nilfisk', 'category' => 'Industrial Cleaning Machines', 'country' => 'Denmark', 'desc' => 'Advanced professional cleaning equipment manufacturer.', 'featured' => false, 'domain' => 'nilfisk.com', 'types' => ['EXHIBITIONS_PARTNERS']],
+            ['name' => 'Tennant Company', 'category' => 'Floor Cleaning Equipment', 'country' => 'USA', 'desc' => 'Innovative floor cleaning machines and sustainable cleaning technologies.', 'featured' => false, 'domain' => 'tennantco.com', 'types' => ['EXHIBITIONS_PARTNERS']],
+            ['name' => 'Sika Maroc', 'category' => 'Construction Chemicals', 'country' => 'Morocco', 'desc' => 'Specialized in industrial flooring, sealing, and hygiene surfaces.', 'featured' => false, 'domain' => 'mar.sika.com', 'types' => ['EXHIBITIONS_PARTNERS']],
+            ['name' => 'Lesieur Cristal', 'category' => 'Consumer Hygiene Products', 'country' => 'Morocco', 'desc' => 'Major Moroccan producer of hygiene and household products.', 'featured' => true, 'domain' => 'lesieur-cristal.com', 'types' => ['SPONSOR']],
+            ['name' => 'Rentokil Initial', 'category' => 'Hygiene & Pest Control', 'country' => 'UK', 'desc' => 'Global leader in hygiene services and pest control solutions.', 'featured' => true, 'domain' => 'rentokil-initial.com', 'types' => ['SPONSOR', 'EXHIBITIONS_PARTNERS']],
+            ['name' => 'SaniPro Maroc', 'category' => 'Sanitation Services', 'country' => 'Morocco', 'desc' => 'Provider of sanitation and professional cleaning services.', 'featured' => false, 'domain' => 'sanipro.ma', 'types' => ['EXHIBITIONS_PARTNERS']],
+            ['name' => '3M', 'category' => 'Cleaning & Safety Solutions', 'country' => 'USA', 'desc' => 'Innovative solutions for cleaning, safety, and facility management.', 'featured' => true, 'domain' => '3m.com', 'types' => ['MEDIA PARTNERS']],
         ];
 
         $companyIds = [];

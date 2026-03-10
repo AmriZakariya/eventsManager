@@ -17,13 +17,17 @@ class ConversationMonitorScreen extends Screen
 
     public function query(): array
     {
+        // Portable "conversation pair" keys across DBs (SQLite may not support LEAST/GREATEST).
+        $pairUser1Expr = 'CASE WHEN sender_id < receiver_id THEN sender_id ELSE receiver_id END';
+        $pairUser2Expr = 'CASE WHEN sender_id < receiver_id THEN receiver_id ELSE sender_id END';
+
         $conversations = Message::select(
-            DB::raw('LEAST(sender_id, receiver_id) as user_a'),
-            DB::raw('GREATEST(sender_id, receiver_id) as user_b'),
+            DB::raw("{$pairUser1Expr} as user_a"),
+            DB::raw("{$pairUser2Expr} as user_b"),
             DB::raw('COUNT(*) as messages'),
             DB::raw('MAX(created_at) as last_message')
         )
-            ->groupBy('user_a', 'user_b')
+            ->groupByRaw("{$pairUser1Expr}, {$pairUser2Expr}")
             ->orderByDesc('last_message')
             ->paginate();
 

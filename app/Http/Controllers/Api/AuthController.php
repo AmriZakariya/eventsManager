@@ -393,7 +393,9 @@ class AuthController extends Controller
             'badge_code' => $user->badge_code,
 
             // Avatar (Returns full URL if it exists)
-            'avatar_url' => $user->avatar ? asset('storage/' . $user->avatar) : null,
+            'avatar_url' => $user->avatar
+                ? (str_starts_with($user->avatar, 'http') ? $user->avatar : asset('storage/' . $user->avatar))
+                : null,
             'locale' => $user->locale ?? 'en',
 
             // Role Helper (returns 'visitor', 'exhibitor', or 'admin')
@@ -449,6 +451,7 @@ class AuthController extends Controller
 
             // Avatar is optional — if omitted we keep the existing OAuth avatar URL
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+            'keep_avatar' => 'nullable|string|in:0,1',
         ]);
 
         // ── Avatar handling ────────────────────────────────────────────────────
@@ -464,6 +467,10 @@ class AuthController extends Controller
 
             $path = date('Y/m/d');
             $avatarValue = $request->file('avatar')->store($path, 'public');
+        } elseif ($request->input('keep_avatar') !== '1') {
+            // No file AND no keep_avatar flag → user explicitly cleared the avatar
+            // (Shouldn't happen in normal flow, but handles edge cases safely)
+            $avatarValue = $user->avatar;
         }
 
         // ── Badge code: reassign prefix based on chosen role ──────────────────

@@ -34,21 +34,25 @@ class ConversationListScreen extends Screen
         // Reset styles flag on each fresh query
         self::$stylesInjected = false;
 
-        $totalConversations = DB::table(function ($query) {
+        // Portable "conversation pair" keys across DBs (SQLite may not support LEAST/GREATEST).
+        $pairUser1Expr = 'CASE WHEN sender_id < receiver_id THEN sender_id ELSE receiver_id END';
+        $pairUser2Expr = 'CASE WHEN sender_id < receiver_id THEN receiver_id ELSE sender_id END';
+
+        $totalConversations = DB::table(function ($query) use ($pairUser1Expr, $pairUser2Expr) {
             $query->from('messages')
-                ->selectRaw('LEAST(sender_id, receiver_id) as u1')
-                ->selectRaw('GREATEST(sender_id, receiver_id) as u2')
-                ->groupByRaw('LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id)');
+                ->selectRaw("{$pairUser1Expr} as u1")
+                ->selectRaw("{$pairUser2Expr} as u2")
+                ->groupByRaw("{$pairUser1Expr}, {$pairUser2Expr}");
         }, 'conversation_pairs')->count();
 
         $totalMessages = Message::count();
 
-        $activeConversations = DB::table(function ($query) {
+        $activeConversations = DB::table(function ($query) use ($pairUser1Expr, $pairUser2Expr) {
             $query->from('messages')
                 ->where('created_at', '>=', now()->subDay())
-                ->selectRaw('LEAST(sender_id, receiver_id) as u1')
-                ->selectRaw('GREATEST(sender_id, receiver_id) as u2')
-                ->groupByRaw('LEAST(sender_id, receiver_id), GREATEST(sender_id, receiver_id)');
+                ->selectRaw("{$pairUser1Expr} as u1")
+                ->selectRaw("{$pairUser2Expr} as u2")
+                ->groupByRaw("{$pairUser1Expr}, {$pairUser2Expr}");
         }, 'active_pairs')->count();
 
         $avgMessages = $totalConversations > 0
@@ -62,13 +66,13 @@ class ConversationListScreen extends Screen
             ConversationDateFilter::class,
         ])
             ->select(
-                DB::raw('CASE WHEN sender_id < receiver_id THEN sender_id ELSE receiver_id END as user_1_id'),
-                DB::raw('CASE WHEN sender_id < receiver_id THEN receiver_id ELSE sender_id END as user_2_id'),
+                DB::raw("{$pairUser1Expr} as user_1_id"),
+                DB::raw("{$pairUser2Expr} as user_2_id"),
                 DB::raw('MAX(created_at) as last_message_at'),
                 DB::raw('MIN(created_at) as first_message_at'),
                 DB::raw('COUNT(*) as total_messages')
             )
-            ->groupBy('user_1_id', 'user_2_id');
+            ->groupByRaw("{$pairUser1Expr}, {$pairUser2Expr}");
 
         // Sorting — only allow valid columns to avoid SQL injection
         $allowedSorts = ['last_message_at', 'total_messages', 'first_message_at'];
