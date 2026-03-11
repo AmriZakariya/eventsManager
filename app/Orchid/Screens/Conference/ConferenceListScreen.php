@@ -5,18 +5,36 @@ namespace App\Orchid\Screens\Conference;
 use App\Models\Conference;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Orchid\Screen\Screen;
-use Orchid\Screen\TD;
-use Orchid\Screen\Actions\Link;
-use Orchid\Screen\Actions\DropDown;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithStyles;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithValidation;
+use Maatwebsite\Excel\Concerns\SkipsOnError;
+use Maatwebsite\Excel\Concerns\SkipsErrors;
+use Maatwebsite\Excel\Concerns\WithBatchInserts;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Orchid\Attachment\Models\Attachment;
 use Orchid\Screen\Actions\Button;
+use Orchid\Screen\Actions\DropDown;
+use Orchid\Screen\Actions\Link;
+use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Fields\DateRange;
 use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Select;
+use Orchid\Screen\Fields\Upload;
+use Orchid\Screen\Screen;
+use Orchid\Screen\TD;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class ConferenceListScreen extends Screen
 {
@@ -25,21 +43,17 @@ class ConferenceListScreen extends Screen
 
     public function query(Request $request): array
     {
-        $query = $this->buildConferencesQuery($request);
-
         return [
-            'conferences' => $query->paginate(20)->withQueryString(),
-            // Persist filter values
-            'search' => $request->get('search'),
-            'type' => $request->get('type'),
-            'date' => $request->get('date'),
+            'conferences' => $this->buildQuery($request)->paginate(20)->withQueryString(),
+            'search'      => $request->get('search'),
+            'type'        => $request->get('type'),
+            'date'        => $request->get('date'),
         ];
     }
 
-    private function buildConferencesQuery(Request $request): Builder
+    public function buildQuery(Request $request): Builder
     {
-        $query = Conference::query()
-            ->withCount(['speakers', 'attendees']);
+        $query = Conference::query()->withCount(['speakers', 'attendees']);
 
         if ($request->filled('type')) {
             $query->where('type', $request->get('type'));
@@ -48,34 +62,26 @@ class ConferenceListScreen extends Screen
         if ($request->filled('search')) {
             $search = $request->get('search');
             $query->where(function (Builder $q) use ($search) {
-                $q->where('title', 'like', '%' . $search . '%')
-                    ->orWhere('location', 'like', '%' . $search . '%');
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('location', 'like', "%{$search}%");
             });
         }
 
-        $start = $request->input('date.start');
-        $end = $request->input('date.end');
-        if ($start) {
+        if ($start = $request->input('date.start')) {
             $query->whereDate('start_time', '>=', $start);
         }
-        if ($end) {
+        if ($end = $request->input('date.end')) {
             $query->whereDate('start_time', '<=', $end);
         }
 
         $sort = $request->get('sort');
-        if (is_array($sort)) {
-            $sort = $sort[0] ?? null;
-        }
+        if (is_array($sort)) $sort = $sort[0] ?? null;
 
-        if (is_string($sort) && $sort !== '') {
-            $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
-            $column = ltrim($sort, '-');
+        $sortable = ['title', 'start_time', 'end_time', 'location', 'type', 'created_at', 'speakers_count', 'attendees_count'];
 
-            if (in_array($column, ['title', 'start_time', 'end_time', 'location', 'type', 'created_at', 'speakers_count', 'attendees_count'], true)) {
-                $query->orderBy($column, $direction);
-            }
+        if (is_string($sort) && $sort !== '' && in_array(ltrim($sort, '-'), $sortable, true)) {
+            $query->orderBy(ltrim($sort, '-'), str_starts_with($sort, '-') ? 'desc' : 'asc');
         } else {
-            // Default agenda ordering
             $query->orderBy('start_time', 'asc');
         }
 
@@ -89,9 +95,24 @@ class ConferenceListScreen extends Screen
                 ->icon('bs.plus-circle')
                 ->route('platform.conferences.create'),
 
-            Button::make('Export CSV')
-                ->icon('bs.download')
-                ->method('export')
+            ModalToggle::make('Import Excel')
+                ->icon('bs.upload')
+                ->modal('importModal')
+                ->method('import')
+                ->class('btn btn-outline-primary'),
+
+            // 👇 Changed to Button, calls method directly, and uses rawClick()
+            Button::make('Template')
+                ->icon('bs.file-earmark-arrow-down')
+                ->method('downloadTemplate')
+                ->rawClick()
+                ->class('btn btn-link btn-sm'),
+
+            // 👇 Changed to Button, passes current filters, and uses rawClick()
+            Button::make('Export Excel')
+                ->icon('bs.file-earmark-spreadsheet')
+                ->method('export', request()->query()) // Passes current filters/sorts
+                ->rawClick()
                 ->class('btn btn-outline-secondary'),
         ];
     }
@@ -108,11 +129,11 @@ class ConferenceListScreen extends Screen
                     Select::make('type')
                         ->title('Type')
                         ->options([
-                            '' => 'All',
+                            ''           => 'All',
                             'conference' => 'Conference',
-                            'workshop' => 'Workshop',
-                            'panel' => 'Panel',
-                            'keynote' => 'Keynote',
+                            'workshop'   => 'Workshop',
+                            'panel'      => 'Panel',
+                            'keynote'    => 'Keynote',
                         ])
                         ->empty('All', ''),
 
@@ -148,10 +169,11 @@ class ConferenceListScreen extends Screen
                 TD::make('title', 'Title')
                     ->sort()
                     ->render(function (Conference $c) {
-                        $href = route('platform.conferences.edit', $c->id);
+                        $href  = route('platform.conferences.edit', $c->id);
                         $title = e($c->title);
-                        $meta = $c->location ? '<div class="text-muted small"><i class="bi bi-geo-alt"></i> ' . e($c->location) . '</div>' : '';
-
+                        $meta  = $c->location
+                            ? '<div class="text-muted small"><i class="bi bi-geo-alt"></i> ' . e($c->location) . '</div>'
+                            : '';
                         return "<div><a class='fw-semibold text-decoration-none' href='{$href}'>{$title}</a>{$meta}</div>";
                     }),
 
@@ -159,9 +181,8 @@ class ConferenceListScreen extends Screen
                     ->sort()
                     ->render(function (Conference $c) {
                         $start = $c->start_time?->format('M d, H:i');
-                        $end = $c->end_time?->format('H:i');
+                        $end   = $c->end_time?->format('H:i');
                         $range = trim(($start ?? '') . ($end ? " – {$end}" : ''));
-
                         return $range !== '' ? e($range) : '<span class="text-muted">—</span>';
                     }),
 
@@ -173,58 +194,65 @@ class ConferenceListScreen extends Screen
                 TD::make('type', 'Format')
                     ->sort()
                     ->render(function (Conference $c) {
-                        $label = ucfirst((string) $c->type);
                         $class = match ($c->type) {
-                            'keynote' => 'bg-warning text-dark',
-                            'panel' => 'bg-info text-dark',
+                            'keynote'  => 'bg-warning text-dark',
+                            'panel'    => 'bg-info text-dark',
                             'workshop' => 'bg-success',
-                            default => 'bg-primary',
+                            default    => 'bg-primary',
                         };
-
-                        return "<span class='badge {$class}'>" . e($label) . "</span>";
+                        return "<span class='badge {$class}'>" . e(ucfirst((string) $c->type)) . "</span>";
                     }),
 
                 TD::make('speakers_count', 'Speakers')
-                    ->alignCenter()
-                    ->sort()
-                    ->width('110px')
+                    ->alignCenter()->sort()->width('110px')
                     ->render(fn(Conference $c) => "<span class='badge bg-secondary'>{$c->speakers_count}</span>"),
 
                 TD::make('attendees_count', 'Registrations')
-                    ->alignCenter()
-                    ->sort()
-                    ->width('140px')
+                    ->alignCenter()->sort()->width('140px')
                     ->render(fn(Conference $c) => "<span class='badge bg-secondary'>{$c->attendees_count}</span>"),
 
                 TD::make('Actions')
-                    ->alignRight()
-                    ->cantHide()
-                    ->width('100px')
+                    ->alignRight()->cantHide()->width('100px')
                     ->render(fn(Conference $c) =>
-                        DropDown::make()
-                            ->icon('bs.three-dots-vertical')
-                            ->class('btn btn-sm btn-link')
-                            ->list([
-                                Link::make('Edit')
-                                    ->icon('bs.pencil')
-                                    ->route('platform.conferences.edit', $c->id),
-
-                                Button::make('Delete')
-                                    ->icon('bs.trash3')
-                                    ->confirm('Delete this session?')
-                                    ->method('remove', ['id' => $c->id]),
-                            ])
+                    DropDown::make()
+                        ->icon('bs.three-dots-vertical')
+                        ->class('btn btn-sm btn-link')
+                        ->list([
+                            Link::make('Edit')
+                                ->icon('bs.pencil')
+                                ->route('platform.conferences.edit', $c->id),
+                            Button::make('Delete')
+                                ->icon('bs.trash3')
+                                ->confirm('Delete this session?')
+                                ->method('remove', ['id' => $c->id]),
+                        ])
                     ),
+            ]),
+
+            Layout::modal('importModal', [
+                Layout::rows([
+                    Upload::make('import_file')
+                        ->title('Upload Excel File (.xlsx)')
+                        ->acceptedFiles('.xlsx')
+                        ->maxFiles(1)
+                        ->required(),
+                ]),
             ])
+                ->title('Import Conferences')
+                ->applyButton('Import'),
         ];
     }
+
+    // -------------------------------------------------------------------------
+    // Filters
+    // -------------------------------------------------------------------------
 
     public function applyFilter(Request $request)
     {
         return redirect()->route('platform.conferences.list', array_filter([
             'search' => $request->get('search') ?: null,
-            'type' => $request->get('type') ?: null,
-            'date' => $request->get('date') ?: null,
+            'type'   => $request->get('type') ?: null,
+            'date'   => $request->get('date') ?: null,
         ]));
     }
 
@@ -233,11 +261,13 @@ class ConferenceListScreen extends Screen
         return redirect()->route('platform.conferences.list');
     }
 
+    // -------------------------------------------------------------------------
+    // Delete
+    // -------------------------------------------------------------------------
+
     public function remove(Request $request)
     {
-        $conference = Conference::findOrFail($request->get('id'));
-        $conference->delete();
-
+        Conference::findOrFail($request->get('id'))->delete();
         Toast::success('Session deleted.');
     }
 
@@ -250,38 +280,135 @@ class ConferenceListScreen extends Screen
             return;
         }
 
-        $deleted = Conference::whereIn('id', $ids)->delete();
-        Toast::success("Deleted {$deleted} session(s).");
+        Toast::success('Deleted ' . Conference::whereIn('id', $ids)->delete() . ' session(s).');
     }
 
-    public function export(Request $request): StreamedResponse
+    // -------------------------------------------------------------------------
+    // Export — called via GET route (Links bypass Orchid AJAX)
+    // -------------------------------------------------------------------------
+
+    public function export(Request $request)
     {
-        $query = $this->buildConferencesQuery($request);
+        $query = $this->buildQuery($request);
 
-        $filename = 'conferences-' . now()->format('Y-m-d') . '.csv';
+        $export = new class($query) implements FromQuery, WithHeadings, WithMapping, WithStyles, ShouldAutoSize {
+            public function __construct(private Builder $query) {}
+            public function query(): Builder { return $this->query; }
+            public function headings(): array
+            {
+                return ['ID', 'Title', 'Type', 'Start', 'End', 'Location', 'Speakers', 'Registrations'];
+            }
+            public function map($c): array
+            {
+                return [
+                    $c->id,
+                    $c->title,
+                    ucfirst((string) $c->type),
+                    optional($c->start_time)->format('Y-m-d H:i:s'),
+                    optional($c->end_time)->format('Y-m-d H:i:s'),
+                    $c->location,
+                    $c->speakers_count,
+                    $c->attendees_count,
+                ];
+            }
+            public function styles(Worksheet $sheet): array
+            {
+                return [1 => ['font' => ['bold' => true]]];
+            }
+        };
 
-        return response()->streamDownload(function () use ($query) {
-            $out = fopen('php://output', 'w');
-            fputcsv($out, ['ID', 'Title', 'Type', 'Start', 'End', 'Location', 'Speakers', 'Registrations']);
+        return Excel::download($export, 'conferences-' . now()->format('Y-m-d') . '.xlsx');
+    }
 
-            $query->chunk(500, function ($items) use ($out) {
-                foreach ($items as $c) {
-                    fputcsv($out, [
-                        $c->id,
-                        $c->title,
-                        $c->type,
-                        optional($c->start_time)->format('Y-m-d H:i:s'),
-                        optional($c->end_time)->format('Y-m-d H:i:s'),
-                        $c->location,
-                        $c->speakers_count,
-                        $c->attendees_count,
-                    ]);
-                }
-            });
+    // -------------------------------------------------------------------------
+    // Template download — called via GET route
+    // -------------------------------------------------------------------------
 
-            fclose($out);
-        }, $filename, [
-            'Content-Type' => 'text/csv; charset=UTF-8',
-        ]);
+    public function downloadTemplate()
+    {
+        $template = new class implements FromArray, WithStyles, ShouldAutoSize {
+            public function array(): array
+            {
+                return [
+                    ['title', 'type', 'start', 'end', 'location'],
+                    ['Example Talk', 'keynote', '2025-09-01 09:00:00', '2025-09-01 10:00:00', 'Hall A'],
+                ];
+            }
+            public function styles(Worksheet $sheet): array
+            {
+                return [1 => ['font' => ['bold' => true]]];
+            }
+        };
+
+        return Excel::download($template, 'conferences-template.xlsx');
+    }
+
+    // -------------------------------------------------------------------------
+    // Import — called via Orchid modal POST
+    // -------------------------------------------------------------------------
+
+    public function import(Request $request)
+    {
+        $request->validate(['import_file' => ['required', 'array']]);
+
+        $ids = $request->input('import_file', []);
+
+        if (empty($ids)) {
+            Toast::warning('Please upload a file.');
+            return;
+        }
+
+        /** @var Attachment $attachment */
+        $attachment = Attachment::findOrFail($ids[0]);
+
+        // Use Storage::disk() so it works regardless of local/public/S3 config
+        $path = Storage::disk($attachment->disk)
+            ->path($attachment->path . $attachment->name . '.' . $attachment->extension);
+
+        if (! file_exists($path)) {
+            Toast::error('Uploaded file not found on disk. Please re-upload and try again.');
+            return;
+        }
+
+        $import = new class implements ToModel, WithHeadingRow, WithValidation, SkipsOnError, WithBatchInserts, WithChunkReading {
+            use SkipsErrors;
+
+            public function model(array $row): ?Conference
+            {
+                return new Conference([
+                    'title'      => $row['title'],
+                    'type'       => strtolower($row['type'] ?? 'conference'),
+                    'location'   => $row['location'] ?? null,
+                    'start_time' => $row['start'] ?? null,
+                    'end_time'   => $row['end'] ?? null,
+                ]);
+            }
+
+            public function rules(): array
+            {
+                return [
+                    'title' => ['required', 'string', 'max:255'],
+                    'type'  => ['nullable', 'in:conference,workshop,panel,keynote'],
+                    'start' => ['nullable', 'date'],
+                    'end'   => ['nullable', 'date'],
+                ];
+            }
+
+            public function batchSize(): int { return 200; }
+            public function chunkSize(): int { return 500; }
+        };
+
+        try {
+            Excel::import($import, $path);
+
+            $errorCount = count($import->errors());
+
+            $errorCount > 0
+                ? Toast::warning("Import done — {$errorCount} row(s) skipped due to validation errors.")
+                : Toast::success('Conferences imported successfully.');
+
+        } catch (\Exception $e) {
+            Toast::error('Import failed: ' . $e->getMessage());
+        }
     }
 }

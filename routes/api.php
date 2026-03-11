@@ -15,8 +15,6 @@ use App\Http\Controllers\Api\SpeakerController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AppConfigController;
-use App\Http\Controllers\Api\ContentController;
-use App\Http\Controllers\Api\InteractionController;
 use App\Http\Controllers\Api\AuthController;
 
 /*
@@ -90,6 +88,7 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/auth/social-login', [AuthController::class, 'socialLogin']); // <--- ADD THIS
+Route::post('/webhooks/wordpress/sync-user', [AuthController::class, 'syncFromWordPress']);
 
 Route::prefix('config')->group(function () {
     Route::get('/init', [AppConfigController::class, 'init']);
@@ -101,3 +100,5 @@ Route::prefix('config')->group(function () {
 Route::get('/languages', [LanguageController::class, 'index']);
 Route::get('/languages/{code}/translations', [LanguageController::class, 'translations']);
 Route::get('/languages/all', [LanguageController::class, 'all']);
+
+

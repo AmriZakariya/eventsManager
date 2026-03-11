@@ -16,6 +16,8 @@ use Laravel\Socialite\Socialite;
 use Orchid\Platform\Models\Role;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
 {
@@ -98,6 +100,33 @@ class AuthController extends Controller
 
         // Generate Token
         $token = $user->createToken('mobile_app')->plainTextToken;
+
+        $wpPayload = [
+            'email'          => $user->email,
+            'first_name'     => $user->name,
+            'last_name'      => $user->last_name,
+            'phone'          => $user->phone,
+            'job_title'      => $user->job_title,
+            'company_name'   => $user->company_name ?? ($user->company ? $user->company->name : ''),
+            'company_sector' => $user->company_sector,
+            'country'        => $user->country,
+            'city'           => $user->city,
+            'badge_code'     => $user->badge_code,
+            'role'           => $request->role,
+            'password'       => $request->password, // Unhashed password for WP login
+        ];
+
+        app()->terminating(function () use ($wpPayload) {
+            try {
+                // Put your secret key here to protect the WP endpoint
+                Http::withToken('your-secret-sync-key-123')
+                    ->timeout(10)
+                    ->post('https://hygiecleanexpo.com/wp-json/hygie/v1/sync-user', $wpPayload);
+            } catch (\Exception $e) {
+                Log::error('WP Sync Failed: ' . $e->getMessage());
+            }
+        });
+        // 👆 END FIRE AND FORGET
 
         return response()->json([
             'message' => 'Registration successful',
@@ -516,5 +545,65 @@ class AuthController extends Controller
             'message' => 'Profile completed successfully',
             'user'    => $this->formatUser($user->fresh(['company', 'roles'])),
         ]);
+    }
+
+    public function syncFromWordPress(Request $request)
+    {
+        // 1. Validate Secret Token
+        if ($request->bearerToken() !== 'your-secret-sync-key-123') {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $email = $request->input('email');
+        if (!$email) {
+            return response()->json(['error' => 'Email required'], 400);
+        }
+
+        // 2. Find or Create User
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            // Generate Badge Code for new WP registrations
+            $prefix = ($request->input('role') === 'exhibitor') ? 'EXH-' : 'VIS-';
+            do {
+                $badgeCode = $prefix . strtoupper(Str::random(6));
+            } while (User::where('badge_code', $badgeCode)->exists());
+
+            $user = new User();
+            $user->email = $email;
+            $user->badge_code = $badgeCode;
+            $user->is_visible = true;
+
+            // Set password if provided, otherwise generate a secure random one
+            $user->password = Hash::make($request->input('password') ?? Str::random(24));
+        } elseif ($request->filled('password')) {
+            // Update password if WP sends a new one
+            $user->password = Hash::make($request->input('password'));
+        }
+
+        // 3. Update Profile Data
+        $user->name = $request->input('first_name', 'Unknown');
+        $user->last_name = $request->input('last_name', '');
+        $user->phone = $request->input('phone', $user->phone ?? 'N/A');
+        $user->job_title = $request->input('job_title', $user->job_title);
+        $user->company_name = $request->input('company_name', $user->company_name);
+        $user->company_sector = $request->input('company_sector', $user->company_sector ?? 'N/A');
+        $user->country = $request->input('country', $user->country ?? 'N/A');
+        $user->city = $request->input('city', $user->city ?? 'N/A');
+
+        $user->save();
+
+        // 4. Assign Role
+        $roleSlug = $request->input('role', 'visitor');
+        $role = Role::where('slug', $roleSlug)->first();
+        if ($role) {
+            // Remove existing roles and assign the new one
+            foreach ($user->roles as $existingRole) {
+                $user->removeRole($existingRole);
+            }
+            $user->addRole($role);
+        }
+
+        return response()->json(['status' => 'success', 'user_id' => $user->id]);
     }
 }
