@@ -123,14 +123,15 @@ class ProductListScreen extends Screen
                 TD::make('name', 'Product Name')
                     ->sort()
                     ->filter(TD::FILTER_TEXT)
-                    ->render(fn (Product $p) =>
-                        '<div class="d-flex align-items-center">' .
-                        Link::make($p->name)
-                            ->route('platform.products.edit', $p->id)
-                            ->class('text-decoration-none') .
-                        ($p->is_featured ? " <span class='badge bg-warning text-dark ms-2'><i class='bi bi-star-fill'></i> Featured</span>" : '') .
-                        '</div>'
-                    ),
+                    ->render(function (Product $p) {
+                        $href = route('platform.products.edit', $p->id);
+                        $name = e($p->name);
+                        $badge = $p->is_featured
+                            ? " <span class='badge bg-warning text-dark ms-2'><i class='bi bi-star-fill'></i> Featured</span>"
+                            : '';
+
+                        return "<div class='d-flex align-items-center'><a class='text-decoration-none' href='{$href}'>{$name}</a>{$badge}</div>";
+                    }),
 
                 // 3. Type
                 TD::make('type', 'Type')

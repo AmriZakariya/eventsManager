@@ -6,12 +6,14 @@ use App\Models\Product;
 use App\Models\Company;
 use App\Models\ProductCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\Quill;
 use Orchid\Screen\Fields\Cropper;
 use Orchid\Screen\Fields\CheckBox;
+use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\Link;
 use Orchid\Support\Facades\Layout;
@@ -94,29 +96,40 @@ class ProductEditScreen extends Screen
         return [
             Layout::columns([
                 Layout::rows([
-                    Input::make('product.name')
-                        ->title('Product Name')
-                        ->required()
-                        ->placeholder('Enter product name')
-                        ->help('The display name for this product.'),
+                    Group::make([
+                        Input::make('product.name')
+                            ->title('Product Name')
+                            ->required()
+                            ->placeholder('Enter product name'),
 
-                    Relation::make('product.company_id')
-                        ->title('Company')
-                        ->required()
-                        ->fromModel(Company::class, 'name')
-                        ->searchColumns('name', 'email')
-                        ->help('Select the company that owns this product.'),
+                        Relation::make('product.company_id')
+                            ->title('Company')
+                            ->required()
+                            ->fromModel(Company::class, 'name')
+                            ->searchColumns('name', 'email'),
+                    ]),
 
-                    Relation::make('product.category_id')
-                        ->title('Category')
-                        ->fromModel(ProductCategory::class, 'name')
-                        ->empty('No category')
-                        ->help('Select a category for this product.'),
+                    Group::make([
+                        Relation::make('product.category_id')
+                            ->title('Category')
+                            ->fromModel(ProductCategory::class, 'name')
+                            ->empty('No category')
+                            ->help('Pick from the list, or type a new one.'),
+
+                        Input::make('product.category_name')
+                            ->title('Create Category')
+                            ->placeholder('Type a new category name (optional)')
+                            ->help('If filled, it will create/use this category and override the selection.'),
+                    ]),
+
+                    Input::make('product.type')
+                        ->title('Product Type')
+                        ->placeholder('e.g., Chemicals, Machines')
+                        ->help('Optional: used for filtering.'),
 
                     Quill::make('product.description')
                         ->title('Description')
-                        ->placeholder('Enter detailed product description')
-                        ->help('Provide a comprehensive description of the product.'),
+                        ->placeholder('Enter detailed product description'),
                 ]),
 
                 Layout::rows([
@@ -125,16 +138,11 @@ class ProductEditScreen extends Screen
                         ->targetRelativeUrl()
                         ->width(800)
                         ->height(600)
-                        ->help('Recommended size: 800x600px.'),
-
-                    Input::make('product.type')
-                        ->title('Product Type')
-                        ->placeholder('e.g., Chemicals, Machines')
-                        ->help('Specify the type of product (optional).'),
+                        ->help('Recommended size: 800×600px.'),
 
                     CheckBox::make('product.is_featured')
                         ->title('Featured Product')
-                        ->placeholder('Mark this product as featured')
+                        ->placeholder('Highlight this product')
                         ->help('Featured products will be highlighted in listings.')
                         ->sendTrueOrFalse(),
                 ]),
@@ -150,21 +158,53 @@ class ProductEditScreen extends Screen
      */
     public function save(Product $product, Request $request)
     {
+        $productData = $request->get('product', []);
+
+        // Normalize inputs before validation
+        if (isset($productData['category_id']) && $productData['category_id'] === '') {
+            $productData['category_id'] = null;
+        }
+        if (isset($productData['category_name'])) {
+            $productData['category_name'] = trim((string) $productData['category_name']);
+        }
+
+        $request->merge(['product' => $productData]);
+
         $request->validate([
             'product.company_id' => 'required|exists:companies,id',
             'product.name'       => 'required|max:255',
             'product.category_id' => 'nullable|exists:product_categories,id',
+            'product.category_name' => 'nullable|string|max:255',
             'product.type'       => 'nullable|max:100',
             'product.description' => 'nullable',
             'product.is_featured' => 'boolean',
         ]);
 
-        $productData = $request->get('product');
+        // Create/find category if user entered it manually (overrides selected category)
+        $categoryName = $productData['category_name'] ?? '';
+        if ($categoryName !== '') {
+            $category = ProductCategory::whereRaw('LOWER(name) = ?', [Str::lower($categoryName)])->first();
 
-        // Handle category_id - convert empty string to null if necessary
-        if (isset($productData['category_id']) && $productData['category_id'] === '') {
-            $productData['category_id'] = null;
+            if (!$category) {
+                $baseSlug = Str::slug($categoryName);
+                $slug = $baseSlug !== '' ? $baseSlug : Str::random(8);
+                $suffix = 2;
+
+                while (ProductCategory::where('slug', $slug)->exists()) {
+                    $slug = ($baseSlug !== '' ? $baseSlug : 'category') . '-' . $suffix;
+                    $suffix++;
+                }
+
+                $category = ProductCategory::create([
+                    'name' => $categoryName,
+                    'slug' => $slug,
+                ]);
+            }
+
+            $productData['category_id'] = $category->id;
         }
+
+        unset($productData['category_name']);
 
         $product->fill($productData)->save();
 

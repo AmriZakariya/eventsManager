@@ -31,11 +31,25 @@ class UserListLayout extends Table
 
             TD::make('avatar', 'Avatar')
                 ->width('60px')
-                ->render(fn (User $user) =>
-                $user->avatar
-                    ? "<img src='" . asset($user->avatar_url) . "' class='rounded-circle' style='width: 40px; height: 40px; object-fit: cover;'>"
-                    : "<div class='bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white' style='width: 40px; height: 40px; font-weight: bold;'>{$user->name[0]}</div>"
-                ),
+                ->render(function (User $user) {
+
+                    if ($user->avatar) {
+
+                        $avatar = filter_var($user->avatar, FILTER_VALIDATE_URL)
+                            ? $user->avatar
+                            : asset($user->avatar);
+
+                        return "<img src='{$avatar}' class='rounded-circle'
+                    style='width:40px;height:40px;object-fit:cover;'>";
+                    }
+
+                    $initial = strtoupper(substr($user->name, 0, 1));
+
+                    return "<div class='bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white'
+                style='width:40px;height:40px;font-weight:bold;'>
+                {$initial}
+                </div>";
+                }),
 
             TD::make('name', __('Name'))
                 ->sort()

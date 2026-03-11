@@ -65,9 +65,12 @@ class ProductCategoryEditScreen extends Screen
             Layout::block(
                 Layout::table('products', [
                     TD::make('name', 'Product Name')
-                        ->render(fn(Product $product) => Link::make($product->name)
-                            ->route('platform.products.edit', $product->id) // Navigate to Product
-                            ->class('text-primary')),
+                        ->render(function (Product $product) {
+                            $href = route('platform.products.edit', $product->id);
+                            $name = e($product->name);
+
+                            return "<a class='text-primary' href='{$href}'>{$name}</a>";
+                        }),
 
                     TD::make('type', 'Type'),
 

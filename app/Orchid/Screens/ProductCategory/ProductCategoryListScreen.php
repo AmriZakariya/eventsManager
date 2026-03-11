@@ -104,14 +104,15 @@ class ProductCategoryListScreen extends Screen
 
                 TD::make('name', 'Category Name')
                     ->sort()
-                    ->render(fn (ProductCategory $category) =>
-                        '<div class="d-flex align-items-center">' .
-                        '<div class="bg-primary rounded-circle me-2" style="width: 10px; height: 10px;"></div>' .
-                        Link::make($category->name)
-                            ->route('platform.product-categories.edit', $category->id)
-                            ->class('fw-bold text-decoration-none') .
-                        '</div>'
-                    ),
+                    ->render(function (ProductCategory $category) {
+                        $href = route('platform.product-categories.edit', $category->id);
+                        $name = e($category->name);
+
+                        return '<div class="d-flex align-items-center">'
+                            . '<div class="bg-primary rounded-circle me-2" style="width: 10px; height: 10px;"></div>'
+                            . "<a class='fw-bold text-decoration-none' href='{$href}'>{$name}</a>"
+                            . '</div>';
+                    }),
 
                 TD::make('slug', 'Slug')
                     ->sort()
@@ -123,13 +124,16 @@ class ProductCategoryListScreen extends Screen
                     ->sort()
                     ->alignCenter()
                     ->width('120px')
-                    ->render(fn (ProductCategory $category) =>
-                    $category->products_count > 0
-                        ? Link::make("<span class='badge bg-primary fs-6'>{$category->products_count}</span>")
-                        ->route('platform.products.list', ['category_id' => $category->id])
-                        ->class('text-decoration-none')
-                        : "<span class='badge bg-secondary fs-6'>0</span>"
-                    ),
+                    ->render(function (ProductCategory $category) {
+                        if ($category->products_count > 0) {
+                            $href = route('platform.products.list', ['category_id' => $category->id]);
+                            $count = (int) $category->products_count;
+
+                            return "<a class='text-decoration-none' href='{$href}'><span class='badge bg-primary fs-6'>{$count}</span></a>";
+                        }
+
+                        return "<span class='badge bg-secondary fs-6'>0</span>";
+                    }),
 
                 TD::make('created_at', 'Created')
                     ->sort()
