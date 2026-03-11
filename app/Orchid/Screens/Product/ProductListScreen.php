@@ -4,45 +4,34 @@ namespace App\Orchid\Screens\Product;
 
 use App\Models\Product;
 use App\Models\ProductCategory;
+use Illuminate\Database\Eloquent\Builder;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Actions\DropDown;
 use Orchid\Screen\Actions\Button;
 use Orchid\Support\Facades\Layout;
+use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Fields\Select;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ProductListScreen extends Screen
 {
     public function query(Request $request): iterable
     {
-        $query = Product::with(['company', 'category']);
-
-        // Apply category filter if selected
-        if ($request->filled('category_id')) {
-            $query->where('category_id', $request->get('category_id'));
-        }
-
-        // Apply featured filter if selected
-        if ($request->filled('is_featured')) {
-            $query->where('is_featured', $request->get('is_featured') === '1');
-        }
-
-        // Apply type filter if selected
-        if ($request->filled('type')) {
-            $query->where('type', $request->get('type'));
-        }
-
-        // Search by name
-        if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->get('search') . '%');
-        }
+        $query = $this->buildProductsQuery($request);
 
         return [
-            'products' => $query->latest()->paginate(15),
+            'products' => $query->paginate(15)->withQueryString(),
             'categories' => ProductCategory::pluck('name', 'id'),
             'types' => Product::distinct()->whereNotNull('type')->pluck('type', 'type'),
+            // Persist filter values in the form inputs
+            'category_id' => $request->get('category_id'),
+            'type' => $request->get('type'),
+            'is_featured' => $request->get('is_featured'),
+            'search' => $request->get('search'),
             'filters' => [
                 'category_id' => $request->get('category_id'),
                 'is_featured' => $request->get('is_featured'),
@@ -50,6 +39,57 @@ class ProductListScreen extends Screen
                 'search' => $request->get('search'),
             ]
         ];
+    }
+
+    private function buildProductsQuery(Request $request): Builder
+    {
+        $query = Product::query()->with(['company', 'category']);
+
+        if ($request->filled('category_id')) {
+            $query->where('category_id', $request->get('category_id'));
+        }
+
+        if ($request->filled('is_featured')) {
+            $query->where('is_featured', $request->get('is_featured') === '1');
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->get('type'));
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function (Builder $q) use ($search) {
+                $q->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('type', 'like', '%' . $search . '%');
+            });
+        }
+
+        $sort = $request->get('sort');
+        if (is_array($sort)) {
+            $sort = $sort[0] ?? null;
+        }
+
+        if (is_string($sort) && $sort !== '') {
+            $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
+            $column = ltrim($sort, '-');
+
+            if ($column === 'company.name') {
+                $query->leftJoin('companies', 'products.company_id', '=', 'companies.id')
+                    ->select('products.*')
+                    ->orderBy('companies.name', $direction);
+            } elseif ($column === 'category.name') {
+                $query->leftJoin('product_categories', 'products.category_id', '=', 'product_categories.id')
+                    ->select('products.*')
+                    ->orderBy('product_categories.name', $direction);
+            } elseif (in_array($column, ['id', 'name', 'type', 'is_featured', 'created_at'], true)) {
+                $query->orderBy($column, $direction);
+            }
+        } else {
+            $query->orderByDesc('id');
+        }
+
+        return $query;
     }
 
     public function name(): ?string
@@ -70,6 +110,11 @@ class ProductListScreen extends Screen
                 ->class('btn btn-secondary')
                 ->href(route('platform.product-categories.list')),
 
+            Button::make('Export CSV')
+                ->icon('bs.download')
+                ->method('export')
+                ->class('btn btn-outline-secondary'),
+
             Link::make('Add Product')
                 ->icon('bs.plus-circle')
                 ->href(route('platform.products.create'))
@@ -80,34 +125,42 @@ class ProductListScreen extends Screen
     {
         return [
             Layout::rows([
-                Select::make('category_id')
-                    ->title('Category')
-                    ->fromQuery(ProductCategory::query(), 'name')
-                    ->empty('All Categories', ''),
+                Group::make([
+                    Select::make('category_id')
+                        ->title('Category')
+                        ->fromQuery(ProductCategory::query(), 'name')
+                        ->empty('All Categories', ''),
 
-                Select::make('type')
-                    ->title('Type')
-                    ->fromQuery(Product::distinct()->whereNotNull('type'), 'type', 'type')
-                    ->empty('All Types', ''),
+                    Select::make('type')
+                        ->title('Type')
+                        ->fromQuery(Product::distinct()->whereNotNull('type'), 'type', 'type')
+                        ->empty('All Types', ''),
 
-                Select::make('is_featured')
-                    ->title('Featured')
-                    ->options([
-                        '' => 'All Products',
-                        '1' => 'Featured Only',
-                        '0' => 'Not Featured'
-                    ])
-                    ->empty('All Products', ''),
+                    Select::make('is_featured')
+                        ->title('Featured')
+                        ->options([
+                            '' => 'All',
+                            '1' => 'Featured',
+                            '0' => 'Not Featured',
+                        ])
+                        ->empty('All', ''),
 
-                Button::make('Apply Filters')
-                    ->icon('bs.funnel')
-                    ->method('applyFilter')
-                    ->class('btn btn-primary'),
+                    Input::make('search')
+                        ->title('Search')
+                        ->placeholder('Name or type...'),
+                ]),
 
-                Button::make('Clear Filters')
-                    ->icon('bs.x-circle')
-                    ->method('clearFilters')
-                    ->class('btn btn-outline-secondary'),
+                Group::make([
+                    Button::make('Apply')
+                        ->icon('bs.funnel')
+                        ->method('applyFilter')
+                        ->class('btn btn-primary'),
+
+                    Button::make('Reset')
+                        ->icon('bs.x-circle')
+                        ->method('clearFilters')
+                        ->class('btn btn-outline-secondary'),
+                ])->autoWidth(),
             ])->title('Filters'),
 
             Layout::table('products', [
@@ -122,7 +175,6 @@ class ProductListScreen extends Screen
                 // 2. Product Name with Featured Badge
                 TD::make('name', 'Product Name')
                     ->sort()
-                    ->filter(TD::FILTER_TEXT)
                     ->render(function (Product $p) {
                         $href = route('platform.products.edit', $p->id);
                         $name = e($p->name);
@@ -150,7 +202,6 @@ class ProductListScreen extends Screen
                 // 5. Related Company
                 TD::make('company.name', 'Company')
                     ->sort()
-                    ->filter(TD::FILTER_TEXT)
                     ->render(fn($p) => $p->company
                         ? e($p->company->name)
                         : '<span class="text-muted">N/A</span>'),
@@ -200,6 +251,36 @@ class ProductListScreen extends Screen
     public function clearFilters()
     {
         return redirect()->route('platform.products.list');
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        $query = $this->buildProductsQuery($request);
+
+        $filename = 'products-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($query) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['ID', 'Name', 'Company', 'Category', 'Type', 'Featured', 'Created At']);
+
+            $query->chunk(500, function ($products) use ($out) {
+                foreach ($products as $p) {
+                    fputcsv($out, [
+                        $p->id,
+                        $p->name,
+                        $p->company?->name,
+                        $p->category?->name,
+                        $p->type,
+                        $p->is_featured ? 'Yes' : 'No',
+                        optional($p->created_at)->format('Y-m-d H:i:s'),
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     public function toggleFeatured(Request $request)

@@ -4,20 +4,22 @@ namespace App\Orchid\Screens\Conference;
 
 use App\Models\Conference;
 use App\Models\Speaker;
+use Illuminate\Http\Request;
+use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\DateTimer;
 use Orchid\Screen\Fields\TextArea;
 use Orchid\Screen\Fields\Relation;
 use Orchid\Screen\Fields\Select;
+use Orchid\Screen\Fields\Group;
 use Orchid\Screen\Actions\Button;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
-use Illuminate\Http\Request;
+use Orchid\Support\Color;
 
 class ConferenceEditScreen extends Screen
 {
-    public $name = 'Edit Session';
     public $conference;
 
     public function query(Conference $conference): array
@@ -26,49 +28,111 @@ class ConferenceEditScreen extends Screen
         return ['conference' => $conference];
     }
 
+    public function name(): ?string
+    {
+        return $this->conference->exists ? 'Edit Session' : 'Create Session';
+    }
+
+    public function description(): ?string
+    {
+        return $this->conference->exists
+            ? 'Update agenda details, speakers, and scheduling.'
+            : 'Add a new session to the agenda.';
+    }
+
     public function commandBar(): array
     {
         return [
-            Button::make('Save')->icon('check')->method('save'),
-            Button::make('Delete')->icon('trash')->method('remove')->canSee($this->conference->exists),
+            Link::make('Back to Agenda')
+                ->icon('bs.arrow-left')
+                ->route('platform.conferences.list'),
+
+            Button::make('Save')
+                ->icon('bs.check-circle')
+                ->type(Color::PRIMARY)
+                ->method('save'),
+
+            Button::make('Delete')
+                ->icon('bs.trash3')
+                ->type(Color::DANGER)
+                ->confirm('Are you sure you want to delete this session?')
+                ->method('remove')
+                ->canSee($this->conference->exists),
         ];
     }
 
     public function layout(): array
     {
         return [
-            Layout::rows([
-                Input::make('conference.title')->title('Session Title')->required(),
+            Layout::columns([
+                Layout::rows([
+                    Input::make('conference.title')
+                        ->title('Session Title')
+                        ->placeholder('e.g. Future of AI in Events')
+                        ->required(),
 
-                Select::make('conference.type')
-                    ->options([
-                        'conference' => 'Conference',
-                        'workshop' => 'Workshop',
-                        'panel' => 'Panel Discussion',
-                        'keynote' => 'Keynote',
-                    ])
-                    ->title('Session Type'),
+                    Group::make([
+                        Select::make('conference.type')
+                            ->title('Type')
+                            ->options([
+                                'conference' => 'Conference',
+                                'workshop' => 'Workshop',
+                                'panel' => 'Panel Discussion',
+                                'keynote' => 'Keynote',
+                            ])
+                            ->required(),
 
-                DateTimer::make('conference.start_time')->title('Start Time')->enableTime()->required(),
-                DateTimer::make('conference.end_time')->title('End Time')->enableTime()->required(),
+                        Input::make('conference.location')
+                            ->title('Location')
+                            ->placeholder('e.g. Hall A / Room 3'),
+                    ]),
 
-                Input::make('conference.location')->title('Room / Location'),
+                    TextArea::make('conference.description')
+                        ->title('Description')
+                        ->rows(6)
+                        ->placeholder('What is this session about?'),
 
-                TextArea::make('conference.description')->title('Description')->rows(5),
+                    Relation::make('conference.speakers')
+                        ->fromModel(Speaker::class, 'full_name')
+                        ->multiple()
+                        ->title('Speakers')
+                        ->help('Select one or more speakers.'),
+                ]),
 
-                // Relation to Speakers
-                Relation::make('conference.speakers.')
-                    ->fromModel(Speaker::class, 'full_name')
-                    ->multiple()
-                    ->title('Speakers'),
-            ])
+                Layout::rows([
+                    Group::make([
+                        DateTimer::make('conference.start_time')
+                            ->title('Start')
+                            ->enableTime()
+                            ->required()
+                            ->help('Local time. Make sure it matches the published agenda.'),
+
+                        DateTimer::make('conference.end_time')
+                            ->title('End')
+                            ->enableTime()
+                            ->required()
+                            ->help('Must be after the start time.'),
+                    ]),
+                ]),
+            ]),
         ];
     }
 
     public function save(Conference $conference, Request $request)
     {
-        $conference->fill($request->get('conference'))->save();
-        // Sync speakers
+        $request->validate([
+            'conference.title' => 'required|string|max:255',
+            'conference.type' => 'required|in:conference,workshop,panel,keynote',
+            'conference.start_time' => 'required|date',
+            'conference.end_time' => 'required|date|after:conference.start_time',
+            'conference.location' => 'nullable|string|max:255',
+            'conference.description' => 'nullable|string',
+            'conference.speakers' => 'array',
+            'conference.speakers.*' => 'integer|exists:speakers,id',
+        ]);
+
+        $conference->fill($request->get('conference', []))->save();
+
         $conference->speakers()->sync($request->input('conference.speakers', []));
 
         Toast::info('Session saved.');
@@ -77,6 +141,7 @@ class ConferenceEditScreen extends Screen
 
     public function remove(Conference $conference)
     {
+        $conference->speakers()->detach();
         $conference->delete();
         Toast::info('Session deleted.');
         return redirect()->route('platform.conferences.list');
