@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Orchid\Platform\Models\User as Authenticatable;
@@ -72,7 +73,8 @@ class User extends Authenticatable
 
     protected $appends = [
         'avatar_url',
-        'role', // 👈 Add this line
+        'role',
+        'connection_status'
     ];
 
     // --- Relationships ---
@@ -167,5 +169,40 @@ class User extends Authenticatable
         // If they are attached to a company, they are an exhibitor.
         // Otherwise, they are a visitor.
         return $this->company_id ? 'exhibitor' : 'visitor';
+    }
+
+    public function getConnectionStatusAttribute(): string
+    {
+        // Get the ID of the person currently logged in
+        $authId = auth('sanctum')->id() ?? auth()->id();
+
+        // If not logged in or looking at own profile
+        if (!$authId || $authId === $this->id) {
+            return 'none authid nulll';
+        }
+
+        // Search for a connection in either direction
+        $connection = Connection::where(function ($q) use ($authId) {
+            $q->where('requester_id', $authId)->where('target_id', $this->id);
+        })
+            ->orWhere(function ($q) use ($authId) {
+                $q->where('requester_id', $this->id)->where('target_id', $authId);
+            })
+            ->first();
+
+        if (!$connection) {
+            return 'none';
+        }
+
+        if ($connection->status === 'accepted') {
+            return 'accepted';
+        }
+
+        if ($connection->status === 'pending') {
+            // Did I send it, or did they?
+            return ($connection->requester_id === $authId) ? 'outgoing' : 'incoming';
+        }
+
+        return 'none';
     }
 }

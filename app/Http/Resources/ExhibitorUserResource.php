@@ -24,6 +24,7 @@ class ExhibitorUserResource extends JsonResource
             'country'        => $this->country,
             'city'           => $this->city,
             'badge_code'     => $this->badge_code,
+            'connection_status' => $this->connection_status, // Calls the attribute above
 
             // Company association
             'company_id'     => $this->company_id,
