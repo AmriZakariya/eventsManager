@@ -11,33 +11,68 @@ class CompanyController extends Controller
 {
     /**
      * Display a listing of companies (Exhibitors).
-     * Handles: Search, Filter by Category, Filter by Country.
+     * Handles: Search, Pagination, Sort, and Filters (Category, Country, Types).
      */
     public function index(Request $request)
     {
+        // 🚀 Eager Load 'team' to avoid N+1 queries when loading the list
         $query = Company::query()
             ->with('team')
             ->where('is_active', true);
 
-        // 1. Search Filter
-        $query->when($request->search, function ($q, $search) {
-            $q->where('name', 'like', "%{$search}%")
-                ->orWhere('description', 'like', "%{$search}%")
-                ->orWhere('booth_number', 'like', "%{$search}%");
-        });
+        // 1. Search Filter (Encapsulated in a closure to protect the 'is_active' rule)
+        if ($search = $request->query('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('booth_number', 'like', "%{$search}%");
+            });
+        }
 
         // 2. Category Filter
-        $query->when($request->category, fn($q, $cat) => $q->where('category', $cat));
+        if ($category = $request->query('category')) {
+            $query->where('category', $category);
+        }
 
         // 3. Country Filter
-        $query->when($request->country, fn($q, $country) => $q->where('country', $country));
+        if ($country = $request->query('country')) {
+            $query->where('country', $country);
+        }
 
-        // Sorting: Featured first, then A-Z
-        $query->orderByDesc('is_featured')->orderBy('name');
+        // 4. Types Filter (Handles comma-separated string from Flutter: "SPONSOR,PARTNER")
+        if ($types = $request->query('types')) {
+            $typesArray = explode(',', $types);
+            $query->where(function ($q) use ($typesArray) {
+                foreach ($typesArray as $type) {
+                    // Uses whereJsonContains because 'type' is a JSON array in the database
+                    $q->orWhereJsonContains('type', trim($type));
+                }
+            });
+        }
 
-        // Eager load 'team' only if we want to show avatars in the list,
-        // otherwise remove 'with' for better performance.
-        // We use standard pagination (20 per page).
+        // 5. Dynamic Sorting (Matches Flutter App options)
+        $sort = $request->query('sort', 'name'); // Default to name
+        switch ($sort) {
+            case 'booth':
+                // Sorts alphabetically/numerically by booth number
+                $query->orderBy('booth_number', 'asc');
+                break;
+            case 'featured':
+                // Featured first, then alphabetical
+                $query->orderBy('is_featured', 'desc')->orderBy('name', 'asc');
+                break;
+            case 'recent':
+                // Newest companies first
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'name':
+            default:
+                // Standard A-Z
+                $query->orderBy('name', 'asc');
+                break;
+        }
+
+        // Returns Standard Laravel Paginated Resource (20 per page)
         return CompanyResource::collection($query->paginate(20));
     }
 

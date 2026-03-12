@@ -41,31 +41,46 @@ class AppointmentListScreen extends Screen
             ? Carbon::parse($settings->start_date)->format('Y-m-d')
             : 0;
 
-        // 1. Statistics
+        // 1. Statistics (Fast COUNT queries)
         $pending = Appointment::where('status', 'pending')->count();
         $confirmed = Appointment::where('status', 'confirmed')->count();
         $cancelled = Appointment::where('status', 'cancelled')->count();
         $total = Appointment::count();
 
         // 2. Table Query with filters (For List View)
-        $tableQuery = Appointment::with(['booker', 'targetUser.company'])
+        // 🚀 EAGER LOADING: Prevents the N+1 query problem with 50,000 rows
+        $tableQuery = Appointment::with(['booker', 'targetUser', 'targetUser.company'])
             ->defaultSort('scheduled_at', 'desc');
 
-        // Apply filters (Keep your existing filter logic here)
+        // Apply filters
         if ($search = $request->get('search')) {
-            // ... your search logic
+            $tableQuery->where(function ($q) use ($search) {
+                $q->whereHas('booker', fn($b) => $b->where('name', 'like', "%$search%"))
+                    ->orWhereHas('targetUser', fn($t) => $t->where('name', 'like', "%$search%"))
+                    ->orWhere('table_location', 'like', "%$search%");
+            });
         }
         if ($status = $request->get('status')) {
             $tableQuery->where('status', $status);
         }
-        // ... other filters ...
+        if ($companyId = $request->get('company_id')) {
+            $tableQuery->whereHas('targetUser', fn($u) => $u->where('company_id', $companyId));
+        }
+        if ($dateFrom = $request->get('date_from')) {
+            $tableQuery->whereDate('scheduled_at', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->get('date_to')) {
+            $tableQuery->whereDate('scheduled_at', '<=', $dateTo);
+        }
 
         // 3. ── FIX: FORMAT EVENTS FOR FULLCALENDAR ──
-        // We fetch the appointments (you can apply the same filters here if you want the calendar to be filterable)
-        $allAppointments = $tableQuery->get();
+        // 🛡️ MEMORY PROTECTION: We limit the calendar to max 1000 events at a time
+        // to prevent PHP/Browser crashes when dealing with 50,000+ entries.
+        // The List View below remains fully paginated.
+        $calendarQuery = clone $tableQuery;
+        $allAppointments = $calendarQuery->limit(1000)->get();
 
         $calendarEvents = $allAppointments->map(function ($apt) {
-            // Match the colors to our UI badges
             $colorMap = [
                 'pending'   => '#f59e0b', // Amber
                 'confirmed' => '#10b981', // Green
@@ -74,9 +89,7 @@ class AppointmentListScreen extends Screen
                 'declined'  => '#64748b', // Slate
             ];
 
-            // Ensure we have a valid start date
             $start = $apt->scheduled_at ? Carbon::parse($apt->scheduled_at) : now();
-            // Calculate end time based on duration
             $duration = $apt->duration_minutes ?: 30;
             $end = $start->copy()->addMinutes($duration);
 
@@ -101,7 +114,8 @@ class AppointmentListScreen extends Screen
 
         // 4. Return everything to the views
         return [
-            'appointments' => $tableQuery->paginate(10), // For the ListLayout
+            // 🚀 STRICT PAGINATION: Only loads 30 rows in memory per page
+            'appointments' => $tableQuery->paginate(30),
             'metrics' => [
                 'pending'   => ['value' => number_format($pending)],
                 'confirmed' => ['value' => number_format($confirmed)],
@@ -112,6 +126,7 @@ class AppointmentListScreen extends Screen
             'eventStartDate' => $eventStartDate,
         ];
     }
+
     public function commandBar(): iterable
     {
         return [
@@ -202,8 +217,6 @@ class AppointmentListScreen extends Screen
                     AppointmentListLayout::class,
                 ],
                 'Calendar View' => [
-                    // FIX: Variables from query() are automatically passed to views.
-                    // We don't need to call $this->query() again.
                     Layout::view('admin.appointment.calendar'),
                 ],
             ]),
@@ -212,13 +225,13 @@ class AppointmentListScreen extends Screen
             Layout::modal('bookMeetingModal', Layout::rows([
                 Relation::make('appointment.booker_id')
                     ->title('Visitor (Booker)')
-                    ->fromModel(User::class, 'full_name_display')
+                    ->fromModel(User::class, 'email') // Use 'name' or 'email' depending on your model
                     ->required()
                     ->help('Select the visitor booking the appointment'),
 
                 Relation::make('appointment.target_user_id')
                     ->title('Exhibitor (Target)')
-                    ->fromModel(User::class, 'full_name_display')
+                    ->fromModel(User::class, 'email')
                     ->required()
                     ->help('Select the exhibitor to meet'),
 
@@ -246,7 +259,7 @@ class AppointmentListScreen extends Screen
             ]))
                 ->title('Schedule New Meeting')
                 ->applyButton('Book Appointment')
-                ->method('createAppointment'), // FIX: Links the modal to the save method
+                ->method('createAppointment'),
 
             // Edit Modal
             Layout::modal('editAppointmentModal', Layout::rows([
@@ -290,20 +303,8 @@ class AppointmentListScreen extends Screen
                 ->title('Edit Appointment')
                 ->async('asyncGetAppointment')
                 ->applyButton('Save Changes')
-                ->method('updateAppointment'), // FIX: Links the modal to the update method
+                ->method('updateAppointment'),
         ];
-    }
-
-    // Helper
-    private function getStatusColor(string $status): string
-    {
-        return match ($status) {
-            'confirmed' => '#198754',
-            'cancelled' => '#dc3545',
-            'completed' => '#0d6efd',
-            'declined' => '#6c757d',
-            default => '#ffc107',
-        };
     }
 
     // Async Load
@@ -379,6 +380,7 @@ class AppointmentListScreen extends Screen
 
     public function exportCalendar(Request $request)
     {
+        // 🚀 EAGER LOADING used here too for fast CSV Generation
         $query = Appointment::with(['booker', 'targetUser', 'targetUser.company'])
             ->orderBy('scheduled_at');
 
@@ -418,12 +420,13 @@ class AppointmentListScreen extends Screen
                 'Location', 'Status', 'Notes'
             ]);
 
-            $query->chunk(200, function ($appointments) use ($handle) {
+            // Memory-safe chunking handles 50,000 rows without RAM issues
+            $query->chunk(500, function ($appointments) use ($handle) {
                 foreach ($appointments as $apt) {
                     fputcsv($handle, [
                         $apt->id,
-                        $apt->scheduled_at->format('Y-m-d'),
-                        $apt->scheduled_at->format('H:i'),
+                        $apt->scheduled_at ? $apt->scheduled_at->format('Y-m-d') : '',
+                        $apt->scheduled_at ? $apt->scheduled_at->format('H:i') : '',
                         $apt->duration_minutes,
                         $apt->booker->name ?? 'N/A',
                         $apt->targetUser->name ?? 'N/A',
