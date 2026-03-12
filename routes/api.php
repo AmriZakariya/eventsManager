@@ -73,6 +73,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/update-locale', [AuthController::class, 'updateLocale']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::get('/generateBadge', [BadgeController::class, 'generateBadge']);
+    Route::post('/auth/update-profile', [AuthController::class, 'updateProfile']);
 
     // Notification Routes
     Route::post('/notifications/device-token', [NotificationController::class, 'saveDeviceToken']); // ADD THIS LINE

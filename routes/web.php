@@ -7,3 +7,7 @@ use App\Models\Company;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('/terms-and-conditions', function () {
+    return view('pages.terms');
+})->name('terms.conditions');

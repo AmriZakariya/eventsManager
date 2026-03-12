@@ -412,7 +412,7 @@ class AuthController extends Controller
             'city' => $user->city,
             'company_sector' => $user->company_sector,
             'is_visible' => (bool) $user->is_visible,
-            'about_me' => $user->about_me,
+            'bio' => $user->bio,
             // ----------------------------------------------
 
             'job_title' => $user->job_title,
@@ -605,5 +605,38 @@ class AuthController extends Controller
         }
 
         return response()->json(['status' => 'success', 'user_id' => $user->id]);
+    }
+
+    /**
+     * UPDATE PROFILE
+     * Route: POST /api/auth/update-profile   (middleware: auth:sanctum)
+     *
+     * Allows authenticated users to update their personal, professional,
+     * and location details. Email and role are intentionally not editable here.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'name'           => 'sometimes|required|string|max:255',
+            'last_name'      => 'sometimes|required|string|max:255',
+            'phone'          => 'sometimes|nullable|string|max:20',
+            'job_title'      => 'sometimes|nullable|string|max:100',
+            'job_function'   => 'sometimes|nullable|string|max:100',
+            'city'           => 'sometimes|nullable|string|max:100',
+            'country'        => 'sometimes|nullable|string|max:100',
+            'company_name'   => 'sometimes|nullable|string|max:255',
+            'company_sector' => 'sometimes|nullable|string|max:100',
+            'bio'       => 'sometimes|nullable|string|max:1000',
+        ]);
+
+        // Only update fields that were actually sent in the request
+        $user->update(array_filter($validated, fn($v) => $v !== null));
+
+        return response()->json([
+            'message' => 'Profile updated successfully',
+            'user'    => $this->formatUser($user->fresh(['company', 'roles'])),
+        ]);
     }
 }
