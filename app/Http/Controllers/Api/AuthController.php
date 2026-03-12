@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
+use App\Models\Company;
 use App\Models\Connection;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -54,7 +55,27 @@ class AuthController extends Controller
                 'max:255',
                 Rule::requiredIf(fn () => $request->role === 'visitor')
             ],
+
+            'company_code' => [
+                'nullable', 'string',
+                Rule::requiredIf(fn () => $request->role === 'exhibitor')
+            ],
         ]);
+
+        // 👇 ADD THIS SECURITY CHECK BEFORE CREATING THE USER 👇
+        if ($request->role === 'exhibitor') {
+            $company = Company::find($request->company_id);
+
+            // Check if the company exists, has a passcode, and matches what the user typed
+            if (!$company || empty($company->passcode) || $company->passcode !== $request->company_code) {
+                return response()->json([
+                    'message' => 'Invalid company access code.',
+                    'errors' => [
+                        'company_code' => ['The access code provided for this company is incorrect.']
+                    ]
+                ], 422); // 422 Unprocessable Entity (Validation Error)
+            }
+        }
 
         // Handle File Upload
         $avatarPath = null;

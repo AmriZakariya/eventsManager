@@ -164,6 +164,13 @@ class CompanyListScreen extends Screen
                                 </div>";
                     }),
 
+                TD::make('passcode', 'Access Code')
+                    ->sort()
+                    ->filter(Input::make())
+                    ->render(fn (Company $company) => $company->passcode
+                        ? "<span class='badge bg-success text-white px-2 py-1'>{$company->passcode}</span>"
+                        : "<span class='text-muted'>None</span>"),
+
                 // COLUMN: ROLES / BADGES
                 TD::make('type', 'Roles')
                     ->width('200px')

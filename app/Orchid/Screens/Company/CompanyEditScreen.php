@@ -74,6 +74,11 @@ class CompanyEditScreen extends Screen
                             ->placeholder('e.g. Acme Corp')
                             ->required(),
 
+                        Input::make('company.passcode')
+                            ->title('Access Code (Passcode)')
+                            ->placeholder('Ex: HYGIE-A1B2')
+                            ->help('Secret code for employees to register as exhibitors on the app.'),
+
                         Input::make('catalog_upload') // distinct name to handle manually
                         ->type('file')
                             ->title('Company Catalog (PDF)')
@@ -167,6 +172,7 @@ class CompanyEditScreen extends Screen
     {
         $request->validate([
             'company.name' => 'required|max:255',
+            'company.passcode' => 'nullable|string|max:255',
             'catalog_upload' => 'nullable|file|mimes:pdf|max:10240', // Max 10MB
             'company.email' => 'nullable|email',
             'company.type' => 'nullable|array', // Ensure array validation

@@ -24,7 +24,7 @@ class Company extends Model
         'name', 'logo', 'booth_number', 'map_coordinates',
         'country', 'category', 'email', 'website_url', 'type', 'catalog_file',
         'phone', 'address', 'description',
-        'is_featured', 'is_active'
+        'is_featured', 'is_active', 'passcode'
     ];
 
     // ✅ REQUIRED FOR SORTING
