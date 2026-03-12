@@ -416,7 +416,6 @@ class AuthController extends Controller
             // ----------------------------------------------
 
             'job_title' => $user->job_title,
-            'job_function' => $user->job_function,
 
             // Critical for Visitor Identity
             'badge_code' => $user->badge_code,
@@ -623,7 +622,6 @@ class AuthController extends Controller
             'last_name'      => 'sometimes|required|string|max:255',
             'phone'          => 'sometimes|nullable|string|max:20',
             'job_title'      => 'sometimes|nullable|string|max:100',
-            'job_function'   => 'sometimes|nullable|string|max:100',
             'city'           => 'sometimes|nullable|string|max:100',
             'country'        => 'sometimes|nullable|string|max:100',
             'company_name'   => 'sometimes|nullable|string|max:255',
