@@ -243,6 +243,13 @@ class SaharaSummitSeeder extends Seeder
 
         $moroccanFirstNames = ['Ahmed', 'Youssef', 'Mehdi', 'Omar', 'Karim', 'Hamza', 'Ayoub', 'Amine'];
         $moroccanLastNames = ['El Amrani', 'Benali', 'Alaoui', 'El Idrissi', 'Bennani', 'Chraibi'];
+        $bioTemplates = [
+            "{name} is a seasoned expert in {category} with over 10 years of experience helping clients at {company} achieve operational excellence.",
+            "Representing {company}, {name} specializes in delivering innovative solutions within the {category} sector.",
+            "Focused on sustainable growth and strategic partnerships, {name} leads business development initiatives for {company} across the region.",
+            "As a key representative for {company}, {name} is dedicated to advancing {category} standards through cutting-edge technology and service.",
+            "With a background in technical consultancy, {name} provides deep insights into {category} for all {company} partners and clients.",
+        ];
 
         foreach ($companiesData as $index => $c) {
             $companyName = $c['name'];
@@ -290,7 +297,16 @@ class SaharaSummitSeeder extends Seeder
             for ($i = 0; $i < $numExhibitors; $i++) {
                 $firstName = $moroccanFirstNames[array_rand($moroccanFirstNames)];
                 $lastName = $moroccanLastNames[array_rand($moroccanLastNames)];
-                $exhibitorEmail = $this->generateUniqueEmail($firstName . ' ' . $lastName, $companyDomain);
+                $fullName = $firstName . ' ' . $lastName;
+                $exhibitorEmail = $this->generateUniqueEmail($fullName, $companyDomain);
+
+                // Dynamic Bio Logic
+                $template = $bioTemplates[array_rand($bioTemplates)];
+                $dynamicBio = str_replace(
+                    ['{name}', '{company}', '{category}'],
+                    [$firstName, $companyName, strtolower($c['category'])],
+                    $template
+                );
 
                 $user = User::create([
                     'name' => $firstName,
@@ -298,11 +314,11 @@ class SaharaSummitSeeder extends Seeder
                     'email' => $exhibitorEmail,
                     'password' => Hash::make('password'),
                     'company_id' => $company->id,
-                    'job_title' => 'Representative',
+                    'job_title' => $i === 0 ? 'Regional Manager' : 'Technical Consultant', // Varied job titles
                     'phone' => '+212 6' . rand(10, 99) . ' ' . rand(10, 99) . ' ' . rand(10, 99) . ' ' . rand(10, 99),
                     'badge_code' => 'EX-' . str_pad($company->id, 3, '0', STR_PAD_LEFT) . '-' . str_pad($i + 1, 2, '0', STR_PAD_LEFT),
                     'is_visible' => true,
-                    'bio' => 'Experienced professional.',
+                    'bio' => $dynamicBio, // Now dynamic!
                 ]);
 
                 $user->addRole($roleExhibitor);

@@ -5,6 +5,7 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class CompanyResource extends JsonResource
 {
@@ -27,7 +28,11 @@ class CompanyResource extends JsonResource
             'country'       => $this->country,
             'category'      => $this->category,
             'type'      => $this->type,
-            'catalog_file'      => $this->catalog_file,
+            'catalog_file' => $this->catalog_file
+                ? (Str::startsWith($this->catalog_file, ['http://', 'https://'])
+                    ? $this->catalog_file
+                    : asset($this->catalog_file))
+                : null,
             'is_featured'   => (bool) $this->is_featured,
 
             // Contact
