@@ -65,9 +65,7 @@ class CompanyEditScreen extends Screen
                     Group::make([
                         Cropper::make('company.logo')
                             ->title('Logo')
-                            ->targetRelativeUrl()
-                            ->width(300)
-                            ->height(300),
+                            ->targetRelativeUrl(),
 
                         Input::make('company.name')
                             ->title('Company Name')

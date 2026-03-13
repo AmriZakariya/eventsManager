@@ -136,8 +136,6 @@ class ProductEditScreen extends Screen
                     Cropper::make('product.image')
                         ->title('Product Image')
                         ->targetRelativeUrl()
-                        ->width(800)
-                        ->height(600)
                         ->help('Recommended size: 800×600px.'),
 
                     CheckBox::make('product.is_featured')

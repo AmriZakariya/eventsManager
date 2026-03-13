@@ -107,9 +107,7 @@ class UserEditScreen extends Screen
                 // Avatar Cropper
                 Cropper::make('user.avatar')
                     ->title('Profile Picture')
-                    ->targetRelativeUrl()
-                    ->width(500)
-                    ->height(500),
+                    ->targetRelativeUrl(),
 
                 // Group: Names
                 Group::make([

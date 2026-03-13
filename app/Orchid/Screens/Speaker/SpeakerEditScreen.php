@@ -61,8 +61,6 @@ class SpeakerEditScreen extends Screen
 
                 Cropper::make('speaker.photo') // Matches DB: photo
                 ->title('Profile Photo')
-                    ->width(500)
-                    ->height(500)
                     ->targetRelativeUrl(),
 
                 TextArea::make('speaker.bio')
