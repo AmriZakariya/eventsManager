@@ -463,8 +463,8 @@ class AuthController extends Controller
      * COMPLETE PROFILE (OAuth users who signed in without full data)
      *
      * Called after Google / Facebook / Apple login when:
-     *   - user->phone === 'N/A'  (sentinel set in socialLogin)
-     *   - user has not yet chosen their role / filled required fields
+     * - user->phone === 'N/A'  (sentinel set in socialLogin)
+     * - user has not yet chosen their role / filled required fields
      *
      * Route: POST /api/auth/complete-profile   (middleware: auth:sanctum)
      */
@@ -498,10 +498,31 @@ class AuthController extends Controller
                 Rule::requiredIf(fn () => $request->role === 'visitor'),
             ],
 
+            // 👇 ADDED VALIDATION RULE FOR COMPANY CODE 👇
+            'company_code' => [
+                'nullable', 'string',
+                Rule::requiredIf(fn () => $request->role === 'exhibitor')
+            ],
+
             // Avatar is optional — if omitted we keep the existing OAuth avatar URL
             'avatar' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
             'keep_avatar' => 'nullable|string|in:0,1',
         ]);
+
+        // 👇 ADD THIS SECURITY CHECK BEFORE UPDATING THE USER 👇
+        if ($request->role === 'exhibitor') {
+            $company = Company::find($request->company_id);
+
+            // Check if the company exists, has a passcode, and matches what the user typed
+            if (!$company || empty($company->passcode) || $company->passcode !== $request->company_code) {
+                return response()->json([
+                    'message' => 'Invalid company access code.',
+                    'errors' => [
+                        'company_code' => ['The access code provided for this company is incorrect.']
+                    ]
+                ], 422); // 422 Unprocessable Entity
+            }
+        }
 
         // ── Avatar handling ────────────────────────────────────────────────────
         $avatarValue = $user->avatar; // default: keep existing (Google URL or old path)
