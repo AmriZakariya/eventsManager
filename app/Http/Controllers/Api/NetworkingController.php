@@ -22,27 +22,41 @@ class NetworkingController extends Controller
     {
         $authId = Auth::id();
 
+        // 1. Build Query with connection_status subquery
         $query = User::with('company')
             ->where('id', '!=', $authId)
             ->where('is_visible', true)
             ->addSelect([
-                'connection_status' => Connection::selectRaw('
+                '*',
+                'connection_status' => Connection::selectRaw("
                 CASE
-                    WHEN status = "accepted" THEN "accepted"
-                    WHEN status = "pending" AND requester_id = ' . $authId . ' THEN "outgoing"
-                    WHEN status = "pending" AND target_id = ' . $authId . ' THEN "incoming"
-                    ELSE "none"
+                    WHEN status = 'accepted' THEN 'accepted'
+                    WHEN status = 'pending' AND requester_id = {$authId} THEN 'outgoing'
+                    WHEN status = 'pending' AND target_id = {$authId} THEN 'incoming'
+                    ELSE 'none'
                 END
-            ')
-                    ->where(function($q) use ($authId) {
-                        $q->whereColumn('requester_id', 'users.id')->where('target_id', $authId)
-                            ->orWhereColumn('target_id', 'users.id')->where('requester_id', $authId);
+            ")
+                    ->where(function ($q) use ($authId) {
+                        $q->where(fn ($q) => $q->whereColumn('requester_id', 'users.id')->where('target_id', $authId))
+                            ->orWhere(fn ($q) => $q->whereColumn('target_id', 'users.id')->where('requester_id', $authId));
                     })
-                    ->limit(1)
+                    ->limit(1),
             ]);
 
-        // ... rest of search logic and pagination
-        return response()->json($query->paginate(20));
+        // 2. Search Logic (preserved from original)
+        if ($search = $request->input('search')) {
+            $query->where(function (Builder $q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('last_name', 'like', "%{$search}%")
+                    ->orWhere('job_title', 'like', "%{$search}%")
+                    ->orWhereHas('company', fn ($c) => $c->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        // 3. Return paginated results
+        return response()->json(
+            $query->inRandomOrder()->paginate(20)
+        );
     }
 
     /**
