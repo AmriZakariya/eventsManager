@@ -36,8 +36,8 @@ class ConversationRoleFilter extends Filter
         }
 
         return $query->where(function (Builder $q) use ($role) {
-            $q->whereHas('sender.roles', fn(Builder $r) => $r->where('slug', $role))
-                ->orWhereHas('receiver.roles', fn(Builder $r) => $r->where('slug', $role));
+            $q->whereHas('sender', fn(Builder $sender) => $sender->where('app_role', $role))
+                ->orWhereHas('receiver', fn(Builder $receiver) => $receiver->where('app_role', $role));
         });
     }
 
@@ -54,8 +54,8 @@ class ConversationRoleFilter extends Filter
                     'visitor'   => 'Visitors Only',
                 ])
                 ->value($this->request->get('role', 'all'))
-                ->title('Participant Role')
-                ->help('Show conversations where at least one participant has this role'),
+                ->title('Participant App Role')
+                ->help('Show conversations where at least one participant has this app role'),
         ];
     }
 }

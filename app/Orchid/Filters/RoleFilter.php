@@ -6,8 +6,8 @@ namespace App\Orchid\Filters;
 
 use Illuminate\Database\Eloquent\Builder;
 use Orchid\Filters\Filter;
-use Orchid\Platform\Models\Role;
 use Orchid\Screen\Fields\Select;
+use App\Models\User;
 
 class RoleFilter extends Filter
 {
@@ -18,7 +18,7 @@ class RoleFilter extends Filter
      */
     public function name(): string
     {
-        return __('Roles');
+        return __('App Role');
     }
 
     /**
@@ -40,9 +40,7 @@ class RoleFilter extends Filter
      */
     public function run(Builder $builder): Builder
     {
-        return $builder->whereHas('roles', function (Builder $query) {
-            $query->where('slug', $this->request->get('role'));
-        });
+        return $builder->where('app_role', $this->request->get('role'));
     }
 
     /**
@@ -52,10 +50,10 @@ class RoleFilter extends Filter
     {
         return [
             Select::make('role')
-                ->fromModel(Role::class, 'name', 'slug')
+                ->options(User::appRoleOptions())
                 ->empty()
                 ->value($this->request->get('role'))
-                ->title(__('Roles')),
+                ->title(__('App Role')),
         ];
     }
 
@@ -64,6 +62,6 @@ class RoleFilter extends Filter
      */
     public function value(): string
     {
-        return $this->name().': '.Role::where('slug', $this->request->get('role'))->first()->name;
+        return $this->name().': '.(User::appRoleOptions()[$this->request->get('role')] ?? $this->request->get('role'));
     }
 }

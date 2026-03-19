@@ -2,29 +2,31 @@
     <!-- Participant 1 -->
     <div class="d-flex align-items-center" style="min-width: 200px;">
         @if($p1)
+            @php($p1EditUrl = route('platform.systems.users.edit', $p1->id))
             <div class="position-relative mr-2">
-                <img src="{{ $p1->avatar_url ?? 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($p1->email))) . '?d=mp' }}"
-                     class="rounded-circle border"
-                     style="width: 40px; height: 40px; object-fit: cover;">
+                <a href="{{ $p1EditUrl }}">
+                    <img src="{{ $p1->avatar_url ?? 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($p1->email))) . '?d=mp' }}"
+                         class="rounded-circle border"
+                         style="width: 40px; height: 40px; object-fit: cover;">
+                </a>
                 <span class="position-absolute bottom-0 right-0 bg-success rounded-circle"
                       style="width: 10px; height: 10px; border: 2px solid white;"></span>
             </div>
             <div>
                 <div class="d-flex align-items-center">
-                    <strong class="mr-2">{{ $p1->name }} {{ $p1->last_name }}</strong>
-                    @if($p1->roles->contains('slug', 'exhibitor'))
-                        <span class="badge bg-primary-light text-primary px-2 py-1" style="font-size: 0.7rem;">
-                            <i class="bs.building mr-1"></i> Exhibitor
-                        </span>
-                    @else
-                        <span class="badge bg-success-light text-success px-2 py-1" style="font-size: 0.7rem;">
-                            <i class="bs.person mr-1"></i> Visitor
-                        </span>
-                    @endif
+                    <a href="{{ $p1EditUrl }}" class="mr-2 text-dark text-decoration-none">
+                        <strong>{{ $p1->name }} {{ $p1->last_name }}</strong>
+                    </a>
+                    <span class="badge bg-primary-light text-primary px-2 py-1" style="font-size: 0.7rem;">
+                        App: {{ $p1->appRoleLabel() }}
+                    </span>
                 </div>
                 <small class="text-muted d-block text-truncate" style="max-width: 180px;">
                     <i class="bs.envelope-fill me-1" style="font-size: 0.7rem;"></i>
                     {{ $p1->company->name ?? $p1->email }}
+                </small>
+                <small class="text-muted d-block text-truncate" style="max-width: 180px;">
+                    Orchid: {{ implode(' / ', $p1->orchidRoleNames()) ?: 'none' }}
                 </small>
             </div>
         @else
@@ -45,29 +47,31 @@
     <!-- Participant 2 -->
     <div class="d-flex align-items-center" style="min-width: 200px;">
         @if($p2)
+            @php($p2EditUrl = route('platform.systems.users.edit', $p2->id))
             <div class="position-relative mr-2">
-                <img src="{{ $p2->avatar_url ?? 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($p2->email))) . '?d=mp' }}"
-                     class="rounded-circle border"
-                     style="width: 40px; height: 40px; object-fit: cover;">
+                <a href="{{ $p2EditUrl }}">
+                    <img src="{{ $p2->avatar_url ?? 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($p2->email))) . '?d=mp' }}"
+                         class="rounded-circle border"
+                         style="width: 40px; height: 40px; object-fit: cover;">
+                </a>
                 <span class="position-absolute bottom-0 right-0 bg-success rounded-circle"
                       style="width: 10px; height: 10px; border: 2px solid white;"></span>
             </div>
             <div>
                 <div class="d-flex align-items-center">
-                    <strong class="mr-2">{{ $p2->name }} {{ $p2->last_name }}</strong>
-                    @if($p2->roles->contains('slug', 'exhibitor'))
-                        <span class="badge bg-primary-light text-primary px-2 py-1" style="font-size: 0.7rem;">
-                            <i class="bs.building mr-1"></i> Exhibitor
-                        </span>
-                    @else
-                        <span class="badge bg-success-light text-success px-2 py-1" style="font-size: 0.7rem;">
-                            <i class="bs.person mr-1"></i> Visitor
-                        </span>
-                    @endif
+                    <a href="{{ $p2EditUrl }}" class="mr-2 text-dark text-decoration-none">
+                        <strong>{{ $p2->name }} {{ $p2->last_name }}</strong>
+                    </a>
+                    <span class="badge bg-primary-light text-primary px-2 py-1" style="font-size: 0.7rem;">
+                        App: {{ $p2->appRoleLabel() }}
+                    </span>
                 </div>
                 <small class="text-muted d-block text-truncate" style="max-width: 180px;">
                     <i class="bs.envelope-fill me-1" style="font-size: 0.7rem;"></i>
                     {{ $p2->company->name ?? $p2->email }}
+                </small>
+                <small class="text-muted d-block text-truncate" style="max-width: 180px;">
+                    Orchid: {{ implode(' / ', $p2->orchidRoleNames()) ?: 'none' }}
                 </small>
             </div>
         @else

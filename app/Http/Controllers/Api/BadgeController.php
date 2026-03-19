@@ -22,13 +22,13 @@ class BadgeController extends Controller
     public function generateBadge(Request $request)
     {
         $user = $request->user();
-        $user->loadMissing(['company', 'roles']);
+        $user->loadMissing('company');
 
         // ── Pull data from User model ──────────────────────────────────────────
         $fullname     = strtoupper(trim($user->name . ' ' . $user->last_name));
         $company_name = $user->company ? $user->company->name : $user->company_name;
         $qr_data      = strtoupper(trim($user->name . ' ' . $user->last_name));
-        $user_role    =  $user->roles->first()?->slug ?? 'visitor';
+        $user_role    = $user->role;
 
         // ── Build PDF ──────────────────────────────────────────────────────────
         $pdfContent = $this->overlayBadge($fullname, $company_name, $qr_data, $user_role);

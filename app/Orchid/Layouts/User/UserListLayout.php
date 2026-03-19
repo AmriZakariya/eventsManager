@@ -11,7 +11,6 @@ use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Components\Cells\DateTimeSplit;
 use Orchid\Screen\Fields\Input;
-use Orchid\Screen\Layouts\Persona;
 use Orchid\Screen\Layouts\Table;
 use Orchid\Screen\TD;
 
@@ -89,18 +88,37 @@ class UserListLayout extends Table
                     : '<span class="text-muted">—</span>'
                 ),
 
-            TD::make('roles', 'Role')
-                ->render(fn (User $user) =>
-                $user->roles->map(function($role) {
-                    $color = match($role->slug) {
-                        'admin' => 'bg-danger',
-                        'exhibitor' => 'bg-primary',
-                        'visitor' => 'bg-info',
+            TD::make('roles', 'Roles')
+                ->render(function (User $user) {
+                    $appRoleColor = match ($user->role) {
+                        User::APP_ROLE_ADMIN => 'bg-danger',
+                        User::APP_ROLE_EXHIBITOR => 'bg-primary',
+                        User::APP_ROLE_VISITOR => 'bg-info',
                         default => 'bg-secondary',
                     };
-                    return "<span class='badge {$color}'>{$role->name}</span>";
-                })->implode(' ')
-                ),
+
+                    $appRoleBadge = "<div class='mb-1'><span class='badge {$appRoleColor}'>App: {$user->appRoleLabel()}</span></div>";
+
+                    $orchidBadges = collect($user->orchidRoleNames())
+                        ->map(function (string $roleName, int $index) use ($user) {
+                            $slug = $user->orchidRoleSlugs()[$index] ?? null;
+                            $color = match ($slug) {
+                                'admin' => 'bg-danger',
+                                'exhibitor' => 'bg-primary',
+                                'visitor' => 'bg-info',
+                                default => 'bg-secondary',
+                            };
+
+                            return "<span class='badge {$color}'>Orchid: {$roleName}</span>";
+                        })
+                        ->implode(' ');
+
+                    if ($orchidBadges === '') {
+                        $orchidBadges = "<span class='badge bg-light text-dark'>Orchid: none</span>";
+                    }
+
+                    return $appRoleBadge.$orchidBadges;
+                }),
 
             TD::make('is_visible', 'Visibility')
                 ->sort()

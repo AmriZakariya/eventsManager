@@ -113,29 +113,32 @@ class ConnectionRequestListScreen extends Screen
 
         $avatar = $user->avatar_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=random';
         $company = optional($user->company)->name ?? 'No Company';
-
-        // Role Logic: Exhibitor (Blue) vs Visitor (Green)
-        $isExhibitor = $user->roles->contains('slug', 'exhibitor');
-        $roleLabel = $isExhibitor ? 'EXHIBITOR' : 'VISITOR';
-        $roleColor = $isExhibitor ? '#d4af37' : '#28a745'; // Gold for Exhibitor, Green for Visitor
+        $editUrl = route('platform.systems.users.edit', $user->id);
+        $roleLabel = 'App: '.$user->appRoleLabel();
+        $roleColor = $user->role === User::APP_ROLE_EXHIBITOR ? '#d4af37' : '#28a745';
+        $orchidRoles = e(implode(' / ', $user->orchidRoleNames()) ?: 'none');
 
         return sprintf(
             '<div class="d-flex align-items-center">
                 <div class="position-relative">
-                    <img src="%s" class="rounded-circle shadow-sm" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid #fff;">
+                    <a href="%s"><img src="%s" class="rounded-circle shadow-sm" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid #fff;"></a>
                     <span class="position-absolute bottom-0 end-0 badge rounded-pill" style="background-color:%s; width:12px; height:12px; border:2px solid #fff;" title="%s"></span>
                 </div>
                 <div class="ml-3" style="line-height: 1.2;">
-                    <div class="font-weight-bold text-dark">%s</div>
+                    <div class="font-weight-bold text-dark"><a href="%s" class="text-dark text-decoration-none">%s</a></div>
                     <div class="small text-muted">%s</div>
+                    <div class="small text-muted">Orchid: %s</div>
                     <div class="mt-1"><span class="badge" style="background-color:%s15; color:%s; font-size: 0.65rem; border: 1px solid %s30;">%s</span></div>
                 </div>
             </div>',
+            $editUrl,
             $avatar,
             $roleColor,
             $roleLabel,
+            $editUrl,
             e($user->name . ' ' . $user->last_name),
             e(Str::limit($user->job_title . ' @ ' . $company, 40)),
+            $orchidRoles,
             $roleColor, $roleColor, $roleColor,
             $roleLabel
         );

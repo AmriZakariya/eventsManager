@@ -56,8 +56,8 @@ class UserListScreen extends Screen
             count(case when is_visible = 1 then 1 end) as visible
         ")->first();
 
-        $exhibitors = User::whereHas('roles', fn($q) => $q->where('slug', 'exhibitor'))->count();
-        $visitors   = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))->count();
+        $exhibitors = User::appRole(User::APP_ROLE_EXHIBITOR)->count();
+        $visitors   = User::appRole(User::APP_ROLE_VISITOR)->count();
 
         return [
             'total'      => ['value' => number_format($stats->total), 'diff' => 0],
@@ -197,15 +197,10 @@ class UserListScreen extends Screen
             'last_name' => $userData['last_name'],
             'email' => $userData['email'],
             'password' => bcrypt($tempPassword),
+            'app_role' => $userData['roles'],
             'is_visible' => true,
         ]);
-
-        // Assign role logic...
-        $roleSlug = $userData['roles'];
-        $role = \Orchid\Platform\Models\Role::where('slug', $roleSlug)->first();
-        if($role) {
-            $user->addRole($role);
-        }
+        $user->syncOrchidRoleFromAppRole();
 
         Toast::info("User created. Password: {$tempPassword}")->delay(10000);
     }

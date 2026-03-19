@@ -307,14 +307,14 @@ class ConversationListScreen extends Screen
 
         $avatar    = $user->avatar_url
             ?? 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($user->email))) . '?d=mp&s=200';
-        $isExhibitor = $user->roles->contains('slug', 'exhibitor');
-        $badgeClass  = $isExhibitor ? 'exhibitor' : 'visitor';
-        $badgeLabel  = $isExhibitor ? 'Exhibitor' : 'Visitor';
+        $badgeClass  = $user->role === User::APP_ROLE_EXHIBITOR ? 'exhibitor' : 'visitor';
+        $badgeLabel  = 'App: '.$user->appRoleLabel();
         $company     = optional($user->company)->name ?? 'Independent';
         $editUrl     = route('platform.systems.users.edit', $user->id);
         $isOnline    = isset($user->last_active_at) && $user->last_active_at?->diffInMinutes() < 30;
         $onlineDot   = $isOnline ? '<div class="uc-online"></div>' : '';
         $fullName    = e($user->name . ' ' . $user->last_name);
+        $orchidRoles = e(implode(' / ', $user->orchidRoleNames()) ?: 'none');
 
         return $styles . sprintf(
                 '<div class="uc">
@@ -327,6 +327,7 @@ class ConversationListScreen extends Screen
                 <div class="uc-info">
                     <a href="%s" class="uc-name" title="%s — %s">%s</a>
                     <span class="uc-meta"><i class="icon-briefcase" style="opacity:.6;font-size:.68rem;"></i> %s</span>
+                    <span class="uc-meta">Orchid: %s</span>
                     <span class="uc-badge %s">%s</span>
                 </div>
             </div>',
@@ -335,6 +336,7 @@ class ConversationListScreen extends Screen
                 $editUrl, $fullName, e($user->email),
                 $fullName,
                 e($company),
+                $orchidRoles,
                 $badgeClass, $badgeLabel
             );
     }

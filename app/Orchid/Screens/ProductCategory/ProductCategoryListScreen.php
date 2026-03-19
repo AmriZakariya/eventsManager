@@ -150,7 +150,7 @@ class ProductCategoryListScreen extends Screen
                     ->width('150px')
                     ->defaultHidden()
                     ->render(fn (ProductCategory $category) =>
-                        '<span class="text-muted small">' . $category->updated_at->diffForHumans() . '</span>'
+                        '<span class="text-muted small">' . $category->updated_at?->diffForHumans() . '</span>'
                     ),
 
                 TD::make('Actions')

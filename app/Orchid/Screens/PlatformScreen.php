@@ -58,7 +58,7 @@ class PlatformScreen extends Screen
         }
 
         // ── Core KPIs ─────────────────────────────────────────────────
-        $visitorCount   = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))->count();
+        $visitorCount   = User::appRole(User::APP_ROLE_VISITOR)->count();
         $exhibitorCount = Company::count();
         $unreadMessages = ContactRequest::where('is_handled', false)->count();
 
@@ -84,13 +84,13 @@ class PlatformScreen extends Screen
         $connectionCount    = DB::table('connections')->where('status', 'accepted')->count();
         $pendingConnections = DB::table('connections')->where('status', 'pending')->count();
 
-        $checkedInToday = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))
+        $checkedInToday = User::appRole(User::APP_ROLE_VISITOR)
             ->whereDate('created_at', today())
             ->count();
 
         // ── Chart: Visitor Registrations (last 14 days) ───────────────
         $last14 = collect(range(13, 0))->map(fn($d) => now()->subDays($d)->format('Y-m-d'));
-        $rawVisitors = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))
+        $rawVisitors = User::appRole(User::APP_ROLE_VISITOR)
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->where('created_at', '>=', now()->subDays(14))
             ->groupBy('date')
@@ -113,7 +113,7 @@ class PlatformScreen extends Screen
             $weekStart      = now()->startOfWeek()->subWeeks($i);
             $weekEnd        = (clone $weekStart)->endOfWeek();
             $weeklyLabels[] = 'W' . $weekStart->week;
-            $weeklyValues[] = User::whereHas('roles', fn($q) => $q->where('slug', 'visitor'))
+            $weeklyValues[] = User::appRole(User::APP_ROLE_VISITOR)
                 ->whereBetween('created_at', [$weekStart, $weekEnd])
                 ->count();
         }

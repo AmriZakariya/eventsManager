@@ -2,17 +2,29 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Orchid\Platform\Models\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\Builder;
+use Orchid\Platform\Models\Role as OrchidRole;
 
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, Notifiable;
+
+    public const APP_ROLE_ADMIN = 'admin';
+    public const APP_ROLE_EXHIBITOR = 'exhibitor';
+    public const APP_ROLE_VISITOR = 'visitor';
+
+    public static function appRoleOptions(): array
+    {
+        return [
+            self::APP_ROLE_VISITOR => 'Visitor',
+            self::APP_ROLE_EXHIBITOR => 'Exhibitor',
+        ];
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -26,6 +38,7 @@ class User extends Authenticatable
         'password',
         'permissions',
         'locale',
+        'app_role',
 
         // Extended Profile Fields
         'phone',
@@ -101,7 +114,7 @@ class User extends Authenticatable
      */
     public function scopeVisitors(Builder $query)
     {
-        return $query->whereNull('company_id');
+        return $query->where('app_role', self::APP_ROLE_VISITOR);
     }
 
     /**
@@ -109,7 +122,12 @@ class User extends Authenticatable
      */
     public function scopeExhibitors(Builder $query)
     {
-        return $query->whereNotNull('company_id');
+        return $query->where('app_role', self::APP_ROLE_EXHIBITOR);
+    }
+
+    public function scopeAppRole(Builder $query, string $role)
+    {
+        return $query->where('app_role', $role);
     }
 
     // --- Accessors for Orchid Display ---
@@ -166,9 +184,64 @@ class User extends Authenticatable
 
     public function getRoleAttribute(): string
     {
-        // If they are attached to a company, they are an exhibitor.
-        // Otherwise, they are a visitor.
-        return $this->company_id ? 'exhibitor' : 'visitor';
+        return $this->app_role ?: $this->resolveLegacyAppRole();
+    }
+
+    public function syncAppRole(?string $role = null): void
+    {
+        $this->forceFill([
+            'app_role' => $role ?: $this->resolveLegacyAppRole(),
+        ])->save();
+    }
+
+    public function syncOrchidRoleFromAppRole(): void
+    {
+        $roleSlug = $this->role;
+        $role = OrchidRole::where('slug', $roleSlug)->first();
+
+        if (!$role) {
+            return;
+        }
+
+        foreach ($this->roles as $existingRole) {
+            $this->removeRole($existingRole);
+        }
+
+        $this->addRole($role);
+        $this->unsetRelation('roles');
+    }
+
+    public function syncRoleSystems(?string $role = null): void
+    {
+        $this->syncAppRole($role);
+        $this->loadMissing('roles');
+        $this->syncOrchidRoleFromAppRole();
+    }
+
+    public function resolveLegacyAppRole(): string
+    {
+        $roleSlug = $this->roles->first()?->slug;
+
+        if ($roleSlug) {
+            return $roleSlug;
+        }
+
+        return $this->company_id ? self::APP_ROLE_EXHIBITOR : self::APP_ROLE_VISITOR;
+    }
+
+    public function appRoleLabel(): string
+    {
+        return self::appRoleOptions()[$this->role] ?? ucfirst($this->role);
+    }
+
+    public function orchidRoleSlugs(): array
+    {
+        return $this->roles->pluck('slug')->all();
+    }
+
+    public function orchidRoleNames(): array
+    {
+        return $this->roles->pluck('name')->all();
     }
 
     public function getConnectionStatusAttribute(): string

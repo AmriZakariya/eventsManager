@@ -33,10 +33,15 @@ class UserPresenter extends Presenter implements Personable, Searchable
      */
     public function subTitle(): string
     {
-        $roles = $this->entity->roles->pluck('name')->implode(' / ');
+        $roles = 'App: '.$this->entity->appRoleLabel();
+        $orchidRoles = implode(' / ', $this->entity->orchidRoleNames());
+
+        if ($orchidRoles !== '') {
+            $roles .= ' | Orchid: '.$orchidRoles;
+        }
 
         return (string) Str::of($roles)
-            ->limit(20)
+            ->limit(40)
             ->whenEmpty(fn () => __('Regular User'));
     }
 

@@ -58,9 +58,8 @@ class B2BController extends Controller
      */
     public function exhibitors(Request $request)
     {
-        // Assuming "Exhibitors" are users with a company_id
         $query = User::with('company')
-            ->whereNotNull('company_id')
+            ->appRole(User::APP_ROLE_EXHIBITOR)
             ->orderBy('name', 'asc');
 
         // Search Filter

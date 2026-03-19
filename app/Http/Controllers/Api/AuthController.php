@@ -14,7 +14,6 @@ use App\Models\User;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Socialite\Socialite;
-use Orchid\Platform\Models\Role;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Http;
@@ -103,21 +102,12 @@ class AuthController extends Controller
             'job_title' => $request->job_title,
             'badge_code' => $badgeCode,
             'avatar' => $avatarPath,
+            'app_role' => $request->role,
             'is_visible' => true,
             'company_id' => ($request->role === 'exhibitor') ? $request->company_id : null,
             'company_name' => ($request->role === 'visitor') ? $request->company_name : null,
         ]);
-
-        // Assign Orchid Role
-        $roleSlug = $request->role;
-        $role = Role::where('slug', $roleSlug)->first();
-
-        if ($role) {
-            $user->addRole($role);
-        } else {
-            $defaultRole = Role::where('slug', 'visitor')->first();
-            if ($defaultRole) $user->addRole($defaultRole);
-        }
+        $user->syncOrchidRoleFromAppRole();
 
         // Generate Token
         $token = $user->createToken('mobile_app')->plainTextToken;
@@ -385,17 +375,14 @@ class AuthController extends Controller
                 'password'       => Hash::make(Str::random(24)),
                 'avatar'         => $avatarUrl,   // ✅ URL stored directly
                 'badge_code'     => $badgeCode,
+                'app_role'       => User::APP_ROLE_VISITOR,
                 'is_visible'     => true,
                 'phone'          => 'N/A',
                 'country'        => 'N/A',
                 'city'           => 'N/A',
                 'company_sector' => 'N/A',
             ]);
-
-            $defaultRole = Role::where('slug', 'visitor')->first();
-            if ($defaultRole) {
-                $user->addRole($defaultRole);
-            }
+            $user->syncOrchidRoleFromAppRole();
         } else {
             // Update avatar if missing or outdated
             if ($avatarUrl && (empty($user->avatar) || str_starts_with($user->avatar, 'http'))) {
@@ -419,7 +406,7 @@ class AuthController extends Controller
     private function formatUser(User $user)
     {
         // Ensure relationships are loaded to prevent errors
-        $user->loadMissing(['company', 'roles']);
+        $user->loadMissing('company');
 
         return [
             'id' => $user->id,
@@ -448,7 +435,7 @@ class AuthController extends Controller
             'locale' => $user->locale ?? 'en',
 
             // Role Helper (returns 'visitor', 'exhibitor', or 'admin')
-            'role' => $user->roles->first()?->slug ?? 'visitor',
+            'role' => $user->role,
 
             // Critical for Exhibitor Logic
             'company_id' => $user->company_id,
@@ -566,25 +553,16 @@ class AuthController extends Controller
             'company_sector' => $validated['company_sector'],
             'avatar'         => $avatarValue,
             'badge_code'     => $badgeCode,
+            'app_role'       => $request->role,
             'company_id'     => $request->role === 'exhibitor' ? $validated['company_id'] : null,
             'company_name'   => $request->role === 'visitor'   ? $validated['company_name'] : null,
             'is_visible'     => true,
         ]);
-
-        // ── Role: sync to the newly chosen role ───────────────────────────────
-        $newRole = Role::where('slug', $request->role)->first();
-
-        if ($newRole) {
-            // Remove all existing roles then assign the correct one
-            foreach ($user->roles as $existingRole) {
-                $user->removeRole($existingRole);
-            }
-            $user->addRole($newRole);
-        }
+        $user->syncOrchidRoleFromAppRole();
 
         return response()->json([
             'message' => 'Profile completed successfully',
-            'user'    => $this->formatUser($user->fresh(['company', 'roles'])),
+            'user'    => $this->formatUser($user->fresh('company')),
         ]);
     }
 
@@ -613,6 +591,7 @@ class AuthController extends Controller
             $user = new User();
             $user->email = $email;
             $user->badge_code = $badgeCode;
+            $user->app_role = $request->input('role', User::APP_ROLE_VISITOR);
             $user->is_visible = true;
 
             // Set password if provided, otherwise generate a secure random one
@@ -631,19 +610,10 @@ class AuthController extends Controller
         $user->company_sector = $request->input('company_sector', $user->company_sector ?? 'N/A');
         $user->country = $request->input('country', $user->country ?? 'N/A');
         $user->city = $request->input('city', $user->city ?? 'N/A');
+        $user->app_role = $request->input('role', $user->app_role ?: User::APP_ROLE_VISITOR);
 
         $user->save();
-
-        // 4. Assign Role
-        $roleSlug = $request->input('role', 'visitor');
-        $role = Role::where('slug', $roleSlug)->first();
-        if ($role) {
-            // Remove existing roles and assign the new one
-            foreach ($user->roles as $existingRole) {
-                $user->removeRole($existingRole);
-            }
-            $user->addRole($role);
-        }
+        $user->syncOrchidRoleFromAppRole();
 
         return response()->json(['status' => 'success', 'user_id' => $user->id]);
     }
@@ -676,7 +646,7 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Profile updated successfully',
-            'user'    => $this->formatUser($user->fresh(['company', 'roles'])),
+            'user'    => $this->formatUser($user->fresh('company')),
         ]);
     }
 }

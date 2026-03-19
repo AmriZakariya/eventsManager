@@ -43,9 +43,7 @@ class ExhibitorUserListScreen extends Screen
         // 1. Base Query: Get Users with 'exhibitor' role
         $query = User::query()
             ->with(['company', 'roles'])
-            ->whereHas('roles', function ($q) {
-                $q->where('slug', 'exhibitor');
-            });
+            ->where('app_role', User::APP_ROLE_EXHIBITOR);
 
         // 2. Filter by Search Term (Name, Email, Job Title)
         if ($search = $request->get('search')) {
@@ -164,11 +162,12 @@ class ExhibitorUserListScreen extends Screen
                         $avatar = $user->avatar
                             ? "<img src='{$user->avatar_url}' class='rounded-circle me-2 border' width='40' height='40' style='object-fit:cover;'>"
                             : "<div class='rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2' style='width:40px;height:40px;font-weight:bold;'>" . substr($user->name, 0, 1) . "</div>";
+                        $editUrl = route('platform.systems.users.edit', $user->id);
 
                         return "<div class='d-flex align-items-center'>
-                                    {$avatar}
+                                    <a href='{$editUrl}'>{$avatar}</a>
                                     <div class='lh-sm'>
-                                        <div class='fw-bold text-dark'>{$user->name} {$user->last_name}</div>
+                                        <div class='fw-bold text-dark'><a href='{$editUrl}' class='text-dark text-decoration-none'>{$user->name} {$user->last_name}</a></div>
                                         <div class='small text-muted'>{$user->email}</div>
                                     </div>
                                 </div>";
@@ -185,6 +184,20 @@ class ExhibitorUserListScreen extends Screen
                 TD::make('job_title', 'Job Title')
                     ->sort()
                     ->render(fn($user) => $user->job_title ?? '-'),
+
+                TD::make('roles', 'Roles')
+                    ->render(function (User $user) {
+                        $orchidRoles = collect($user->orchidRoleNames())
+                            ->map(fn (string $roleName) => "<span class='badge bg-secondary'>{$roleName}</span>")
+                            ->implode(' ');
+
+                        if ($orchidRoles === '') {
+                            $orchidRoles = "<span class='badge bg-light text-dark'>none</span>";
+                        }
+
+                        return "<div class='mb-1'><span class='badge bg-primary'>App: {$user->appRoleLabel()}</span></div>
+                                <div><small class='text-muted me-1'>Orchid:</small>{$orchidRoles}</div>";
+                    }),
 
                 // STATUS
                 TD::make('email_verified_at', 'Status')
@@ -249,7 +262,7 @@ class ExhibitorUserListScreen extends Screen
     {
         // Re-run the query logic to get full dataset for export
         $query = User::with('company')
-            ->whereHas('roles', fn($q) => $q->where('slug', 'exhibitor'));
+            ->where('app_role', User::APP_ROLE_EXHIBITOR);
 
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {

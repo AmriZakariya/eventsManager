@@ -25,8 +25,8 @@ class ProductListScreen extends Screen
 
         return [
             'products' => $query->paginate(15)->withQueryString(),
-            'categories' => ProductCategory::pluck('name', 'id'),
-            'types' => Product::distinct()->whereNotNull('type')->pluck('type', 'type'),
+            'categories' => $this->getCategoryOptions(),
+            'types' => $this->getTypeOptions(),
             // Persist filter values in the form inputs
             'category_id' => $request->get('category_id'),
             'type' => $request->get('type'),
@@ -39,6 +39,26 @@ class ProductListScreen extends Screen
                 'search' => $request->get('search'),
             ]
         ];
+    }
+
+    private function getCategoryOptions(): array
+    {
+        return ProductCategory::query()
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    private function getTypeOptions(): array
+    {
+        return Product::query()
+            ->whereNotNull('type')
+            ->where('type', '!=', '')
+            ->select('type')
+            ->distinct()
+            ->orderBy('type')
+            ->pluck('type', 'type')
+            ->all();
     }
 
     private function buildProductsQuery(Request $request): Builder
@@ -128,12 +148,12 @@ class ProductListScreen extends Screen
                 Group::make([
                     Select::make('category_id')
                         ->title('Category')
-                        ->fromQuery(ProductCategory::query(), 'name')
+                        ->options($this->getCategoryOptions())
                         ->empty('All Categories', ''),
 
                     Select::make('type')
                         ->title('Type')
-                        ->fromQuery(Product::distinct()->whereNotNull('type'), 'type', 'type')
+                        ->options($this->getTypeOptions())
                         ->empty('All Types', ''),
 
                     Select::make('is_featured')

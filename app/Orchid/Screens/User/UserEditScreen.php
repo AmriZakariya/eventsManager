@@ -214,6 +214,12 @@ class UserEditScreen extends Screen
 
                 // System Fields
                 Group::make([
+                    Select::make('user.app_role')
+                        ->title('App Role')
+                        ->options(User::appRoleOptions())
+                        ->required()
+                        ->help('Used by the mobile app, API, signup flow, and app sections.'),
+
                     Input::make('user.badge_code')
                         ->title('Badge Code')
                         ->disabled() // Usually auto-generated, keep read-only
@@ -280,7 +286,7 @@ class UserEditScreen extends Screen
             ->forceFill(['permissions' => $permissions])
             ->save();
 
-        // Sync Roles
+        // Sync Orchid roles separately from the app role field.
         $user->replaceRoles($request->input('user.roles'));
 
         Toast::info(__('User details saved successfully.'));
