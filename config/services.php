@@ -46,4 +46,9 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
     ],
 
+    'wordpress_sync' => [
+        'url' => env('WORDPRESS_SYNC_URL', 'https://hygiecleanexpo.com/wp-json/hc-sync/v1/users'),
+        'token' => env('WORDPRESS_SYNC_TOKEN', 'your-secret-sync-key-123'),
+    ],
+
 ];

@@ -21,6 +21,7 @@ use App\Orchid\Screens\Role\RoleListScreen;
 use App\Orchid\Screens\User\UserEditScreen;
 use App\Orchid\Screens\User\UserListScreen;
 use App\Orchid\Screens\User\UserProfileScreen;
+use App\Orchid\Screens\User\UserWordPressSyncScreen;
 
 // Notification Config & CMS
 use App\Orchid\Screens\Event\EventSettingScreen;
@@ -255,6 +256,12 @@ Route::screen('users', UserListScreen::class)
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Users'), route('platform.systems.users')));
+
+Route::screen('users/wordpress-sync', UserWordPressSyncScreen::class)
+    ->name('platform.systems.users.wordpress-sync')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.systems.users')
+        ->push(__('WordPress Sync'), route('platform.systems.users.wordpress-sync')));
 
 Route::screen('roles/{role}/edit', RoleEditScreen::class)
     ->name('platform.systems.roles.edit')

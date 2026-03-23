@@ -17,6 +17,8 @@ class User extends Authenticatable
     public const APP_ROLE_ADMIN = 'admin';
     public const APP_ROLE_EXHIBITOR = 'exhibitor';
     public const APP_ROLE_VISITOR = 'visitor';
+    public const WORDPRESS_SYNC_SOURCE_APP = 'app';
+    public const WORDPRESS_SYNC_SOURCE_WORDPRESS = 'wordpress';
 
     public static function appRoleOptions(): array
     {
@@ -39,6 +41,10 @@ class User extends Authenticatable
         'permissions',
         'locale',
         'app_role',
+        'is_wordpress_synced',
+        'wordpress_sync_source',
+        'wordpress_synced_at',
+        'wordpress_sync_error',
 
         // Extended Profile Fields
         'phone',
@@ -82,6 +88,8 @@ class User extends Authenticatable
         'permissions'          => 'array',
         'email_verified_at'    => 'datetime',
         'is_visible'           => 'boolean',
+        'is_wordpress_synced'  => 'boolean',
+        'wordpress_synced_at'  => 'datetime',
     ];
 
     protected $appends = [
@@ -242,6 +250,25 @@ class User extends Authenticatable
     public function orchidRoleNames(): array
     {
         return $this->roles->pluck('name')->all();
+    }
+
+    public function markWordPressSyncSuccess(string $source = self::WORDPRESS_SYNC_SOURCE_APP): void
+    {
+        $this->forceFill([
+            'is_wordpress_synced' => true,
+            'wordpress_sync_source' => $source,
+            'wordpress_synced_at' => now(),
+            'wordpress_sync_error' => null,
+        ])->save();
+    }
+
+    public function markWordPressSyncFailure(?string $error = null, string $source = self::WORDPRESS_SYNC_SOURCE_APP): void
+    {
+        $this->forceFill([
+            'is_wordpress_synced' => false,
+            'wordpress_sync_source' => $source,
+            'wordpress_sync_error' => $error,
+        ])->save();
     }
 
     public function getConnectionStatusAttribute(): string

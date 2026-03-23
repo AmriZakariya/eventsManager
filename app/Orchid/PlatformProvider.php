@@ -128,6 +128,11 @@ class PlatformProvider extends OrchidServiceProvider
                 ->route('platform.systems.users')
                 ->permission('platform.systems.users'),
 
+            Menu::make('WordPress Sync')
+                ->icon('bs.arrow-repeat')
+                ->route('platform.systems.users.wordpress-sync')
+                ->permission('platform.systems.users'),
+
             Menu::make('Roles')
                 ->icon('bs.shield-lock')
                 ->route('platform.systems.roles')

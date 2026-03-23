@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Company;
 use App\Models\Connection;
+use App\Service\WordPressUserSyncService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +17,6 @@ use Illuminate\Support\Facades\Storage;
 use Laravel\Socialite\Socialite;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class AuthController extends Controller
@@ -112,27 +112,13 @@ class AuthController extends Controller
         // Generate Token
         $token = $user->createToken('mobile_app')->plainTextToken;
 
-        $wpPayload = [
-            'email'          => $user->email,
-            'first_name'     => $user->name,
-            'last_name'      => $user->last_name,
-            'phone'          => $user->phone,
-            'job_title'      => $user->job_title,
-            'company_name'   => $user->company_name ?? ($user->company ? $user->company->name : ''),
-            'company_sector' => $user->company_sector,
-            'country'        => $user->country,
-            'city'           => $user->city,
-            'badge_code'     => $user->badge_code,
-            'role'           => $request->role,
-            'password'       => $request->password, // Unhashed password for WP login
-        ];
-
-        app()->terminating(function () use ($wpPayload) {
+        app()->terminating(function () use ($user, $request) {
             try {
-                // Put your secret key here to protect the WP endpoint
-                Http::withToken('your-secret-sync-key-123')
-                    ->timeout(10)
-                    ->post('https://hygiecleanexpo.com/wp-json/hygie/v1/sync-user', $wpPayload);
+                app(WordPressUserSyncService::class)->syncUser(
+                    $user->fresh('company'),
+                    $request->password,
+                    User::WORDPRESS_SYNC_SOURCE_APP
+                );
             } catch (\Exception $e) {
                 Log::error('WP Sync Failed: ' . $e->getMessage());
             }
@@ -441,6 +427,10 @@ class AuthController extends Controller
             'company_id' => $user->company_id,
             // Prioritize the company table name, fallback to user's manual entry
             'company_name' => $user->company ? $user->company->name : $user->company_name,
+            'is_wordpress_synced' => (bool) $user->is_wordpress_synced,
+            'wordpress_sync_source' => $user->wordpress_sync_source,
+            'wordpress_synced_at' => $user->wordpress_synced_at?->format('Y-m-d H:i:s'),
+            'wordpress_sync_error' => $user->wordpress_sync_error,
 
             'created_at' => $user->created_at ? $user->created_at->format('Y-m-d H:i') : null,
         ];
@@ -569,7 +559,7 @@ class AuthController extends Controller
     public function syncFromWordPress(Request $request)
     {
         // 1. Validate Secret Token
-        if ($request->bearerToken() !== 'your-secret-sync-key-123') {
+        if ($request->bearerToken() !== config('services.wordpress_sync.token')) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 
@@ -614,6 +604,7 @@ class AuthController extends Controller
 
         $user->save();
         $user->syncOrchidRoleFromAppRole();
+        $user->markWordPressSyncSuccess(User::WORDPRESS_SYNC_SOURCE_WORDPRESS);
 
         return response()->json(['status' => 'success', 'user_id' => $user->id]);
     }
