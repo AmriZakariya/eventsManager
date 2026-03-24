@@ -559,7 +559,9 @@ class AuthController extends Controller
     public function syncFromWordPress(Request $request)
     {
         // 1. Validate Secret Token
-        if ($request->bearerToken() !== config('services.wordpress_sync.token')) {
+        $expectedToken = (string) config('services.wordpress_sync.inbound_token', '');
+
+        if ($expectedToken === '' || !hash_equals($expectedToken, (string) $request->bearerToken())) {
             return response()->json(['error' => 'Unauthorized'], 401);
         }
 

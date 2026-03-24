@@ -48,7 +48,8 @@ return [
 
     'wordpress_sync' => [
         'url' => env('WORDPRESS_SYNC_URL', 'https://hygiecleanexpo.com/wp-json/hc-sync/v1/users'),
-        'token' => env('WORDPRESS_SYNC_TOKEN', 'your-secret-sync-key-123'),
+        'outbound_token' => env('WORDPRESS_SYNC_OUTBOUND_TOKEN'),
+        'inbound_token' => env('WORDPRESS_SYNC_INBOUND_TOKEN'),
     ],
 
 ];
