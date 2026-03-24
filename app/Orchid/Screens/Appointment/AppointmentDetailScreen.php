@@ -163,7 +163,7 @@ class AppointmentDetailScreen extends Screen
             $timeline[] = [
                 'title'       => 'Scheduled to occur',
                 'description' => 'Waiting for the meeting to take place.',
-                'date'        => 'In ' . clone $scheduledTime->diffForHumans(null, true),
+                'date' => 'In ' . $scheduledTime->diffForHumans(null, true),
                 'icon'        => 'bi-hourglass-split',
                 'color'       => '#94a3b8',
                 'is_future'   => true,
