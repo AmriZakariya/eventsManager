@@ -13,6 +13,7 @@ use Orchid\Screen\Components\Cells\DateTimeSplit;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Layouts\Table;
 use Orchid\Screen\TD;
+use Orchid\Support\Facades\Toast;
 
 class UserListLayout extends Table
 {
@@ -54,14 +55,19 @@ class UserListLayout extends Table
                 ->sort()
                 ->cantHide()
                 ->filter(Input::make())
-                ->render(fn (User $user) =>
-                    '<div>' .
-                    Link::make($user->name . ' ' . ($user->last_name ?? ''))
-                        ->route('platform.systems.users.edit', $user->id)
-                        ->class('fw-bold text-decoration-none') .
-                    ($user->is_visible ? '' : ' <span class="badge bg-secondary ms-1">Hidden</span>') .
-                    '</div>'
-                ),
+                ->render(function (User $user) {
+                    $createdSourceColor = $user->created_source === User::CREATED_SOURCE_WORDPRESS
+                        ? 'bg-dark'
+                        : 'bg-light text-dark';
+
+                    return '<div>' .
+                        Link::make($user->name . ' ' . ($user->last_name ?? ''))
+                            ->route('platform.systems.users.edit', $user->id)
+                            ->class('fw-bold text-decoration-none') .
+                        ' <span class="badge '.$createdSourceColor.'">'.e($user->createdSourceLabel()).'</span>' .
+                        ($user->is_visible ? '' : ' <span class="badge bg-secondary ms-1">Hidden</span>') .
+                        '</div>';
+                }),
 
             TD::make('email', __('Email'))
                 ->sort()
@@ -97,27 +103,10 @@ class UserListLayout extends Table
                         default => 'bg-secondary',
                     };
 
-                    $appRoleBadge = "<div class='mb-1'><span class='badge {$appRoleColor}'>App: {$user->appRoleLabel()}</span></div>";
-
-                    $orchidBadges = collect($user->orchidRoleNames())
-                        ->map(function (string $roleName, int $index) use ($user) {
-                            $slug = $user->orchidRoleSlugs()[$index] ?? null;
-                            $color = match ($slug) {
-                                'admin' => 'bg-danger',
-                                'exhibitor' => 'bg-primary',
-                                'visitor' => 'bg-info',
-                                default => 'bg-secondary',
-                            };
-
-                            return "<span class='badge {$color}'>Orchid: {$roleName}</span>";
-                        })
-                        ->implode(' ');
-
-                    if ($orchidBadges === '') {
-                        $orchidBadges = "<span class='badge bg-light text-dark'>Orchid: none</span>";
-                    }
-
-                    return $appRoleBadge.$orchidBadges;
+                    return "<div class='d-flex flex-column gap-1'>
+                        <span class='badge {$appRoleColor} align-self-start'>App: ".e($user->appRoleLabel())."</span>
+                        <span class='badge bg-light text-dark border align-self-start'>Admin panel: ".e($user->adminPanelRolesLabel())."</span>
+                    </div>";
                 }),
 
             TD::make('is_visible', 'Visibility')

@@ -89,6 +89,7 @@ Route::post('/auth/register', [AuthController::class, 'register']);
 Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
 Route::post('/auth/social-login', [AuthController::class, 'socialLogin']); // <--- ADD THIS
+Route::post('/auth/reservation-access', [AuthController::class, 'reservationAccess']);
 Route::post('/webhooks/wordpress/sync-user', [AuthController::class, 'syncFromWordPress']);
 
 Route::prefix('config')->group(function () {
@@ -101,5 +102,4 @@ Route::prefix('config')->group(function () {
 Route::get('/languages', [LanguageController::class, 'index']);
 Route::get('/languages/{code}/translations', [LanguageController::class, 'translations']);
 Route::get('/languages/all', [LanguageController::class, 'all']);
-
 

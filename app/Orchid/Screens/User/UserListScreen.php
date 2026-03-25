@@ -34,7 +34,10 @@ class UserListScreen extends Screen
     public function query(Request $request): iterable
     {
         // Logic is now clean. Search is handled automatically by UserFiltersLayout -> GeneralSearchFilter
-        $query = User::with(['roles', 'company'])
+        $query = User::with([
+            'roles:id,name,slug',
+            'company:id,name',
+        ])
             ->filters(UserFiltersLayout::class)
             ->defaultSort('id', 'desc');
 

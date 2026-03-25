@@ -27,10 +27,10 @@ class ConnectionRequestListScreen extends Screen
 
         // Eager load roles and companies to prevent N+1 issues
         $requests = Connection::with([
-            'requester.company',
-            'requester.roles',
-            'target.company',
-            'target.roles'
+            'requester.company:id,name',
+            'requester.roles:id,name,slug',
+            'target.company:id,name',
+            'target.roles:id,name,slug'
         ])
             ->when($status, fn ($q) => $q->where('status', $status))
             ->latest()
@@ -116,7 +116,8 @@ class ConnectionRequestListScreen extends Screen
         $editUrl = route('platform.systems.users.edit', $user->id);
         $roleLabel = 'App: '.$user->appRoleLabel();
         $roleColor = $user->role === User::APP_ROLE_EXHIBITOR ? '#d4af37' : '#28a745';
-        $orchidRoles = e(implode(' / ', $user->orchidRoleNames()) ?: 'none');
+        $adminPanelRoles = e($user->adminPanelRolesLabel());
+        $createdSource = $user->created_source ? e($user->createdSourceLabel()) : 'Unknown';
 
         return sprintf(
             '<div class="d-flex align-items-center">
@@ -127,7 +128,8 @@ class ConnectionRequestListScreen extends Screen
                 <div class="ml-3" style="line-height: 1.2;">
                     <div class="font-weight-bold text-dark"><a href="%s" class="text-dark text-decoration-none">%s</a></div>
                     <div class="small text-muted">%s</div>
-                    <div class="small text-muted">Orchid: %s</div>
+                    <div class="small text-muted">Admin panel: %s</div>
+                    <div class="small text-muted">Created: %s</div>
                     <div class="mt-1"><span class="badge" style="background-color:%s15; color:%s; font-size: 0.65rem; border: 1px solid %s30;">%s</span></div>
                 </div>
             </div>',
@@ -138,7 +140,8 @@ class ConnectionRequestListScreen extends Screen
             $editUrl,
             e($user->name . ' ' . $user->last_name),
             e(Str::limit($user->job_title . ' @ ' . $company, 40)),
-            $orchidRoles,
+            $adminPanelRoles,
+            $createdSource,
             $roleColor, $roleColor, $roleColor,
             $roleLabel
         );

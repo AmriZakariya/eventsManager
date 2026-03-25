@@ -20,13 +20,16 @@
                     <span class="badge bg-primary-light text-primary px-2 py-1" style="font-size: 0.7rem;">
                         App: {{ $p1->appRoleLabel() }}
                     </span>
+                    <span class="badge bg-light text-dark border px-2 py-1 ml-1" style="font-size: 0.7rem;">
+                        {{ $p1->createdSourceLabel() }}
+                    </span>
                 </div>
                 <small class="text-muted d-block text-truncate" style="max-width: 180px;">
                     <i class="bs.envelope-fill me-1" style="font-size: 0.7rem;"></i>
                     {{ $p1->company->name ?? $p1->email }}
                 </small>
                 <small class="text-muted d-block text-truncate" style="max-width: 180px;">
-                    Orchid: {{ implode(' / ', $p1->orchidRoleNames()) ?: 'none' }}
+                    Admin panel: {{ $p1->adminPanelRolesLabel() }}
                 </small>
             </div>
         @else
@@ -65,13 +68,16 @@
                     <span class="badge bg-primary-light text-primary px-2 py-1" style="font-size: 0.7rem;">
                         App: {{ $p2->appRoleLabel() }}
                     </span>
+                    <span class="badge bg-light text-dark border px-2 py-1 ml-1" style="font-size: 0.7rem;">
+                        {{ $p2->createdSourceLabel() }}
+                    </span>
                 </div>
                 <small class="text-muted d-block text-truncate" style="max-width: 180px;">
                     <i class="bs.envelope-fill me-1" style="font-size: 0.7rem;"></i>
                     {{ $p2->company->name ?? $p2->email }}
                 </small>
                 <small class="text-muted d-block text-truncate" style="max-width: 180px;">
-                    Orchid: {{ implode(' / ', $p2->orchidRoleNames()) ?: 'none' }}
+                    Admin panel: {{ $p2->adminPanelRolesLabel() }}
                 </small>
             </div>
         @else

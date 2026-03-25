@@ -17,6 +17,8 @@ class User extends Authenticatable
     public const APP_ROLE_ADMIN = 'admin';
     public const APP_ROLE_EXHIBITOR = 'exhibitor';
     public const APP_ROLE_VISITOR = 'visitor';
+    public const CREATED_SOURCE_APP = 'app';
+    public const CREATED_SOURCE_WORDPRESS = 'wordpress';
     public const WORDPRESS_SYNC_SOURCE_APP = 'app';
     public const WORDPRESS_SYNC_SOURCE_WORDPRESS = 'wordpress';
 
@@ -25,6 +27,14 @@ class User extends Authenticatable
         return [
             self::APP_ROLE_VISITOR => 'Visitor',
             self::APP_ROLE_EXHIBITOR => 'Exhibitor',
+        ];
+    }
+
+    public static function createdSourceOptions(): array
+    {
+        return [
+            self::CREATED_SOURCE_APP => 'App',
+            self::CREATED_SOURCE_WORDPRESS => 'WordPress',
         ];
     }
 
@@ -38,9 +48,11 @@ class User extends Authenticatable
         'last_name',
         'email',
         'password',
+        'password_is_set',
         'permissions',
         'locale',
         'app_role',
+        'created_source',
         'is_wordpress_synced',
         'wordpress_sync_source',
         'wordpress_synced_at',
@@ -88,6 +100,7 @@ class User extends Authenticatable
         'permissions'          => 'array',
         'email_verified_at'    => 'datetime',
         'is_visible'           => 'boolean',
+        'password_is_set'      => 'boolean',
         'is_wordpress_synced'  => 'boolean',
         'wordpress_synced_at'  => 'datetime',
     ];
@@ -250,6 +263,22 @@ class User extends Authenticatable
     public function orchidRoleNames(): array
     {
         return $this->roles->pluck('name')->all();
+    }
+
+    public function adminPanelRolesLabel(): string
+    {
+        $roles = collect($this->orchidRoleNames())
+            ->filter()
+            ->unique()
+            ->values()
+            ->implode(' / ');
+
+        return $roles !== '' ? $roles : 'none';
+    }
+
+    public function createdSourceLabel(): string
+    {
+        return self::createdSourceOptions()[$this->created_source] ?? ucfirst((string) $this->created_source);
     }
 
     public function markWordPressSyncSuccess(string $source = self::WORDPRESS_SYNC_SOURCE_APP): void

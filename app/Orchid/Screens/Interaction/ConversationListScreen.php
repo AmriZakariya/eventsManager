@@ -92,7 +92,10 @@ class ConversationListScreen extends Screen
             ->filter();
 
         $users = User::whereIn('id', $userIds)
-            ->with(['company', 'roles'])
+            ->with([
+                'company:id,name',
+                'roles:id,name,slug',
+            ])
             ->get()
             ->keyBy('id');
 
@@ -314,7 +317,8 @@ class ConversationListScreen extends Screen
         $isOnline    = isset($user->last_active_at) && $user->last_active_at?->diffInMinutes() < 30;
         $onlineDot   = $isOnline ? '<div class="uc-online"></div>' : '';
         $fullName    = e($user->name . ' ' . $user->last_name);
-        $orchidRoles = e(implode(' / ', $user->orchidRoleNames()) ?: 'none');
+        $adminPanelRoles = e($user->adminPanelRolesLabel());
+        $createdSource = $user->created_source ? e($user->createdSourceLabel()) : 'Unknown';
 
         return $styles . sprintf(
                 '<div class="uc">
@@ -327,7 +331,8 @@ class ConversationListScreen extends Screen
                 <div class="uc-info">
                     <a href="%s" class="uc-name" title="%s — %s">%s</a>
                     <span class="uc-meta"><i class="icon-briefcase" style="opacity:.6;font-size:.68rem;"></i> %s</span>
-                    <span class="uc-meta">Orchid: %s</span>
+                    <span class="uc-meta">Admin panel: %s</span>
+                    <span class="uc-meta">Created: %s</span>
                     <span class="uc-badge %s">%s</span>
                 </div>
             </div>',
@@ -336,7 +341,8 @@ class ConversationListScreen extends Screen
                 $editUrl, $fullName, e($user->email),
                 $fullName,
                 e($company),
-                $orchidRoles,
+                $adminPanelRoles,
+                $createdSource,
                 $badgeClass, $badgeLabel
             );
     }

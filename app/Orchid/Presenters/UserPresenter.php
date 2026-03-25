@@ -33,15 +33,14 @@ class UserPresenter extends Presenter implements Personable, Searchable
      */
     public function subTitle(): string
     {
-        $roles = 'App: '.$this->entity->appRoleLabel();
-        $orchidRoles = implode(' / ', $this->entity->orchidRoleNames());
+        $roles = 'App: '.$this->entity->appRoleLabel().' | Admin panel: '.$this->entity->adminPanelRolesLabel();
 
-        if ($orchidRoles !== '') {
-            $roles .= ' | Orchid: '.$orchidRoles;
+        if ($this->entity->created_source) {
+            $roles .= ' | Created: '.$this->entity->createdSourceLabel();
         }
 
         return (string) Str::of($roles)
-            ->limit(40)
+            ->limit(55)
             ->whenEmpty(fn () => __('Regular User'));
     }
 

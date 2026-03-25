@@ -95,6 +95,8 @@ class AuthController extends Controller
             'last_name' => $request->last_name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'password_is_set' => true,
+            'created_source' => User::CREATED_SOURCE_APP,
             'phone' => $request->phone,
             'country' => $request->country,
             'city' => $request->city,
@@ -151,6 +153,36 @@ class AuthController extends Controller
 
         return response()->json([
             'access_token' => $user->createToken('mobile_app')->plainTextToken,
+            'token_type' => 'Bearer',
+            'user' => $this->formatUser($user),
+        ]);
+    }
+
+    public function reservationAccess(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'We could not find a reservation for this email.',
+            ], 404);
+        }
+
+        if ($user->password_is_set) {
+            return response()->json([
+                'message' => 'This account already has a password. Please log in normally.',
+            ], 422);
+        }
+
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Profile completion started.',
+            'access_token' => $user->createToken('reservation_profile_completion')->plainTextToken,
             'token_type' => 'Bearer',
             'user' => $this->formatUser($user),
         ]);
@@ -359,6 +391,8 @@ class AuthController extends Controller
                 'last_name'      => $lastName,
                 'email'          => $email,
                 'password'       => Hash::make(Str::random(24)),
+                'password_is_set' => true,
+                'created_source' => User::CREATED_SOURCE_APP,
                 'avatar'         => $avatarUrl,   // ✅ URL stored directly
                 'badge_code'     => $badgeCode,
                 'app_role'       => User::APP_ROLE_VISITOR,
@@ -410,6 +444,7 @@ class AuthController extends Controller
             // ----------------------------------------------
 
             'job_title' => $user->job_title,
+            'password_is_set' => (bool) $user->password_is_set,
 
             // Critical for Visitor Identity
             'badge_code' => $user->badge_code,
@@ -422,6 +457,7 @@ class AuthController extends Controller
 
             // Role Helper (returns 'visitor', 'exhibitor', or 'admin')
             'role' => $user->role,
+            'created_source' => $user->created_source,
 
             // Critical for Exhibitor Logic
             'company_id' => $user->company_id,
@@ -452,6 +488,13 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name'           => 'required|string|max:255',
             'last_name'      => 'required|string|max:255',
+            'password'       => [
+                Rule::requiredIf(fn () => !$user->password_is_set),
+                'nullable',
+                'string',
+                'min:6',
+                'confirmed',
+            ],
             'phone'          => 'required|string|max:20',
             'country'        => 'required|string|max:100',
             'city'           => 'required|string|max:100',
@@ -548,7 +591,29 @@ class AuthController extends Controller
             'company_name'   => $request->role === 'visitor'   ? $validated['company_name'] : null,
             'is_visible'     => true,
         ]);
+
+        if (!empty($validated['password'])) {
+            $user->forceFill([
+                'password' => Hash::make($validated['password']),
+                'password_is_set' => true,
+            ])->save();
+        }
+
         $user->syncOrchidRoleFromAppRole();
+
+        if (!empty($validated['password'])) {
+            app()->terminating(function () use ($user, $validated) {
+                try {
+                    app(WordPressUserSyncService::class)->syncUser(
+                        $user->fresh('company'),
+                        $validated['password'],
+                        User::WORDPRESS_SYNC_SOURCE_APP
+                    );
+                } catch (\Exception $e) {
+                    Log::error('WP Sync Failed after complete profile: ' . $e->getMessage());
+                }
+            });
+        }
 
         return response()->json([
             'message' => 'Profile completed successfully',
@@ -584,13 +649,16 @@ class AuthController extends Controller
             $user->email = $email;
             $user->badge_code = $badgeCode;
             $user->app_role = $request->input('role', User::APP_ROLE_VISITOR);
+            $user->created_source = User::CREATED_SOURCE_WORDPRESS;
             $user->is_visible = true;
 
             // Set password if provided, otherwise generate a secure random one
             $user->password = Hash::make($request->input('password') ?? Str::random(24));
+            $user->password_is_set = $request->filled('password');
         } elseif ($request->filled('password')) {
             // Update password if WP sends a new one
             $user->password = Hash::make($request->input('password'));
+            $user->password_is_set = true;
         }
 
         // 3. Update Profile Data

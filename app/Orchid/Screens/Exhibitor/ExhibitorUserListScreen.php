@@ -42,7 +42,10 @@ class ExhibitorUserListScreen extends Screen
     {
         // 1. Base Query: Get Users with 'exhibitor' role
         $query = User::query()
-            ->with(['company', 'roles'])
+            ->with([
+                'company:id,name',
+                'roles:id,name,slug',
+            ])
             ->where('app_role', User::APP_ROLE_EXHIBITOR);
 
         // 2. Filter by Search Term (Name, Email, Job Title)
@@ -163,11 +166,14 @@ class ExhibitorUserListScreen extends Screen
                             ? "<img src='{$user->avatar_url}' class='rounded-circle me-2 border' width='40' height='40' style='object-fit:cover;'>"
                             : "<div class='rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center me-2' style='width:40px;height:40px;font-weight:bold;'>" . substr($user->name, 0, 1) . "</div>";
                         $editUrl = route('platform.systems.users.edit', $user->id);
+                        $createdSourceColor = $user->created_source === User::CREATED_SOURCE_WORDPRESS
+                            ? 'bg-dark'
+                            : 'bg-light text-dark';
 
                         return "<div class='d-flex align-items-center'>
                                     <a href='{$editUrl}'>{$avatar}</a>
                                     <div class='lh-sm'>
-                                        <div class='fw-bold text-dark'><a href='{$editUrl}' class='text-dark text-decoration-none'>{$user->name} {$user->last_name}</a></div>
+                                        <div class='fw-bold text-dark'><a href='{$editUrl}' class='text-dark text-decoration-none'>{$user->name} {$user->last_name}</a> <span class='badge {$createdSourceColor}'>".e($user->createdSourceLabel())."</span></div>
                                         <div class='small text-muted'>{$user->email}</div>
                                     </div>
                                 </div>";
@@ -187,16 +193,8 @@ class ExhibitorUserListScreen extends Screen
 
                 TD::make('roles', 'Roles')
                     ->render(function (User $user) {
-                        $orchidRoles = collect($user->orchidRoleNames())
-                            ->map(fn (string $roleName) => "<span class='badge bg-secondary'>{$roleName}</span>")
-                            ->implode(' ');
-
-                        if ($orchidRoles === '') {
-                            $orchidRoles = "<span class='badge bg-light text-dark'>none</span>";
-                        }
-
                         return "<div class='mb-1'><span class='badge bg-primary'>App: {$user->appRoleLabel()}</span></div>
-                                <div><small class='text-muted me-1'>Orchid:</small>{$orchidRoles}</div>";
+                                <div><span class='badge bg-light text-dark border'>Admin panel: ".e($user->adminPanelRolesLabel())."</span></div>";
                     }),
 
                 // STATUS

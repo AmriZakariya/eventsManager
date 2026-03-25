@@ -20,12 +20,18 @@ class UserWordPressSyncScreen extends Screen
     public function query(Request $request): iterable
     {
         $query = User::query()
-            ->with(['company', 'roles'])
+            ->with([
+                'company:id,name',
+                'roles:id,name,slug',
+            ])
             ->when($request->filled('status'), function (Builder $builder) use ($request) {
                 return $builder->where('is_wordpress_synced', $request->get('status') === 'synced');
             })
             ->when($request->filled('source'), function (Builder $builder) use ($request) {
                 return $builder->where('wordpress_sync_source', $request->get('source'));
+            })
+            ->when($request->filled('created_source'), function (Builder $builder) use ($request) {
+                return $builder->where('created_source', $request->get('created_source'));
             })
             ->when($request->filled('search'), function (Builder $builder) use ($request) {
                 $search = trim((string) $request->get('search'));
@@ -46,6 +52,7 @@ class UserWordPressSyncScreen extends Screen
                 'synced' => User::where('is_wordpress_synced', true)->count(),
                 'unsynced' => User::where('is_wordpress_synced', false)->count(),
                 'wordpress_source' => User::where('wordpress_sync_source', User::WORDPRESS_SYNC_SOURCE_WORDPRESS)->count(),
+                'created_in_wordpress' => User::where('created_source', User::CREATED_SOURCE_WORDPRESS)->count(),
             ],
         ];
     }
@@ -82,6 +89,7 @@ class UserWordPressSyncScreen extends Screen
                 'Synced' => 'metrics.synced',
                 'Unsynced' => 'metrics.unsynced',
                 'From WordPress' => 'metrics.wordpress_source',
+                'Created In WordPress' => 'metrics.created_in_wordpress',
             ]),
 
             Layout::rows([
@@ -109,6 +117,15 @@ class UserWordPressSyncScreen extends Screen
                         ])
                         ->value(request('source')),
 
+                    \Orchid\Screen\Fields\Select::make('created_source')
+                        ->title('Created First In')
+                        ->options([
+                            '' => 'All',
+                            User::CREATED_SOURCE_APP => 'App',
+                            User::CREATED_SOURCE_WORDPRESS => 'WordPress',
+                        ])
+                        ->value(request('created_source')),
+
                     Button::make('Apply')
                         ->icon('bs.funnel')
                         ->method('applyFilters'),
@@ -126,9 +143,12 @@ class UserWordPressSyncScreen extends Screen
                         $email = e($user->email);
                         $company = e($user->company?->name ?? $user->company_name ?? 'No company');
                         $url = route('platform.systems.users.edit', $user->id);
+                        $createdSourceColor = $user->created_source === User::CREATED_SOURCE_WORDPRESS
+                            ? 'bg-dark'
+                            : 'bg-light text-dark';
 
                         return "<div>
-                            <div><a href=\"{$url}\" class=\"fw-bold text-decoration-none\">{$name}</a></div>
+                            <div><a href=\"{$url}\" class=\"fw-bold text-decoration-none\">{$name}</a> <span class='badge {$createdSourceColor}'>".e($user->createdSourceLabel())."</span></div>
                             <div class=\"text-muted small\">{$email}</div>
                             <div class=\"text-muted small\">{$company}</div>
                         </div>";
@@ -137,10 +157,10 @@ class UserWordPressSyncScreen extends Screen
                 TD::make('app_role', 'Roles')
                     ->render(function (User $user) {
                         $appRole = e($user->appRoleLabel());
-                        $orchidRoles = e(implode(' / ', $user->orchidRoleNames()) ?: 'none');
+                        $adminPanelRoles = e($user->adminPanelRolesLabel());
 
                         return "<div><span class='badge bg-primary'>App: {$appRole}</span></div>
-                            <div class='small text-muted mt-1'>Orchid: {$orchidRoles}</div>";
+                            <div class='small text-muted mt-1'>Admin panel: {$adminPanelRoles}</div>";
                     }),
 
                 TD::make('is_wordpress_synced', 'Status')
@@ -156,6 +176,13 @@ class UserWordPressSyncScreen extends Screen
                     ->render(fn (User $user) => match ($user->wordpress_sync_source) {
                         User::WORDPRESS_SYNC_SOURCE_APP => "<span class='badge bg-info text-dark'>App</span>",
                         User::WORDPRESS_SYNC_SOURCE_WORDPRESS => "<span class='badge bg-secondary'>WordPress</span>",
+                        default => "<span class='text-muted'>—</span>",
+                    }),
+
+                TD::make('created_source', 'Created First In')
+                    ->render(fn (User $user) => match ($user->created_source) {
+                        User::CREATED_SOURCE_APP => "<span class='badge bg-primary'>App</span>",
+                        User::CREATED_SOURCE_WORDPRESS => "<span class='badge bg-dark'>WordPress</span>",
                         default => "<span class='text-muted'>—</span>",
                     }),
 
@@ -184,6 +211,7 @@ class UserWordPressSyncScreen extends Screen
             'search' => $request->get('search') ?: null,
             'status' => $request->get('status') ?: null,
             'source' => $request->get('source') ?: null,
+            'created_source' => $request->get('created_source') ?: null,
         ]));
     }
 
