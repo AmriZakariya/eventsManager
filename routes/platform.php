@@ -6,6 +6,7 @@ use App\Orchid\Screens\Appointment\AppointmentDetailScreen;
 use App\Orchid\Screens\Content\HomeWidgetEditScreen;
 use App\Orchid\Screens\Content\HomeWidgetItemEditScreen;
 use App\Orchid\Screens\Content\HomeWidgetListScreen;
+use App\Orchid\Screens\Interaction\Networking\ConnectionRequestDetailScreen;
 use App\Orchid\Screens\Interaction\Networking\ConnectionRequestListScreen;
 use App\Orchid\Screens\Interaction\Networking\ConversationMonitorScreen;
 use App\Orchid\Screens\Language\LanguageManagementScreen;
@@ -300,7 +301,16 @@ Route::screen('app/widgets/{widget}/items/{item}/edit', HomeWidgetItemEditScreen
 
 
 Route::screen('networking/requests', ConnectionRequestListScreen::class)
-    ->name('platform.networking.requests');
+    ->name('platform.networking.requests')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push('Networking Requests', route('platform.networking.requests')));
+
+Route::screen('networking/requests/{connection}', ConnectionRequestDetailScreen::class)
+    ->name('platform.networking.requests.show')
+    ->breadcrumbs(fn (Trail $trail, $connection) => $trail
+        ->parent('platform.networking.requests')
+        ->push('Request #' . $connection->id, route('platform.networking.requests.show', $connection)));
 
 Route::screen('networking/chats', ConversationMonitorScreen::class)
     ->name('platform.networking.chats');
