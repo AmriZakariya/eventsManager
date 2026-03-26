@@ -357,7 +357,7 @@ class EventSettingScreen extends Screen
                                 ->options([
                                     'en' => '🇬🇧 English',
                                     'fr' => '🇫🇷 Français',
-                                    'ar' => '🇸🇦 العربية',
+                                    'ar' => '🇲🇦 العربية',
                                     'es' => '🇪🇸 Español',
                                     'de' => '🇩🇪 Deutsch',
                                     'it' => '🇮🇹 Italiano',

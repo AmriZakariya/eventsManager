@@ -95,19 +95,22 @@ class AppointmentListScreen extends Screen
 
             return [
                 'id'              => $apt->id,
-                'title'           => ($apt->booker->name ?? 'Visitor') . ' & ' . ($apt->targetUser->name ?? 'Exhibitor'),
+                'title'           => ($apt->booker->full_name ?? $apt->booker->name ?? 'Visitor') . ' / ' . ($apt->targetUser->full_name ?? $apt->targetUser->name ?? 'Exhibitor'),
                 'start'           => $start->toIso8601String(),
                 'end'             => $end->toIso8601String(),
                 'backgroundColor' => $colorMap[$apt->status] ?? '#64748b',
                 'borderColor'     => $colorMap[$apt->status] ?? '#64748b',
+                'textColor'       => '#ffffff',
+                'url'             => route('platform.appointments.detail', $apt),
                 'extendedProps'   => [
                     'appointmentId' => $apt->id,
-                    'booker'        => $apt->booker->name ?? 'N/A',
-                    'target'        => $apt->targetUser->name ?? 'N/A',
+                    'booker'        => $apt->booker->full_name ?? $apt->booker->name ?? 'N/A',
+                    'target'        => $apt->targetUser->full_name ?? $apt->targetUser->name ?? 'N/A',
                     'company'       => $apt->targetUser->company->name ?? '',
                     'location'      => $apt->table_location ?? 'TBD',
                     'duration'      => $duration,
                     'status'        => $apt->status,
+                    'detailUrl'     => route('platform.appointments.detail', $apt),
                 ]
             ];
         })->toArray();

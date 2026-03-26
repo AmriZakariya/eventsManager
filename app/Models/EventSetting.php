@@ -150,7 +150,7 @@ class EventSetting extends Model
             return [
                 ['code' => 'en', 'name' => 'English', 'flag' => '🇬🇧', 'enabled' => true],
                 ['code' => 'fr', 'name' => 'Français', 'flag' => '🇫🇷', 'enabled' => true],
-                ['code' => 'ar', 'name' => 'العربية', 'flag' => '🇸🇦', 'enabled' => true],
+                ['code' => 'ar', 'name' => 'العربية', 'flag' => '🇲🇦', 'enabled' => true],
             ];
         }
 

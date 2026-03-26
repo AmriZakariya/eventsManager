@@ -110,7 +110,7 @@
 <div class="container">
     <div class="status-badge">
         <div class="pulse-dot"></div>
-        <span class="status-text">Alpha Server Online</span>
+        <span class="status-text">Server Online</span>
     </div>
 
     <h1>Events Manager API</h1>
