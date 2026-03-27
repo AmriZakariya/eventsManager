@@ -6,7 +6,7 @@ use OpenApi\Attributes as OA;
 
 #[OA\Info(
     version: "1.0.0",
-    title: "Sahara Summit API",
+    title: "HYGIE-CLEAN EXPO 2026 API",
     description: "API Documentation for Event Notification",
     contact: new OA\Contact(email: "support@saharasummit.com")
 )]

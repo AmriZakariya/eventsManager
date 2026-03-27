@@ -27,7 +27,7 @@ class HomeWidgetSeeder extends Seeder
         // Slide 1
         HomeWidgetItem::create([
             'home_widget_id' => $slider->id,
-            'title' => 'Welcome to Sahara Summit',
+            'title' => 'Welcome to HYGIE-CLEAN EXPO 2026',
             'identifier' => 'home_slide_1_title',
             'subtitle' => 'Connecting Innovation Across Africa',
             'image' => 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1200&q=80', // Conference Hall
