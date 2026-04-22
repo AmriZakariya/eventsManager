@@ -56,6 +56,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Frontend / Password Reset URL
+    |--------------------------------------------------------------------------
+    |
+    | Password reset emails can point to a frontend/mobile landing page
+    | instead of the API host. When empty, the application URL is used.
+    |
+    */
+
+    'password_reset_url' => env('PASSWORD_RESET_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

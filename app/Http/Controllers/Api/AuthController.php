@@ -211,9 +211,20 @@ class AuthController extends Controller
     {
         $request->validate(['email' => 'required|email']);
 
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
+        try {
+            $status = Password::sendResetLink(
+                $request->only('email')
+            );
+        } catch (\Throwable $exception) {
+            \Log::error('Password reset email failed to send.', [
+                'email' => $request->email,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'Unable to send reset email right now. Please try again later.',
+            ], 503);
+        }
 
         if ($status === Password::RESET_LINK_SENT) {
             return response()->json(['message' => __($status)], 200);
