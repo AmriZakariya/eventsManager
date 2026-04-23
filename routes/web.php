@@ -11,3 +11,5 @@ Route::get('/', function () {
 Route::get('/terms-and-conditions', function () {
     return view('pages.terms');
 })->name('terms.conditions');
+
+Route::view('/reset-password-landing', 'pages.reset-password')->name('password.reset.landing');
