@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Orchid\Screen\Actions\Button;
+use Orchid\Screen\Actions\DropDown;
 use Orchid\Screen\Actions\Link;
 use Illuminate\Support\Str;
 use Orchid\Screen\Fields\Group;
@@ -31,12 +32,27 @@ class ConnectionRequestListScreen extends Screen
         $search = trim((string) $request->get('search'));
         $sort = $request->get('sort', 'newest');
 
+        $todayStart = now()->startOfDay();
+        $todayEnd = now()->endOfDay();
+
+        $metrics = Connection::query()
+            ->selectRaw("
+                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_count,
+                SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) as accepted_count,
+                SUM(CASE WHEN status = 'declined' THEN 1 ELSE 0 END) as declined_count,
+                SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as today_count
+            ", [$todayStart, $todayEnd])
+            ->first();
+
         $requests = Connection::with([
+            'requester:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source',
             'requester.company:id,name',
             'requester.roles:id,name,slug',
+            'target:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source',
             'target.company:id,name',
             'target.roles:id,name,slug',
         ])
+            ->select(['id', 'requester_id', 'target_id', 'status', 'created_at', 'updated_at'])
             ->when($status, fn (Builder $q) => $q->where('status', $status))
             ->when($search !== '', function (Builder $query) use ($search) {
                 $query->where(function (Builder $q) use ($search) {
@@ -71,10 +87,10 @@ class ConnectionRequestListScreen extends Screen
         return [
             'requests' => $requests,
             'metrics' => [
-                'pending'  => ['value' => number_format(Connection::where('status', 'pending')->count()), 'label' => 'Awaiting Action'],
-                'accepted' => ['value' => number_format(Connection::where('status', 'accepted')->count()), 'label' => 'Total Matches'],
-                'declined' => ['value' => number_format(Connection::where('status', 'declined')->count()), 'label' => 'Rejected'],
-                'today'    => ['value' => number_format(Connection::whereDate('created_at', today())->count()), 'label' => 'Requests Today'],
+                'pending'  => ['value' => number_format((int) ($metrics->pending_count ?? 0)), 'label' => 'Awaiting Action'],
+                'accepted' => ['value' => number_format((int) ($metrics->accepted_count ?? 0)), 'label' => 'Total Matches'],
+                'declined' => ['value' => number_format((int) ($metrics->declined_count ?? 0)), 'label' => 'Rejected'],
+                'today'    => ['value' => number_format((int) ($metrics->today_count ?? 0)), 'label' => 'Requests Today'],
                 'shown'    => ['value' => number_format($requests->total()), 'label' => 'Results Shown'],
             ],
         ];
@@ -82,17 +98,56 @@ class ConnectionRequestListScreen extends Screen
 
     public function commandBar(): array
     {
+        $status = (string) request('status', '');
+        $sort = (string) request('sort', 'newest');
+
         return [
-            Link::make('All Activity')->route('platform.networking.requests')->icon('bs.collection'),
-            Link::make('Pending')->route('platform.networking.requests', ['status' => 'pending'])->icon('bs.hourglass-split')->type(Color::WARNING),
-            Link::make('Accepted')->route('platform.networking.requests', ['status' => 'accepted'])->icon('bs.check-all')->type(Color::SUCCESS),
-            Link::make('Declined')->route('platform.networking.requests', ['status' => 'declined'])->icon('bs.x-circle')->type(Color::DANGER),
+            Link::make('All Activity')
+                ->route('platform.networking.requests')
+                ->icon('bs.collection')
+                ->class('btn btn-outline-secondary'),
+
+            DropDown::make('Filters')
+                ->icon('bs.funnel')
+                ->class('btn btn-primary')
+                ->list([
+                    Link::make('All statuses')
+                        ->icon('bs.collection')
+                        ->route('platform.networking.requests', array_filter([
+                            'search' => request('search'),
+                            'sort' => $sort !== 'newest' ? $sort : null,
+                        ])),
+                    Link::make('Pending')
+                        ->icon('bs.hourglass-split')
+                        ->route('platform.networking.requests', array_filter([
+                            'search' => request('search'),
+                            'status' => 'pending',
+                            'sort' => $sort !== 'newest' ? $sort : null,
+                        ]))
+                        ->class($status === 'pending' ? 'fw-semibold' : ''),
+                    Link::make('Accepted')
+                        ->icon('bs.check-all')
+                        ->route('platform.networking.requests', array_filter([
+                            'search' => request('search'),
+                            'status' => 'accepted',
+                            'sort' => $sort !== 'newest' ? $sort : null,
+                        ]))
+                        ->class($status === 'accepted' ? 'fw-semibold' : ''),
+                    Link::make('Declined')
+                        ->icon('bs.x-circle')
+                        ->route('platform.networking.requests', array_filter([
+                            'search' => request('search'),
+                            'status' => 'declined',
+                            'sort' => $sort !== 'newest' ? $sort : null,
+                        ]))
+                        ->class($status === 'declined' ? 'fw-semibold' : ''),
+                ]),
         ];
     }
 
     public function layout(): array
     {
-        $isFiltering = request('search') || request('status') || request('sort');
+        $isFiltering = request('search') || request('status') || request('sort', 'newest') !== 'newest';
 
         return [
             Layout::view('admin.networking.connection-request-styles'),
@@ -109,7 +164,7 @@ class ConnectionRequestListScreen extends Screen
                 Group::make([
                     Input::make('search')
                         ->title('Search')
-                        ->placeholder('Name, email, company, or job title...')
+                        ->placeholder('Find by name, email, company, or title...')
                         ->value(request('search'))
                         ->icon('bs.search'),
 
@@ -131,7 +186,7 @@ class ConnectionRequestListScreen extends Screen
                         ->method('applyFilters')
                         ->type(Color::PRIMARY),
 
-                    Link::make($isFiltering ? 'Clear filters' : 'Reset')
+                    Link::make($isFiltering ? 'Clear filters' : 'Reset filters')
                         ->icon($isFiltering ? 'bs.x-circle-fill' : 'bs.arrow-clockwise')
                         ->route('platform.networking.requests')
                         ->class('btn btn-link'),
@@ -154,16 +209,7 @@ class ConnectionRequestListScreen extends Screen
 
                 TD::make('status', 'Moderation State')
                     ->align(TD::ALIGN_CENTER)
-                    ->render(fn ($r) => $this->renderStatusBadge($r->status)),
-
-                TD::make('created_at', 'Timeline')
-                    ->align(TD::ALIGN_RIGHT)
-                    ->render(fn ($r) => sprintf(
-                        '<div class="text-dark fw-semibold">%s</div><div class="small text-muted">Created %s</div><div class="small text-muted">Updated %s</div>',
-                        $r->created_at->diffForHumans(),
-                        $r->created_at->format('M d, H:i'),
-                        $r->updated_at->diffForHumans()
-                    )),
+                    ->render(fn ($r) => $this->renderStatusBadge($r)),
 
                 TD::make(__('Actions'))
                     ->align(TD::ALIGN_RIGHT)
@@ -178,10 +224,11 @@ class ConnectionRequestListScreen extends Screen
     private function renderUserPersona(?User $user): string
     {
         if (!$user) {
-            return '<span class="text-muted">Deleted User</span>';
+            return '<div class="text-muted small fst-italic">User no longer exists</div>';
         }
 
-        $avatar = $user->avatar_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=random';
+        $avatar = $user->avatar_url;
+        $initials = e($this->initialsForUser($user));
         $company = optional($user->company)->name ?? 'No Company';
         $editUrl = route('platform.systems.users.edit', $user->id);
         $roleLabel = 'App: ' . $user->appRoleLabel();
@@ -194,7 +241,7 @@ class ConnectionRequestListScreen extends Screen
         return sprintf(
             '<div class="connection-persona d-flex align-items-center">
                 <div class="position-relative flex-shrink-0">
-                    <a href="%s"><img src="%s" class="rounded-circle shadow-sm" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid #fff;"></a>
+                    <a href="%s">%s</a>
                     <span class="position-absolute bottom-0 end-0 badge rounded-pill" style="background-color:%s; width:12px; height:12px; border:2px solid #fff;" title="%s"></span>
                 </div>
                 <div class="ms-3" style="line-height: 1.25;">
@@ -206,7 +253,9 @@ class ConnectionRequestListScreen extends Screen
                 </div>
             </div>',
             $editUrl,
-            $avatar,
+            $avatar
+                ? '<img src="' . e($avatar) . '" class="rounded-circle shadow-sm" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid #fff;" alt="' . e($name) . '">'
+                : '<div class="rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm fw-semibold" style="width: 45px; height: 45px; border: 2px solid #fff; background: #eef2ff; color: #4f46e5; font-size: 0.82rem;">' . $initials . '</div>',
             $roleColor,
             $roleLabel,
             $editUrl,
@@ -221,8 +270,9 @@ class ConnectionRequestListScreen extends Screen
         );
     }
 
-    private function renderStatusBadge(string $status): string
+    private function renderStatusBadge(Connection $connection): string
     {
+        $status = $connection->status;
         $style = match ($status) {
             'pending'  => 'background: #fff3cd; color: #856404; border: 1px solid #ffeeba;',
             'accepted' => 'background: #d4edda; color: #155724; border: 1px solid #c3e6cb;',
@@ -231,9 +281,10 @@ class ConnectionRequestListScreen extends Screen
         };
 
         return sprintf(
-            '<span class="badge rounded-pill text-uppercase" style="padding: 6px 12px; letter-spacing: .06em; font-size: .68rem; %s">%s</span>',
+            '<div class="d-flex flex-column align-items-center"><span class="badge rounded-pill text-uppercase" style="padding: 6px 12px; letter-spacing: .06em; font-size: .68rem; %s">%s</span><span class="small text-muted mt-1">Updated %s</span></div>',
             $style,
-            e($status)
+            e($status),
+            e($connection->updated_at->diffForHumans())
         );
     }
 
@@ -253,17 +304,27 @@ class ConnectionRequestListScreen extends Screen
             $viewButton .
             Button::make('Approve')
                 ->icon('bs.check-lg')
-                ->type(Color::SUCCESS)
+                ->class('btn btn-sm btn-outline-success')
                 ->confirm('Are you sure you want to manually accept this request?')
                 ->method('forceAccept', ['id' => $r->id])
                 ->render() .
             Button::make('Decline')
                 ->icon('bs.x-lg')
-                ->type(Color::DANGER)
+                ->class('btn btn-sm btn-outline-danger')
                 ->confirm('Are you sure you want to manually decline this request?')
                 ->method('forceDecline', ['id' => $r->id])
                 ->render() .
             '</div>';
+    }
+
+    private function initialsForUser(User $user): string
+    {
+        $fullName = trim($user->name . ' ' . $user->last_name);
+        $parts = preg_split('/\s+/', $fullName) ?: [];
+        $first = $parts[0][0] ?? '';
+        $last = $parts[1][0] ?? '';
+
+        return strtoupper($first . $last) ?: 'NA';
     }
 
     private function applySorting(Builder $query, string $sort): void

@@ -16,6 +16,8 @@ use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
 use Orchid\Support\Facades\Layout;
 use Orchid\Screen\Actions\Button;
+use Orchid\Screen\Actions\DropDown;
+use Orchid\Screen\Actions\Link;
 use Orchid\Support\Color;
 
 class ConversationListScreen extends Screen
@@ -83,7 +85,7 @@ class ConversationListScreen extends Screen
 
         $subQuery->orderBy($sortField, $sortDirection);
 
-        $conversations = $subQuery->paginate(15);
+        $conversations = $subQuery->paginate(15)->withQueryString();
 
         // Eager-load users for all conversations in one query
         $userIds = $conversations->getCollection()
@@ -92,6 +94,7 @@ class ConversationListScreen extends Screen
             ->filter();
 
         $users = User::whereIn('id', $userIds)
+            ->select(['id', 'name', 'last_name', 'email', 'avatar', 'company_id', 'app_role', 'created_source'])
             ->with([
                 'company:id,name',
                 'roles:id,name,slug',
@@ -123,6 +126,58 @@ class ConversationListScreen extends Screen
         ];
     }
 
+    public function commandBar(): iterable
+    {
+        $search = trim((string) request('search', ''));
+        $role = (string) request('role', 'all');
+        $activity = (string) request('activity', 'all');
+        $sort = (string) request('sort', 'last_message_at');
+        $direction = (string) request('direction', 'desc');
+
+        return [
+            Link::make('All Activity')
+                ->icon('bs.collection')
+                ->route('platform.conversations.list')
+                ->class('btn btn-outline-secondary'),
+
+            DropDown::make('Filters')
+                ->icon('bs.funnel')
+                ->class('btn btn-primary')
+                ->list([
+                    Link::make('All roles')
+                        ->icon('bs.people')
+                        ->route('platform.conversations.list', $this->filterParams($search, 'all', $activity, $sort, $direction))
+                        ->class($role === 'all' ? 'fw-semibold' : ''),
+                    Link::make('Exhibitors only')
+                        ->icon('bs-building')
+                        ->route('platform.conversations.list', $this->filterParams($search, 'exhibitor', $activity, $sort, $direction))
+                        ->class($role === 'exhibitor' ? 'fw-semibold' : ''),
+                    Link::make('Visitors only')
+                        ->icon('bs-person')
+                        ->route('platform.conversations.list', $this->filterParams($search, 'visitor', $activity, $sort, $direction))
+                        ->class($role === 'visitor' ? 'fw-semibold' : ''),
+                    Link::make('Active today')
+                        ->icon('bs-lightning-charge')
+                        ->route('platform.conversations.list', $this->filterParams($search, $role, 'today', $sort, $direction))
+                        ->class($activity === 'today' ? 'fw-semibold' : ''),
+                    Link::make('Last 7 days')
+                        ->icon('bs-calendar-week')
+                        ->route('platform.conversations.list', $this->filterParams($search, $role, 'week', $sort, $direction))
+                        ->class($activity === 'week' ? 'fw-semibold' : ''),
+                    Link::make('All time')
+                        ->icon('bs-clock-history')
+                        ->route('platform.conversations.list', $this->filterParams($search, $role, 'all', $sort, $direction))
+                        ->class($activity === 'all' ? 'fw-semibold' : ''),
+                ]),
+
+            Button::make('Export CSV')
+                ->icon('bs.download')
+                ->method('export')
+                ->rawClick()
+                ->class('btn btn-outline-primary'),
+        ];
+    }
+
     public function layout(): iterable
     {
         return [
@@ -136,14 +191,6 @@ class ConversationListScreen extends Screen
 
             // Filters
             ConversationFiltersLayout::class,
-
-            // Export action
-            Layout::rows([
-                Button::make('Export CSV')
-                    ->icon('cloud-download')
-                    ->method('export')
-                    ->rawClick(),
-            ]),
 
             // Conversation table
             Layout::table('conversations', [
@@ -308,8 +355,8 @@ class ConversationListScreen extends Screen
                 </div>';
         }
 
-        $avatar    = $user->avatar_url
-            ?? 'https://www.gravatar.com/avatar/' . md5(strtolower(trim($user->email))) . '?d=mp&s=200';
+        $avatar = $user->avatar_url;
+        $initials = e($this->initialsForUser($user));
         $badgeClass  = $user->role === User::APP_ROLE_EXHIBITOR ? 'exhibitor' : 'visitor';
         $badgeLabel  = 'App: '.$user->appRoleLabel();
         $company     = optional($user->company)->name ?? 'Independent';
@@ -324,7 +371,7 @@ class ConversationListScreen extends Screen
                 '<div class="uc">
                 <div class="uc-avatar-wrap">
                     <a href="%s" class="uc-avatar">
-                        <img src="%s" alt="%s" loading="lazy">
+                        %s
                     </a>
                     %s
                 </div>
@@ -336,7 +383,10 @@ class ConversationListScreen extends Screen
                     <span class="uc-badge %s">%s</span>
                 </div>
             </div>',
-                $editUrl, $avatar, $fullName,
+                $editUrl,
+                $avatar
+                    ? '<img src="' . e($avatar) . '" alt="' . $fullName . '" loading="lazy">'
+                    : '<span style="font-weight:700;font-size:.78rem;letter-spacing:.04em;">' . $initials . '</span>',
                 $onlineDot,
                 $editUrl, $fullName, e($user->email),
                 $fullName,
@@ -345,6 +395,27 @@ class ConversationListScreen extends Screen
                 $createdSource,
                 $badgeClass, $badgeLabel
             );
+    }
+
+    private function filterParams(string $search, string $role, string $activity, string $sort, string $direction): array
+    {
+        return array_filter([
+            'search' => $search !== '' ? $search : null,
+            'role' => $role !== 'all' ? $role : null,
+            'activity' => $activity !== 'all' ? $activity : null,
+            'sort' => $sort !== 'last_message_at' ? $sort : null,
+            'direction' => $direction !== 'desc' ? $direction : null,
+        ], static fn($value) => $value !== null && $value !== '');
+    }
+
+    private function initialsForUser(User $user): string
+    {
+        $fullName = trim($user->name . ' ' . $user->last_name);
+        $parts = preg_split('/\s+/', $fullName) ?: [];
+        $first = $parts[0][0] ?? '';
+        $last = $parts[1][0] ?? '';
+
+        return strtoupper($first . $last) ?: 'NA';
     }
 
     private function renderActivityBadge(object $conversation): string
