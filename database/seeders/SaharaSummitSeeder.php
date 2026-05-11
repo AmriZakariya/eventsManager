@@ -43,39 +43,39 @@ class SaharaSummitSeeder extends Seeder
         $this->command->info('⚙️  Creating event settings...');
         $this->createEventSettings();
 
-        $this->command->info('📦 Creating product categories...');
-        $productCategoryIds = $this->createProductCategories();
-
-        $this->command->info('🏢 Creating companies & products...');
-        // Returns [$companyIds, $exhibitorUserIds]
-        [$companyIds, $exhibitorUserIds] = $this->createCompaniesAndProducts($productCategoryIds);
-
-        $this->command->info('👥 Creating visitors...');
-        $visitorIds = $this->createVisitors();
-
-        $this->command->info('🎤 Creating speakers & conferences...');
-        $this->createConferencesAndSpeakers($visitorIds);
-
-        $this->command->info('📅 Creating appointments...');
-        $this->createAppointments($visitorIds, $exhibitorUserIds);
-
-        $this->command->info('🤝 Creating connections...');
-        $this->createConnections($visitorIds, $exhibitorUserIds);
-
-        $this->command->info('🏆 Creating awards...');
-        $this->createAwards($companyIds);
-
-        $this->command->info('🔔 Creating notifications...');
-        $this->createNotifications($visitorIds, $exhibitorUserIds);
-
-        $this->command->info('⭐ Creating favorites...');
-        $this->createFavorites($visitorIds, $companyIds);
-
-        $this->command->info('💬 Creating messages...');
-        $this->createMessages($visitorIds, $exhibitorUserIds);
-
-        $this->command->info('📞 Creating contact requests...');
-        $this->createContactRequests($visitorIds);
+//        $this->command->info('📦 Creating product categories...');
+//        $productCategoryIds = $this->createProductCategories();
+//
+//        $this->command->info('🏢 Creating companies & products...');
+//        // Returns [$companyIds, $exhibitorUserIds]
+//        [$companyIds, $exhibitorUserIds] = $this->createCompaniesAndProducts($productCategoryIds);
+//
+//        $this->command->info('👥 Creating visitors...');
+//        $visitorIds = $this->createVisitors();
+//
+//        $this->command->info('🎤 Creating speakers & conferences...');
+//        $this->createConferencesAndSpeakers($visitorIds);
+//
+//        $this->command->info('📅 Creating appointments...');
+//        $this->createAppointments($visitorIds, $exhibitorUserIds);
+//
+//        $this->command->info('🤝 Creating connections...');
+//        $this->createConnections($visitorIds, $exhibitorUserIds);
+//
+//        $this->command->info('🏆 Creating awards...');
+//        $this->createAwards($companyIds);
+//
+//        $this->command->info('🔔 Creating notifications...');
+//        $this->createNotifications($visitorIds, $exhibitorUserIds);
+//
+//        $this->command->info('⭐ Creating favorites...');
+//        $this->createFavorites($visitorIds, $companyIds);
+//
+//        $this->command->info('💬 Creating messages...');
+//        $this->createMessages($visitorIds, $exhibitorUserIds);
+//
+//        $this->command->info('📞 Creating contact requests...');
+//        $this->createContactRequests($visitorIds);
 
         $this->command->info('✅ SEEDING COMPLETED SUCCESSFULLY!');
         $this->command->info('📧 All users password: password');
@@ -120,15 +120,15 @@ class SaharaSummitSeeder extends Seeder
 
         DB::table('conference_registrations')->truncate();
         DB::table('conference_speaker')->truncate();
-        Conference::truncate();
-        Speaker::truncate();
+//        Conference::truncate();
+//        Speaker::truncate();
 
-        Product::truncate();
-        ProductCategory::truncate();
+//        Product::truncate();
+//        ProductCategory::truncate();
 
         DB::table('role_users')->truncate();
-        User::truncate();
-        Company::truncate();
+//        User::truncate();
+//        Company::truncate();
         EventSetting::truncate();
 
         Schema::enableForeignKeyConstraints();
