@@ -307,14 +307,19 @@
                 </p>
 
                 <ul>
+                    <li>Profile picture capture</li>
                     <li>QR code scanning</li>
                     <li>Barcode scanning</li>
                     <li>Event check-in features</li>
                 </ul>
 
                 <p>
+                    Camera access is only used when explicitly requested by the user.
+                </p>
+
+                <p>
                     <span class="highlight">
-                        We do not store or share camera images or videos.
+                        We do not sell, share, or use camera content for advertising purposes.
                     </span>
                 </p>
 
