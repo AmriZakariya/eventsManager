@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Orchid\Layouts\User;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\DropDown;
 use Orchid\Screen\Actions\Link;
@@ -37,7 +38,7 @@ class UserListLayout extends Table
 
                         $avatar = filter_var($user->avatar, FILTER_VALIDATE_URL)
                             ? $user->avatar
-                            : asset($user->avatar);
+                            : Storage::url($user->avatar);
 
                         return "<img src='{$avatar}' class='rounded-circle'
                     style='width:40px;height:40px;object-fit:cover;'>";
