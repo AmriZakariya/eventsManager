@@ -37,12 +37,17 @@ class NewMeetingRequest extends Notification
         // Get the target user's language, default to 'en'
         $locale = $notifiable->locale ?? 'en';
 
-        // Translate the date format based on the locale
+        $dateFormat = __('notification_datetime_format', [], $locale);
+        if ($dateFormat === 'notification_datetime_format') {
+            $dateFormat = 'M j \a\t g:i A';
+        }
+
+        // Translate the date format based on the recipient's locale
         $date = Carbon::parse($this->appointment->scheduled_at)
             ->locale($locale)
-            ->translatedFormat('M j \a\t g:i A');
+            ->translatedFormat($dateFormat);
 
-        $companyName = $this->booker->company ? $this->booker->company->name : $this->booker->company_name;
+        $companyName = $this->booker->company ? $this->booker->company->name : ($this->booker->company_name ?: __('company_profile_na', [], $locale));
 
         // Removed the 'notifications.' prefix
         $title = __('new_meeting_title', [], $locale);

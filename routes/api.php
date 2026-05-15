@@ -46,6 +46,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Chat System
     Route::get('/chat/conversations', [ChatController::class, 'conversations']);
+    Route::get('/chat/unread-counts', [ChatController::class, 'unreadCounts']);
+    Route::get('/chat/unread-count', [ChatController::class, 'unreadCounts']);
     Route::get('/chat/messages/{userId}', [ChatController::class, 'messages']);
     Route::post('/chat/send', [ChatController::class, 'send']);
 
@@ -102,4 +104,3 @@ Route::prefix('config')->group(function () {
 Route::get('/languages', [LanguageController::class, 'index']);
 Route::get('/languages/{code}/translations', [LanguageController::class, 'translations']);
 Route::get('/languages/all', [LanguageController::class, 'all']);
-

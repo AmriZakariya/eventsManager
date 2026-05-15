@@ -34,10 +34,14 @@ class MeetingStatusUpdated extends Notification
     private function getTranslatedContent($notifiable)
     {
         $locale = $notifiable->locale ?? 'en';
+        $dateFormat = __('notification_datetime_format', [], $locale);
+        if ($dateFormat === 'notification_datetime_format') {
+            $dateFormat = 'M j \a\t g:i A';
+        }
 
         $date = Carbon::parse($this->appointment->scheduled_at)
             ->locale($locale)
-            ->translatedFormat('M j \a\t g:i A');
+            ->translatedFormat($dateFormat);
 
         // Dynamic keys without the 'notifications.' prefix
         $titleKey = "meeting_{$this->status}_title";
@@ -47,9 +51,27 @@ class MeetingStatusUpdated extends Notification
         $body  = __($bodyKey, ['date' => $date], $locale);
 
         // Fallbacks in case the specific status translation doesn't exist
-        if ($title === $titleKey) {
-            $title = __('meeting_update_title', [], $locale) ?? 'Meeting Update';
-            $body  = __('meeting_update_body', ['status' => $this->status, 'date' => $date], $locale) ?? "Your meeting on {$date} is now {$this->status}.";
+        if ($title === $titleKey || $body === $bodyKey) {
+            $statusKey = "status_{$this->status}";
+            $translatedStatus = __($statusKey, [], $locale);
+
+            if ($translatedStatus === $statusKey) {
+                $translatedStatus = $this->status;
+            }
+
+            $title = __('meeting_update_title', [], $locale);
+            if ($title === 'meeting_update_title') {
+                $title = 'Meeting Update';
+            }
+
+            $body = __('meeting_update_body', [
+                'status' => $translatedStatus,
+                'date' => $date,
+            ], $locale);
+
+            if ($body === 'meeting_update_body') {
+                $body = "Your meeting on {$date} is now {$translatedStatus}.";
+            }
         }
 
         $type = match($this->status) {
@@ -91,6 +113,7 @@ class MeetingStatusUpdated extends Notification
             'data' => [
                 'screen' => '/b2b_detail',
                 'arg'    => (string) $this->appointment->id, // FCM data values MUST be strings
+                'click_action' => 'FLUTTER_NOTIFICATION_CLICK',
             ]
         ];
     }

@@ -5,9 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Message;
 use App\Models\User;
+use App\Notifications\NewMessageReceived;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class ChatController extends Controller
 {
@@ -65,6 +65,29 @@ class ChatController extends Controller
         });
 
         return response()->json($results);
+    }
+
+    /**
+     * GET /api/chat/unread-counts
+     * Returns unread chat totals for mobile badges.
+     */
+    public function unreadCounts(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $unreadMessagesCount = Message::where('receiver_id', $userId)
+            ->whereNull('read_at')
+            ->count();
+
+        $unreadConversationsCount = Message::where('receiver_id', $userId)
+            ->whereNull('read_at')
+            ->distinct('sender_id')
+            ->count('sender_id');
+
+        return response()->json([
+            'unread_messages_count' => $unreadMessagesCount,
+            'unread_conversations_count' => $unreadConversationsCount,
+        ]);
     }
 
     /**
@@ -127,12 +150,18 @@ class ChatController extends Controller
             $path = asset('storage/' . $path);
         }
 
+        $receiver = User::findOrFail($request->receiver_id);
+
         $message = Message::create([
             'sender_id'   => $request->user()->id,
-            'receiver_id' => $request->receiver_id,
-            'content'     => $request->content,
+            'receiver_id' => $receiver->id,
+            'content'     => $request->content ?? '',
             'attachment_url' => $path,
         ]);
+
+        if ($receiver->id !== $request->user()->id) {
+            $receiver->notify(new NewMessageReceived($message, $request->user()));
+        }
 
         return response()->json($message);
     }

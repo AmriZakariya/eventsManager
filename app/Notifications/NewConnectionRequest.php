@@ -21,15 +21,28 @@ class NewConnectionRequest extends Notification
 
     public function via($notifiable)
     {
-        // Added FcmChannel::class here
         return [AppDatabaseChannel::class, FcmChannel::class];
+    }
+
+    private function getTranslatedContent($notifiable): array
+    {
+        $locale = $notifiable->locale ?? 'en';
+
+        return [
+            'title' => __('new_connection_request_title', [], $locale),
+            'body' => __('new_connection_request_body', [
+                'name' => $this->requester->full_name,
+            ], $locale),
+        ];
     }
 
     public function toApp($notifiable)
     {
+        $content = $this->getTranslatedContent($notifiable);
+
         return [
-            'title' => 'New Connection Request 👥',
-            'body'  => "{$this->requester->name} wants to connect with you.",
+            'title' => $content['title'],
+            'body'  => $content['body'],
             'type'  => 'info',
             'data'  => [
                 'screen' => '/networking',
@@ -42,9 +55,11 @@ class NewConnectionRequest extends Notification
     // Firebase Cloud Messaging Payload
     public function toFcm($notifiable)
     {
+        $content = $this->getTranslatedContent($notifiable);
+
         return [
-            'title' => 'New Connection Request 👥',
-            'body'  => "{$this->requester->name} wants to connect with you.",
+            'title' => $content['title'],
+            'body'  => $content['body'],
             'data'  => [
                 'screen' => '/networking',
                 'arg'    => 'requests_tab',

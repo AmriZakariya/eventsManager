@@ -21,15 +21,28 @@ class ConnectionAccepted extends Notification
 
     public function via($notifiable)
     {
-        // Added FcmChannel::class here
         return [AppDatabaseChannel::class, FcmChannel::class];
+    }
+
+    private function getTranslatedContent($notifiable): array
+    {
+        $locale = $notifiable->locale ?? 'en';
+
+        return [
+            'title' => __('connection_accepted_title', [], $locale),
+            'body' => __('connection_accepted_body', [
+                'name' => $this->accepter->full_name,
+            ], $locale),
+        ];
     }
 
     public function toApp($notifiable)
     {
+        $content = $this->getTranslatedContent($notifiable);
+
         return [
-            'title' => 'Connection Accepted! 🤝',
-            'body'  => "You are now connected with {$this->accepter->name}. Start chatting!",
+            'title' => $content['title'],
+            'body'  => $content['body'],
             'type'  => 'success',
             'data'  => [
                 'screen' => '/chat',
@@ -42,9 +55,11 @@ class ConnectionAccepted extends Notification
     // Firebase Cloud Messaging Payload
     public function toFcm($notifiable)
     {
+        $content = $this->getTranslatedContent($notifiable);
+
         return [
-            'title' => 'Connection Accepted! 🤝',
-            'body'  => "You are now connected with {$this->accepter->name}. Start chatting!",
+            'title' => $content['title'],
+            'body'  => $content['body'],
             'data'  => [
                 'screen' => '/chat',
                 'arg'    => (string)$this->accepter->id,

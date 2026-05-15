@@ -197,9 +197,7 @@ class B2BController extends Controller
             ? $appointment->targetUser
             : $appointment->booker;
 
-        // Reuse status update notification or create a specific 'MeetingCancelled' one
-        // Here we reuse for simplicity, passing 'cancelled' logic manually or via class
-        // Ideally: $recipient->notify(new MeetingCancelled($appointment));
+        $recipient->notify(new MeetingStatusUpdated($appointment, 'cancelled'));
 
         return response()->json([
             'message' => 'Meeting cancelled successfully.',
