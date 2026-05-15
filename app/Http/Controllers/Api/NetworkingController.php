@@ -26,6 +26,20 @@ class NetworkingController extends Controller
         $query = User::with('company')
             ->where('id', '!=', $authId)
             ->where('is_visible', true)
+            ->whereNotExists(function ($q) use ($authId) {
+                $q->selectRaw('1')
+                    ->from('connections')
+                    ->whereIn('status', ['pending', 'accepted'])
+                    ->where(function ($q) use ($authId) {
+                        $q->where(function ($q) use ($authId) {
+                            $q->whereColumn('requester_id', 'users.id')
+                                ->where('target_id', $authId);
+                        })->orWhere(function ($q) use ($authId) {
+                            $q->whereColumn('target_id', 'users.id')
+                                ->where('requester_id', $authId);
+                        });
+                    });
+            })
             ->addSelect([
                 '*',
                 'connection_status' => Connection::selectRaw("
@@ -55,7 +69,10 @@ class NetworkingController extends Controller
 
         // 3. Return paginated results
         return response()->json(
-            $query->inRandomOrder()->paginate(20)
+            $query->orderBy('name')
+                ->orderBy('last_name')
+                ->orderBy('id')
+                ->paginate(20)
         );
     }
 
