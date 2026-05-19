@@ -54,6 +54,27 @@ class NetworkingDiscoverTest extends TestCase
         $response->assertJsonFragment(['id' => $visitor->id]);
     }
 
+    public function test_discover_excludes_users_with_na_phone(): void
+    {
+        $authUser = User::factory()->create();
+        $placeholderPhoneUser = User::factory()->create([
+            'phone' => 'N/A',
+            'name' => 'Placeholder Phone',
+        ]);
+        $available = User::factory()->create([
+            'phone' => '+212600000000',
+            'name' => 'Available User',
+        ]);
+
+        Sanctum::actingAs($authUser);
+
+        $response = $this->getJson('/api/networking/discover');
+
+        $response->assertOk();
+        $response->assertJsonMissing(['id' => $placeholderPhoneUser->id]);
+        $response->assertJsonFragment(['id' => $available->id]);
+    }
+
     public function test_discover_returns_users_in_stable_order(): void
     {
         $authUser = User::factory()->create();
