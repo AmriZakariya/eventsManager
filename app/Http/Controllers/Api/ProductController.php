@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ProductController extends Controller
 {
@@ -15,8 +16,15 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
+        $authId = $request->user()?->id;
+
         // 1. Start Query with Eager Loading
-        $query = Product::with(['category', 'company.team']);
+        $query = Product::with([
+            'category',
+            'company' => fn ($q) => $q->with([
+                'team' => fn ($q) => $q->withConnectionStatusFor($authId),
+            ]),
+        ]);
 
         // 2. Filter by Category
         if ($request->has('category_id') && $request->category_id != null) {
@@ -52,7 +60,14 @@ class ProductController extends Controller
      */
     public function show($id)
     {
-        $product = Product::with(['category', 'company.team'])->findOrFail($id);
+        $authId = auth()->id();
+
+        $product = Product::with([
+            'category',
+            'company' => fn ($q) => $q->with([
+                'team' => fn ($q) => $q->withConnectionStatusFor($authId),
+            ]),
+        ])->findOrFail($id);
         return response()->json($product);
     }
 
@@ -62,9 +77,9 @@ class ProductController extends Controller
      */
     public function categories()
     {
-        $categories = ProductCategory::withCount('products')
+        $categories = Cache::remember('api:products:categories', now()->addMinutes(30), fn () => ProductCategory::withCount('products')
             ->orderBy('name')
-            ->get();
+            ->get());
 
         return response()->json($categories);
     }

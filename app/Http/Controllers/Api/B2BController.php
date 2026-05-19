@@ -21,7 +21,10 @@ class B2BController extends Controller
     {
         $userId = $request->user()->id;
 
-        $query = Appointment::with(['booker', 'targetUser.company'])
+        $query = Appointment::with([
+            'booker' => fn ($q) => $q->withConnectionStatusFor($userId),
+            'targetUser' => fn ($q) => $q->with('company')->withConnectionStatusFor($userId),
+        ])
             ->where(function($q) use ($userId) {
                 $q->where('booker_id', $userId)
                     ->orWhere('target_user_id', $userId);
@@ -42,7 +45,12 @@ class B2BController extends Controller
      */
     public function userAvailability($userId)
     {
-        $appointments = Appointment::with(['targetUser', 'booker'])
+        $authId = auth()->id();
+
+        $appointments = Appointment::with([
+            'targetUser' => fn ($q) => $q->withConnectionStatusFor($authId),
+            'booker' => fn ($q) => $q->withConnectionStatusFor($authId),
+        ])
             ->where('target_user_id', $userId)
             ->whereIn('status', ['pending', 'confirmed'])
             ->orderBy('scheduled_at', 'asc')
@@ -58,7 +66,10 @@ class B2BController extends Controller
      */
     public function exhibitors(Request $request)
     {
+        $authId = $request->user()->id;
+
         $query = User::with('company')
+            ->withConnectionStatusFor($authId)
             ->appRole(User::APP_ROLE_EXHIBITOR)
             ->orderBy('name', 'asc');
 
@@ -100,12 +111,13 @@ class B2BController extends Controller
         $visitor = $request->user();
         $targetUser = User::with('company')->findOrFail($request->target_user_id);
 
-        $date = Carbon::parse($request->scheduled_at)->startOfDay();
+        $dayStart = Carbon::parse($request->scheduled_at)->startOfDay();
+        $dayEnd = (clone $dayStart)->endOfDay();
 
         // --- RULE: One meeting per company per day ---
         if ($targetUser->company_id) {
             $existingMeeting = Appointment::where('booker_id', $visitor->id)
-                ->whereDate('scheduled_at', $date)
+                ->whereBetween('scheduled_at', [$dayStart, $dayEnd])
                 ->where('status', '!=', 'cancelled')
                 ->whereHas('targetUser', function ($q) use ($targetUser) {
                     $q->where('company_id', $targetUser->company_id);

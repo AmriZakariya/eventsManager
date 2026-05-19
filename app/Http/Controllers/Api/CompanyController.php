@@ -15,10 +15,20 @@ class CompanyController extends Controller
      */
     public function index(Request $request)
     {
+        $user = auth('sanctum')->user();
+
         // 🚀 Eager Load 'team' to avoid N+1 queries when loading the list
         $query = Company::query()
-            ->with('team')
+            ->with([
+                'team' => fn ($q) => $q->withConnectionStatusFor($user?->id),
+            ])
             ->where('is_active', true);
+
+        if ($user) {
+            $query->withExists([
+                'favoritedBy as is_favorited' => fn ($q) => $q->where('user_id', $user->id),
+            ]);
+        }
 
         // 1. Search Filter (Encapsulated in a closure to protect the 'is_active' rule)
         if ($search = $request->query('search')) {
@@ -81,7 +91,19 @@ class CompanyController extends Controller
      */
     public function show($id)
     {
-        $company = Company::with('team')->findOrFail($id);
+        $user = auth('sanctum')->user();
+
+        $query = Company::with([
+            'team' => fn ($q) => $q->withConnectionStatusFor($user?->id),
+        ]);
+
+        if ($user) {
+            $query->withExists([
+                'favoritedBy as is_favorited' => fn ($q) => $q->where('user_id', $user->id),
+            ]);
+        }
+
+        $company = $query->findOrFail($id);
 
         return new CompanyResource($company);
     }

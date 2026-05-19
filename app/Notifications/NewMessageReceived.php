@@ -7,9 +7,10 @@ use App\Channels\FcmChannel;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class NewMessageReceived extends Notification
+class NewMessageReceived extends Notification implements ShouldQueue
 {
     use Queueable;
 

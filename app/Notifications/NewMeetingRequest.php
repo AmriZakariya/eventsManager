@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use App\Channels\AppDatabaseChannel;
 use App\Channels\FcmChannel;
@@ -10,7 +11,7 @@ use App\Models\Appointment;
 use App\Models\User;
 use Carbon\Carbon;
 
-class NewMeetingRequest extends Notification
+class NewMeetingRequest extends Notification implements ShouldQueue
 {
     use Queueable;
 

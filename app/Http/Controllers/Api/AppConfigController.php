@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\EventSetting;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class AppConfigController extends Controller
 {
@@ -16,26 +17,33 @@ class AppConfigController extends Controller
     public function init(): JsonResponse
     {
         try {
-            $settings = EventSetting::first();
+            $payload = Cache::remember('api:config:init', now()->addMinutes(5), function () {
+                $settings = EventSetting::first();
 
-            if (!$settings) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Event configuration not found. Please contact administrator.',
-                ], 404);
-            }
+                if (!$settings) {
+                    return [
+                        'http_status' => 404,
+                        'body' => [
+                            'status' => 'error',
+                            'message' => 'Event configuration not found. Please contact administrator.',
+                        ],
+                    ];
+                }
 
-            // Check maintenance mode
-            if ($settings->maintenance_mode) {
-                return response()->json([
-                    'status' => 'maintenance',
-                    'message' => $settings->maintenance_message ?? 'App is under maintenance. Please try again later.',
-                    'data' => null,
-                ], 503);
-            }
+                if ($settings->maintenance_mode) {
+                    return [
+                        'http_status' => 503,
+                        'body' => [
+                            'status' => 'maintenance',
+                            'message' => $settings->maintenance_message ?? 'App is under maintenance. Please try again later.',
+                            'data' => null,
+                        ],
+                    ];
+                }
 
-            // Return all configuration data
-            return response()->json([
+                return [
+                    'http_status' => 200,
+                    'body' => [
                 'status' => 'success',
                 'message' => 'Configuration loaded successfully',
                 'data' => [
@@ -99,7 +107,11 @@ class AppConfigController extends Controller
                     'defaultLanguage' => $settings->default_language ?? 'en',
                 ],
                 'timestamp' => now()->toIso8601String(),
-            ]);
+                    ],
+                ];
+            });
+
+            return response()->json($payload['body'], $payload['http_status']);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -118,25 +130,35 @@ class AppConfigController extends Controller
     public function minimal(): JsonResponse
     {
         try {
-            $settings = EventSetting::first();
+            $payload = Cache::remember('api:config:minimal', now()->addMinutes(5), function () {
+                $settings = EventSetting::first();
 
-            if (!$settings) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Event configuration not found',
-                ], 404);
-            }
+                if (!$settings) {
+                    return [
+                        'http_status' => 404,
+                        'body' => [
+                            'status' => 'error',
+                            'message' => 'Event configuration not found',
+                        ],
+                    ];
+                }
 
-            return response()->json([
-                'status' => 'success',
-                'data' => [
-                    'event_name' => $settings->event_name,
-                    'primary_color' => $settings->primary_color,
-                    'secondary_color' => $settings->secondary_color,
-                    'accent_color' => $settings->accent_color,
-                    'maintenance_mode' => $settings->maintenance_mode,
-                ],
-            ]);
+                return [
+                    'http_status' => 200,
+                    'body' => [
+                        'status' => 'success',
+                        'data' => [
+                            'event_name' => $settings->event_name,
+                            'primary_color' => $settings->primary_color,
+                            'secondary_color' => $settings->secondary_color,
+                            'accent_color' => $settings->accent_color,
+                            'maintenance_mode' => $settings->maintenance_mode,
+                        ],
+                    ],
+                ];
+            });
+
+            return response()->json($payload['body'], $payload['http_status']);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -154,29 +176,39 @@ class AppConfigController extends Controller
     public function features(): JsonResponse
     {
         try {
-            $settings = EventSetting::first();
+            $payload = Cache::remember('api:config:features', now()->addMinutes(5), function () {
+                $settings = EventSetting::first();
 
-            if (!$settings) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Event configuration not found',
-                ], 404);
-            }
+                if (!$settings) {
+                    return [
+                        'http_status' => 404,
+                        'body' => [
+                            'status' => 'error',
+                            'message' => 'Event configuration not found',
+                        ],
+                    ];
+                }
 
-            return response()->json([
-                'status' => 'success',
-                'data' => [
-                    'notifications' => $settings->enable_notifications,
-                    'chat' => $settings->enable_chat,
-                    'qr_checkin' => $settings->enable_qr_checkin,
-                    'networking' => $settings->enable_networking,
-                    'exhibitor_scanning' => $settings->enable_exhibitor_scanning,
-                    'social_wall' => $settings->enable_social_wall,
-                    'attendee_list' => $settings->show_attendee_list,
-                    'offline_mode' => $settings->enable_offline_mode,
-                    'meeting_requests' => $settings->enable_meeting_requests,
-                ],
-            ]);
+                return [
+                    'http_status' => 200,
+                    'body' => [
+                        'status' => 'success',
+                        'data' => [
+                            'notifications' => $settings->enable_notifications,
+                            'chat' => $settings->enable_chat,
+                            'qr_checkin' => $settings->enable_qr_checkin,
+                            'networking' => $settings->enable_networking,
+                            'exhibitor_scanning' => $settings->enable_exhibitor_scanning,
+                            'social_wall' => $settings->enable_social_wall,
+                            'attendee_list' => $settings->show_attendee_list,
+                            'offline_mode' => $settings->enable_offline_mode,
+                            'meeting_requests' => $settings->enable_meeting_requests,
+                        ],
+                    ],
+                ];
+            });
+
+            return response()->json($payload['body'], $payload['http_status']);
 
         } catch (\Exception $e) {
             return response()->json([

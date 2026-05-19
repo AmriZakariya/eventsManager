@@ -42,6 +42,7 @@ class ChatController extends Controller
             ->get();
 
         $users = User::with('company')
+            ->withConnectionStatusFor($userId)
             ->whereIn('id', $conversations->pluck('other_user_id'))
             ->get()
             ->keyBy('id');

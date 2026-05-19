@@ -152,6 +152,36 @@ class User extends Authenticatable
         return $query->where('app_role', $role);
     }
 
+    public function scopeWithConnectionStatusFor(Builder $query, ?int $authId): Builder
+    {
+        if (!$authId) {
+            return $query;
+        }
+
+        return $query->addSelect([
+            'connection_status' => Connection::query()
+                ->selectRaw(
+                    "CASE
+                        WHEN status = 'accepted' THEN 'accepted'
+                        WHEN status = 'pending' AND requester_id = ? THEN 'outgoing'
+                        WHEN status = 'pending' AND target_id = ? THEN 'incoming'
+                        ELSE 'none'
+                    END",
+                    [$authId, $authId]
+                )
+                ->where(function ($q) use ($authId) {
+                    $q->where(function ($q) use ($authId) {
+                        $q->whereColumn('requester_id', 'users.id')
+                            ->where('target_id', $authId);
+                    })->orWhere(function ($q) use ($authId) {
+                        $q->whereColumn('target_id', 'users.id')
+                            ->where('requester_id', $authId);
+                    });
+                })
+                ->limit(1),
+        ]);
+    }
+
     // --- Accessors for Orchid Display ---
 
     /**
@@ -303,36 +333,6 @@ class User extends Authenticatable
 
     public function getConnectionStatusAttribute(): string
     {
-        // Get the ID of the person currently logged in
-        $authId = auth('sanctum')->id() ?? auth()->id();
-
-        // If not logged in or looking at own profile
-        if (!$authId || $authId === $this->id) {
-            return 'none authid nulll';
-        }
-
-        // Search for a connection in either direction
-        $connection = Connection::where(function ($q) use ($authId) {
-            $q->where('requester_id', $authId)->where('target_id', $this->id);
-        })
-            ->orWhere(function ($q) use ($authId) {
-                $q->where('requester_id', $this->id)->where('target_id', $authId);
-            })
-            ->first();
-
-        if (!$connection) {
-            return 'none';
-        }
-
-        if ($connection->status === 'accepted') {
-            return 'accepted';
-        }
-
-        if ($connection->status === 'pending') {
-            // Did I send it, or did they?
-            return ($connection->requester_id === $authId) ? 'outgoing' : 'incoming';
-        }
-
-        return 'none';
+        return $this->attributes['connection_status'] ?? 'none';
     }
 }

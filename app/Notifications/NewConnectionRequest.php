@@ -3,12 +3,13 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use App\Channels\AppDatabaseChannel;
 use App\Channels\FcmChannel;
 use App\Models\User;
 
-class NewConnectionRequest extends Notification
+class NewConnectionRequest extends Notification implements ShouldQueue
 {
     use Queueable;
 

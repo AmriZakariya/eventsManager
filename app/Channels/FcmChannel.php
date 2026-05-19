@@ -3,6 +3,7 @@
 namespace App\Channels;
 
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -56,7 +57,7 @@ class FcmChannel
             'project_id' => $projectId,
         ]));
 
-        $response = Http::withHeaders([
+        $response = Http::timeout(5)->withHeaders([
             'Authorization' => 'Bearer ' . $accessToken,
             'Content-Type'  => 'application/json',
         ])->post("https://fcm.googleapis.com/v1/projects/{$projectId}/messages:send", $payload);
@@ -78,6 +79,10 @@ class FcmChannel
     private function getAccessToken(): ?string
     {
         try {
+            if ($accessToken = Cache::get('fcm:oauth_access_token')) {
+                return $accessToken;
+            }
+
             $credentialsFilePath = storage_path('app/firebase-credentials.json');
 
             $client = new \Google_Client();
@@ -93,6 +98,12 @@ class FcmChannel
                 ]);
                 return null;
             }
+
+            Cache::put(
+                'fcm:oauth_access_token',
+                $token['access_token'],
+                now()->addSeconds(max(60, (int) ($token['expires_in'] ?? 3600) - 60))
+            );
 
             Log::debug('FCM: OAuth access token generated successfully.', [
                 'expires_in' => $token['expires_in'] ?? 'unknown',

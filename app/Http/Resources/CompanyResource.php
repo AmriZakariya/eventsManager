@@ -13,7 +13,7 @@ class CompanyResource extends JsonResource
         // Check if the current logged-in user has bookmarked this company
         // We use the 'sanctum' guard because the request might be public or auth
         $user = auth('sanctum')->user();
-        $isFavorited = $user ? $this->favoritedBy()->where('user_id', $user->id)->exists() : false;
+        $isFavorited = $user ? (bool) ($this->is_favorited ?? $this->isFavoritedBy($user)) : false;
 
         return [
             'id'            => $this->id,
@@ -43,7 +43,7 @@ class CompanyResource extends JsonResource
             'is_active'   => $this->is_active,
 
             // Dynamic State
-            'is_favorited'  => $this->isFavoritedBy($user),
+            'is_favorited'  => $isFavorited,
 
             // Relationships
             // We only return the team if it's loaded to save performance on large lists

@@ -7,11 +7,13 @@ use App\Models\HomeWidget;
 use App\Models\Company;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class HomeController extends Controller
 {
     public function index()
     {
+        $layoutData = Cache::remember('api:config:home', now()->addMinutes(5), function () {
         // 1. Fetch all active widgets sorted by order
         $widgets = HomeWidget::where('is_active', true)
             ->with(['items' => fn($q) => $q->orderBy('order')])
@@ -19,7 +21,7 @@ class HomeController extends Controller
             ->get();
 
         // 2. Transform them into the format Flutter expects
-        $layoutData = $widgets->map(function ($widget) {
+        return $widgets->map(function ($widget) {
 
             // MAP BACKEND TYPES TO FLUTTER APP_SECTIONS CONSTANTS
             $type = $this->mapWidgetTypeToAppSection($widget);
@@ -34,6 +36,7 @@ class HomeController extends Controller
                 'identifier' => $widget->identifier,
                 'content'  => $content,
             ];
+        });
         });
 
         return response()->json([
@@ -76,6 +79,7 @@ class HomeController extends Controller
         if ($widget->widget_type === 'dynamic_list') {
             if ($widget->data_source === 'companies') {
                 return Company::where('is_featured', true)
+                    ->orderBy('name')
                     ->take(6)
                     ->get()
                     ->map(fn($c) => [
@@ -89,6 +93,8 @@ class HomeController extends Controller
             }
             if ($widget->data_source === 'products') {
                 return Product::where('is_featured', true)
+                    ->with('company')
+                    ->orderByDesc('created_at')
                     ->take(6)
                     ->get()
                     ->map(fn($p) => [

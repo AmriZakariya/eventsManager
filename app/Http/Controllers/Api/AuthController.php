@@ -468,6 +468,7 @@ class AuthController extends Controller
 
             // Role Helper (returns 'visitor', 'exhibitor', or 'admin')
             'role' => $user->role,
+            'connection_status' => $user->connection_status,
             'created_source' => $user->created_source,
 
             // Critical for Exhibitor Logic

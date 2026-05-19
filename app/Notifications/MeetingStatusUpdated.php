@@ -3,13 +3,14 @@
 namespace App\Notifications;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 use App\Channels\AppDatabaseChannel;
 use App\Channels\FcmChannel;
 use App\Models\Appointment;
 use Carbon\Carbon;
 
-class MeetingStatusUpdated extends Notification
+class MeetingStatusUpdated extends Notification implements ShouldQueue
 {
     use Queueable;
 

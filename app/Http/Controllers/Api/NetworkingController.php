@@ -24,6 +24,7 @@ class NetworkingController extends Controller
 
         // 1. Build Query with connection_status subquery
         $query = User::with('company')
+            ->withConnectionStatusFor($authId)
             ->where('id', '!=', $authId)
             ->where('is_visible', true)
             ->where('app_role', '!=', User::APP_ROLE_ADMIN)
@@ -44,23 +45,7 @@ class NetworkingController extends Controller
                                 ->where('requester_id', $authId);
                         });
                     });
-            })
-            ->addSelect([
-                '*',
-                'connection_status' => Connection::selectRaw("
-                CASE
-                    WHEN status = 'accepted' THEN 'accepted'
-                    WHEN status = 'pending' AND requester_id = {$authId} THEN 'outgoing'
-                    WHEN status = 'pending' AND target_id = {$authId} THEN 'incoming'
-                    ELSE 'none'
-                END
-            ")
-                    ->where(function ($q) use ($authId) {
-                        $q->where(fn ($q) => $q->whereColumn('requester_id', 'users.id')->where('target_id', $authId))
-                            ->orWhere(fn ($q) => $q->whereColumn('target_id', 'users.id')->where('requester_id', $authId));
-                    })
-                    ->limit(1),
-            ]);
+            });
 
         // 2. Search Logic (preserved from original)
         if ($search = $request->input('search')) {
