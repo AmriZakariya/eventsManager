@@ -27,7 +27,7 @@ class NetworkingController extends Controller
             ->withConnectionStatusFor($authId)
             ->where('id', '!=', $authId)
             ->where('is_visible', true)
-            ->where('app_role', '!=', User::APP_ROLE_ADMIN)
+            ->where('id', '!=', "1")
             ->where(function ($q) {
                 $q->whereNull('phone')
                     ->orWhere('phone', '!=', 'N/A');
