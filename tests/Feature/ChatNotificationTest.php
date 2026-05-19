@@ -85,4 +85,100 @@ class ChatNotificationTest extends TestCase
                 'unread_conversations_count' => 2,
             ]);
     }
+
+    public function test_messages_support_cursor_fetching_without_marking_messages_read(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        $first = Message::create([
+            'sender_id' => $otherUser->id,
+            'receiver_id' => $user->id,
+            'content' => 'First',
+        ]);
+        $second = Message::create([
+            'sender_id' => $user->id,
+            'receiver_id' => $otherUser->id,
+            'content' => 'Second',
+        ]);
+        $third = Message::create([
+            'sender_id' => $otherUser->id,
+            'receiver_id' => $user->id,
+            'content' => 'Third',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson("/api/chat/messages/{$otherUser->id}?after_id={$first->id}")
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $second->id)
+            ->assertJsonPath('data.1.id', $third->id);
+
+        $this->assertDatabaseHas('messages', [
+            'id' => $first->id,
+            'read_at' => null,
+        ]);
+        $this->assertDatabaseHas('messages', [
+            'id' => $third->id,
+            'read_at' => null,
+        ]);
+    }
+
+    public function test_mark_read_is_explicit(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+
+        Message::create([
+            'sender_id' => $otherUser->id,
+            'receiver_id' => $user->id,
+            'content' => 'Unread one',
+        ]);
+        Message::create([
+            'sender_id' => $otherUser->id,
+            'receiver_id' => $user->id,
+            'content' => 'Unread two',
+        ]);
+        Message::create([
+            'sender_id' => $user->id,
+            'receiver_id' => $otherUser->id,
+            'content' => 'Outgoing',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson("/api/chat/messages/{$otherUser->id}/read")
+            ->assertOk()
+            ->assertJson([
+                'marked_read_count' => 2,
+            ]);
+
+        $this->assertSame(0, Message::where('receiver_id', $user->id)->whereNull('read_at')->count());
+    }
+
+    public function test_conversations_can_return_only_updated_conversations(): void
+    {
+        $user = User::factory()->create();
+        $olderUser = User::factory()->create();
+        $newerUser = User::factory()->create();
+
+        $oldMessage = Message::create([
+            'sender_id' => $olderUser->id,
+            'receiver_id' => $user->id,
+            'content' => 'Old conversation',
+        ]);
+        $newMessage = Message::create([
+            'sender_id' => $newerUser->id,
+            'receiver_id' => $user->id,
+            'content' => 'New conversation',
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson("/api/chat/conversations?after_message_id={$oldMessage->id}")
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.user.id', $newerUser->id)
+            ->assertJsonPath('0.latest_message_id', $newMessage->id);
+    }
 }

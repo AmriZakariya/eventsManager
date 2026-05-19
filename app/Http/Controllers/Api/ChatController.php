@@ -17,52 +17,68 @@ class ChatController extends Controller
      */
     public function conversations(Request $request)
     {
-        $userId = $request->user()->id;
+        $validated = $request->validate([
+            'after_message_id' => 'nullable|integer|min:1',
+            'limit' => 'nullable|integer|min:1|max:100',
+        ]);
 
-        // Complex Query: Find the latest message for every unique pair involving the user
-        // This effectively gets the "Inbox" list
-        $conversations = Message::select(
-            DB::raw('CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_user_id'),
-            DB::raw('MAX(created_at) as last_message_at')
-        )
-            ->setBindings([$userId])
+        $userId = $request->user()->id;
+        $limit = $validated['limit'] ?? 50;
+        $afterMessageId = $validated['after_message_id'] ?? null;
+
+        $conversations = Message::query()
+            ->selectRaw(
+                'CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_user_id, MAX(id) as latest_message_id, MAX(created_at) as last_message_at',
+                [$userId]
+            )
             ->where(function($q) use ($userId) {
                 $q->where('sender_id', $userId)
                     ->orWhere('receiver_id', $userId);
             })
+            ->when($afterMessageId, fn ($query) => $query->where('id', '>', $afterMessageId))
             ->groupBy('other_user_id')
-            ->orderBy('last_message_at', 'desc')
+            ->orderByDesc('latest_message_id')
+            ->limit($limit)
             ->get();
 
-        // Hydrate the User models and attach the last message content
-        $results = $conversations->map(function ($item) use ($userId) {
-            $user = User::find($item->other_user_id);
+        $users = User::with('company')
+            ->whereIn('id', $conversations->pluck('other_user_id'))
+            ->get()
+            ->keyBy('id');
 
-            // Fetch actual last message content
-            $lastMsg = Message::where(function($q) use ($userId, $item) {
-                $q->where('sender_id', $userId)->where('receiver_id', $item->other_user_id);
-            })
-                ->orWhere(function($q) use ($userId, $item) {
-                    $q->where('sender_id', $item->other_user_id)->where('receiver_id', $userId);
-                })
-                ->latest()
-                ->first();
+        $latestMessages = Message::whereIn('id', $conversations->pluck('latest_message_id'))
+            ->get()
+            ->keyBy('id');
+
+        $unreadCounts = Message::query()
+            ->select('sender_id', DB::raw('COUNT(*) as unread_count'))
+            ->where('receiver_id', $userId)
+            ->whereIn('sender_id', $conversations->pluck('other_user_id'))
+            ->whereNull('read_at')
+            ->groupBy('sender_id')
+            ->pluck('unread_count', 'sender_id');
+
+        $results = $conversations->map(function ($item) use ($users, $latestMessages, $unreadCounts) {
+            $user = $users->get($item->other_user_id);
+            $lastMsg = $latestMessages->get($item->latest_message_id);
+
+            if (!$user || !$lastMsg) {
+                return null;
+            }
 
             return [
                 'user' => [
                     'id' => $user->id,
-                    'name' => $user->name . ' ' . $user->last_name,
+                    'name' => trim($user->name . ' ' . $user->last_name),
                     'avatar_url' => $user->avatar_url ?? "https://ui-avatars.com/api/?name={$user->name}",
                     'company' => $user->company->name ?? 'Visitor'
                 ],
+                'latest_message_id' => $lastMsg->id,
                 'last_message' => $lastMsg->content ?? '[Attachment]',
                 'last_message_at' => $lastMsg->created_at,
-                'unread_count' => Message::where('sender_id', $item->other_user_id)
-                    ->where('receiver_id', $userId)
-                    ->whereNull('read_at')
-                    ->count()
+                'unread_count' => (int) ($unreadCounts[$item->other_user_id] ?? 0),
             ];
-        });
+        })->filter()->values();
 
         return response()->json($results);
     }
@@ -96,23 +112,57 @@ class ChatController extends Controller
      */
     public function messages(Request $request, $otherUserId)
     {
+        $validated = $request->validate([
+            'after_id' => 'nullable|integer|min:1',
+            'before_id' => 'nullable|integer|min:1',
+            'limit' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        if (!empty($validated['after_id']) && !empty($validated['before_id'])) {
+            return response()->json([
+                'message' => 'Use either after_id or before_id, not both.',
+            ], 422);
+        }
+
+        $myId = $request->user()->id;
+        $limit = $validated['limit'] ?? 50;
+        $afterId = $validated['after_id'] ?? null;
+        $beforeId = $validated['before_id'] ?? null;
+
+        $query = Message::where(function ($query) use ($myId, $otherUserId) {
+            $query->where(function ($q) use ($myId, $otherUserId) {
+                $q->where('sender_id', $myId)->where('receiver_id', $otherUserId);
+            })->orWhere(function ($q) use ($myId, $otherUserId) {
+                $q->where('sender_id', $otherUserId)->where('receiver_id', $myId);
+            });
+        });
+
+        if ($afterId) {
+            $query->where('id', '>', $afterId)->orderBy('id');
+        } else {
+            $query->when($beforeId, fn ($q) => $q->where('id', '<', $beforeId))
+                ->orderByDesc('id');
+        }
+
+        return $query->paginate($limit);
+    }
+
+    /**
+     * POST /api/chat/messages/{userId}/read
+     * Marks incoming messages in a conversation as read.
+     */
+    public function markRead(Request $request, $otherUserId)
+    {
         $myId = $request->user()->id;
 
-        // Mark incoming messages as read
-        Message::where('sender_id', $otherUserId)
+        $updated = Message::where('sender_id', $otherUserId)
             ->where('receiver_id', $myId)
             ->whereNull('read_at')
             ->update(['read_at' => now()]);
 
-        return Message::where(function($q) use ($myId, $otherUserId) {
-            $q->where('sender_id', $myId)->where('receiver_id', $otherUserId);
-        })
-            ->orWhere(function($q) use ($myId, $otherUserId) {
-                $q->where('sender_id', $otherUserId)->where('receiver_id', $myId);
-            })
-            // IMPORTANT: Get newest first for the chat UI
-            ->orderBy('created_at', 'desc')
-            ->paginate(50);
+        return response()->json([
+            'marked_read_count' => $updated,
+        ]);
     }
 
     /**
