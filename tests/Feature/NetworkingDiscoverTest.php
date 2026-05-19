@@ -33,6 +33,27 @@ class NetworkingDiscoverTest extends TestCase
         $response->assertJsonFragment(['id' => $available->id]);
     }
 
+    public function test_discover_excludes_admin_users(): void
+    {
+        $authUser = User::factory()->create();
+        $admin = User::factory()->create([
+            'app_role' => User::APP_ROLE_ADMIN,
+            'name' => 'Admin User',
+        ]);
+        $visitor = User::factory()->create([
+            'app_role' => User::APP_ROLE_VISITOR,
+            'name' => 'Visitor User',
+        ]);
+
+        Sanctum::actingAs($authUser);
+
+        $response = $this->getJson('/api/networking/discover');
+
+        $response->assertOk();
+        $response->assertJsonMissing(['id' => $admin->id]);
+        $response->assertJsonFragment(['id' => $visitor->id]);
+    }
+
     public function test_discover_returns_users_in_stable_order(): void
     {
         $authUser = User::factory()->create();

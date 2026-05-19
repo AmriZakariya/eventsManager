@@ -26,6 +26,7 @@ class NetworkingController extends Controller
         $query = User::with('company')
             ->where('id', '!=', $authId)
             ->where('is_visible', true)
+            ->where('app_role', '!=', User::APP_ROLE_ADMIN)
             ->whereNotExists(function ($q) use ($authId) {
                 $q->selectRaw('1')
                     ->from('connections')
