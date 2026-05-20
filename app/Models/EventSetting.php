@@ -61,6 +61,9 @@ class EventSetting extends Model
         // Advanced
         'api_key',
         'app_version',
+        'update_url',
+        'android_update_url',
+        'ios_update_url',
         'maintenance_mode',
         'maintenance_message',
         'timezone',

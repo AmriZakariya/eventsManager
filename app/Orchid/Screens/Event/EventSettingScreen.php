@@ -2,6 +2,7 @@
 
 namespace App\Orchid\Screens\Event;
 
+use App\Http\Controllers\Api\AppConfigController;
 use App\Models\EventSetting;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Fields\Input;
@@ -352,6 +353,31 @@ class EventSettingScreen extends Screen
                 'Advanced Settings' => [
                     Layout::columns([
                         Layout::rows([
+                            Input::make('settings.app_version')
+                                ->title('Minimum App Version')
+                                ->placeholder('1.0.0')
+                                ->help('Users below this version will be prompted to update. Use semantic versions such as 1.2.3.'),
+
+                            Input::make('settings.update_url')
+                                ->title('Fallback Update URL')
+                                ->type('url')
+                                ->placeholder('https://example.com/app')
+                                ->help('Used when a platform-specific store URL is not available.'),
+
+                            Group::make([
+                                Input::make('settings.android_update_url')
+                                    ->title('Android URL')
+                                    ->type('url')
+                                    ->placeholder('https://play.google.com/store/apps/details?id=...'),
+
+                                Input::make('settings.ios_update_url')
+                                    ->title('iOS URL')
+                                    ->type('url')
+                                    ->placeholder('https://apps.apple.com/app/...'),
+                            ]),
+                        ])->title('Mobile Update Flow'),
+
+                        Layout::rows([
                             Select::make('settings.language')
                                 ->title('Default Language')
                                 ->options([
@@ -367,11 +393,6 @@ class EventSettingScreen extends Screen
                                 ->required()
                                 ->help('Primary app language'),
 
-                            Input::make('settings.app_version')
-                                ->title('Minimum App Version')
-                                ->placeholder('1.0.0')
-                                ->help('Force update for older versions'),
-
                             Input::make('settings.api_key')
                                 ->title('API Key')
                                 ->placeholder('Auto-generated on first save')
@@ -384,19 +405,23 @@ class EventSettingScreen extends Screen
                                 ->type(Color::INFO)
                                 ->class('w-100 mb-3'),
                         ])->title('System Configuration'),
+                    ]),
 
+                    Layout::columns([
                         Layout::rows([
                             CheckBox::make('settings.maintenance_mode')
-                                ->placeholder('⚠️ Enable Maintenance Mode')
+                                ->placeholder('Enable Maintenance Mode')
                                 ->sendTrueOrFalse()
-                                ->help('Blocks all user access'),
+                                ->help('Blocks all user access while keeping the update metadata available after maintenance is disabled.'),
 
                             TextArea::make('settings.maintenance_message')
                                 ->title('Maintenance Message')
                                 ->rows(3)
                                 ->placeholder('We are currently updating. Please check back soon.')
                                 ->help('Shown when maintenance mode is active'),
+                        ])->title('Maintenance'),
 
+                        Layout::rows([
                             Input::make('last_updated')
                                 ->title('Last Updated')
                                 ->value(optional($this->query()['settings']->updated_at)->format('M j, Y \a\t g:i A') ?? 'Never')
@@ -453,6 +478,9 @@ class EventSettingScreen extends Screen
             'settings.emergency_info' => 'nullable|string',
             'settings.language' => 'required|string|max:5',
             'settings.app_version' => 'nullable|string|max:20',
+            'settings.update_url' => 'nullable|url|max:255',
+            'settings.android_update_url' => 'nullable|url|max:255',
+            'settings.ios_update_url' => 'nullable|url|max:255',
             'settings.maintenance_mode' => 'nullable|boolean',
             'settings.maintenance_message' => 'nullable|string',
         ]);
@@ -466,6 +494,7 @@ class EventSettingScreen extends Screen
         }
 
         $settings->save();
+        AppConfigController::clearConfigCache();
 
         Toast::success('Configuration saved successfully! Changes are now live in the mobile app.');
 
