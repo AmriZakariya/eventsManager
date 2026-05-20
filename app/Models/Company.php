@@ -41,7 +41,8 @@ class Company extends Model
     protected $casts = [
         'map_coordinates' => 'array', // JSON {x:10, y:20}
         'type'            => 'array', // Automatic JSON conversion
-        'is_featured' => 'boolean'
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
     ];
 
     // ✅ REQUIRED FOR SEARCH/FILTERING

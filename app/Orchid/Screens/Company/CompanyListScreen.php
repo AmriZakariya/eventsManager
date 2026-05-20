@@ -2,16 +2,23 @@
 
 namespace App\Orchid\Screens\Company;
 
+use App\Exports\CompaniesExport;
+use App\Imports\CompaniesImport;
 use App\Models\Company;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
+use Orchid\Attachment\Models\Attachment;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\DropDown;
+use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\Group;
+use Orchid\Screen\Fields\Upload;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
 use Orchid\Support\Color;
@@ -34,27 +41,7 @@ class CompanyListScreen extends Screen
 
     public function query(Request $request): iterable
     {
-        $query = Company::query();
-
-        if ($search = $request->get('search')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('booth_number', 'like', "%{$search}%");
-            });
-        }
-
-        if ($type = $request->get('type')) {
-            $query->whereJsonContains('type', $type);
-        }
-
-        if ($country = $request->get('country')) {
-            $query->where('country', $country);
-        }
-
-        if ($category = $request->get('category')) {
-            $query->where('category', 'like', "%{$category}%");
-        }
+        $query = $this->buildQuery($request);
 
         $total    = Company::count();
         $sponsors = Company::whereJsonContains('type', 'SPONSOR')->count();
@@ -79,6 +66,23 @@ class CompanyListScreen extends Screen
                 ->icon('bs.plus-lg')
                 ->type(Color::PRIMARY)
                 ->route('platform.companies.create'),
+
+            ModalToggle::make('Import Excel')
+                ->icon('bs.upload')
+                ->modal('importModal')
+                ->method('import')
+                ->type(Color::INFO),
+
+            Button::make('Template')
+                ->icon('bs.file-earmark-arrow-down')
+                ->method('downloadTemplate')
+                ->rawClick(),
+
+            Button::make('Export Excel')
+                ->icon('bs.download')
+                ->method('export', request()->query())
+                ->rawClick()
+                ->type(Color::DEFAULT),
         ];
     }
 
@@ -214,6 +218,19 @@ class CompanyListScreen extends Screen
                         ->route('platform.companies.list'),
                 ])->autoWidth(),
             ]),
+
+            Layout::modal('importModal', [
+                Layout::rows([
+                    Upload::make('import_file')
+                        ->title('Upload Company Excel File')
+                        ->acceptedFiles('.xlsx,.xls,.csv')
+                        ->maxFiles(1)
+                        ->required()
+                        ->help('Use the template columns. Existing rows update by id when present, otherwise by company name.'),
+                ]),
+            ])
+                ->title('Import Companies')
+                ->applyButton('Import'),
 
             // ── 3. DATA TABLE ─────────────────────────────────────────────────
             Layout::table('companies', [
@@ -436,6 +453,70 @@ class CompanyListScreen extends Screen
         ]));
     }
 
+    public function export(Request $request)
+    {
+        $companies = $this->buildQuery($request)
+            ->latest()
+            ->get();
+
+        return Excel::download(
+            new CompaniesExport($companies),
+            'companies-' . now()->format('Y-m-d') . '.xlsx'
+        );
+    }
+
+    public function downloadTemplate()
+    {
+        return Excel::download(
+            CompaniesExport::template(),
+            'companies-template.xlsx'
+        );
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate(['import_file' => ['required', 'array']]);
+
+        $ids = $request->input('import_file', []);
+
+        if (empty($ids)) {
+            Toast::warning('Please upload a company Excel file.');
+            return;
+        }
+
+        /** @var Attachment $attachment */
+        $attachment = Attachment::findOrFail($ids[0]);
+        $path = Storage::disk($attachment->disk)
+            ->path($attachment->path . $attachment->name . '.' . $attachment->extension);
+
+        if (!file_exists($path)) {
+            Toast::error('Uploaded file not found on disk. Please re-upload and try again.');
+            return;
+        }
+
+        $import = new CompaniesImport();
+
+        try {
+            Excel::import($import, $path);
+
+            $message = "Import complete: {$import->createdCount()} created, {$import->updatedCount()} updated";
+
+            if ($import->skippedCount() > 0) {
+                $firstFailure = $import->failures()[0] ?? null;
+                $details = $firstFailure
+                    ? ' First skipped row ' . $firstFailure['row'] . ': ' . implode(' ', $firstFailure['errors'])
+                    : '';
+
+                Toast::warning($message . ", {$import->skippedCount()} skipped.{$details}");
+                return;
+            }
+
+            Toast::success($message . '.');
+        } catch (\Throwable $e) {
+            Toast::error('Import failed: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Delete a company and show a contextual success toast.
      */
@@ -446,5 +527,32 @@ class CompanyListScreen extends Screen
         $company->delete();
 
         Toast::success("\"{$name}\" has been removed.");
+    }
+
+    private function buildQuery(Request $request)
+    {
+        $query = Company::query();
+
+        if ($search = $request->get('search')) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('booth_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($type = $request->get('type')) {
+            $query->whereJsonContains('type', $type);
+        }
+
+        if ($country = $request->get('country')) {
+            $query->where('country', $country);
+        }
+
+        if ($category = $request->get('category')) {
+            $query->where('category', 'like', "%{$category}%");
+        }
+
+        return $query;
     }
 }
