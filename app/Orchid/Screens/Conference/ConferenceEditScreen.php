@@ -25,6 +25,8 @@ class ConferenceEditScreen extends Screen
     public function query(Conference $conference): array
     {
         $conference->load('speakers');
+        $conference->hydrateTranslationInputs(['title', 'description']);
+
         return ['conference' => $conference];
     }
 
@@ -64,13 +66,9 @@ class ConferenceEditScreen extends Screen
     public function layout(): array
     {
         return [
-            Layout::columns([
+            Layout::tabs([
+                'Session Details' => Layout::columns([
                 Layout::rows([
-                    Input::make('conference.title')
-                        ->title('Session Title')
-                        ->placeholder('e.g. Future of AI in Events')
-                        ->required(),
-
                     Group::make([
                         Select::make('conference.type')
                             ->title('Type')
@@ -86,11 +84,6 @@ class ConferenceEditScreen extends Screen
                             ->title('Location')
                             ->placeholder('e.g. Hall A / Room 3'),
                     ]),
-
-                    TextArea::make('conference.description')
-                        ->title('Description')
-                        ->rows(6)
-                        ->placeholder('What is this session about?'),
 
                     Relation::make('conference.speakers')
                         ->fromModel(Speaker::class, 'full_name')
@@ -110,8 +103,47 @@ class ConferenceEditScreen extends Screen
                         DateTimer::make('conference.end_time')
                             ->title('End')
                             ->enableTime()
-                            ->required()
-                            ->help('Must be after the start time.'),
+                        ->required()
+                        ->help('Must be after the start time.'),
+                    ]),
+                ]),
+                ]),
+
+                'Localized Content' => Layout::tabs([
+                    'English' => Layout::rows([
+                        Input::make('conference.title_translations.en')
+                            ->title('Session Title')
+                            ->placeholder('e.g. Future of AI in Events')
+                            ->value($this->conference->translationInput('title')['en'] ?? null)
+                            ->required(),
+
+                        TextArea::make('conference.description_translations.en')
+                            ->title('Description')
+                            ->value($this->conference->plainText($this->conference->translationInput('description')['en'] ?? null))
+                            ->rows(6)
+                            ->placeholder('What is this session about?'),
+                    ]),
+
+                    'Français' => Layout::rows([
+                        Input::make('conference.title_translations.fr')
+                            ->title('Titre de la session')
+                            ->value($this->conference->translationInput('title')['fr'] ?? null),
+
+                        TextArea::make('conference.description_translations.fr')
+                            ->title('Description')
+                            ->value($this->conference->plainText($this->conference->translationInput('description')['fr'] ?? null))
+                            ->rows(6),
+                    ]),
+
+                    'العربية' => Layout::rows([
+                        Input::make('conference.title_translations.ar')
+                            ->title('عنوان الجلسة')
+                            ->value($this->conference->translationInput('title')['ar'] ?? null),
+
+                        TextArea::make('conference.description_translations.ar')
+                            ->title('الوصف')
+                            ->value($this->conference->plainText($this->conference->translationInput('description')['ar'] ?? null))
+                            ->rows(6),
                     ]),
                 ]),
             ]),
@@ -121,17 +153,21 @@ class ConferenceEditScreen extends Screen
     public function save(Conference $conference, Request $request)
     {
         $request->validate([
-            'conference.title' => 'required|string|max:255',
+            'conference.title_translations.en' => 'required|string|max:255',
+            'conference.title_translations.fr' => 'nullable|string|max:255',
+            'conference.title_translations.ar' => 'nullable|string|max:255',
             'conference.type' => 'required|in:conference,workshop,panel,keynote',
             'conference.start_time' => 'required|date',
             'conference.end_time' => 'required|date|after:conference.start_time',
             'conference.location' => 'nullable|string|max:255',
-            'conference.description' => 'nullable|string',
+            'conference.description_translations.*' => 'nullable|string',
             'conference.speakers' => 'array',
             'conference.speakers.*' => 'integer|exists:speakers,id',
         ]);
 
-        $conference->fill($request->get('conference', []))->save();
+        $data = $conference->prepareTranslatedData($request->get('conference', []), ['title', 'description'], ['description']);
+
+        $conference->fill($data)->save();
 
         $conference->speakers()->sync($request->input('conference.speakers', []));
 

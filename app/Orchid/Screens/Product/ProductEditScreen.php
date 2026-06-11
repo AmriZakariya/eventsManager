@@ -10,7 +10,7 @@ use Illuminate\Support\Str;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Relation;
-use Orchid\Screen\Fields\Quill;
+use Orchid\Screen\Fields\TextArea;
 use Orchid\Screen\Fields\Cropper;
 use Orchid\Screen\Fields\CheckBox;
 use Orchid\Screen\Fields\Group;
@@ -35,6 +35,8 @@ class ProductEditScreen extends Screen
      */
     public function query(Product $product): iterable
     {
+        $product->hydrateTranslationInputs(['name', 'type', 'description']);
+
         return [
             'product' => $product
         ];
@@ -94,14 +96,10 @@ class ProductEditScreen extends Screen
     public function layout(): iterable
     {
         return [
-            Layout::columns([
-                Layout::rows([
+            Layout::tabs([
+                'Product Details' => Layout::columns([
+                    Layout::rows([
                     Group::make([
-                        Input::make('product.name')
-                            ->title('Product Name')
-                            ->required()
-                            ->placeholder('Enter product name'),
-
                         Relation::make('product.company_id')
                             ->title('Company')
                             ->required()
@@ -121,18 +119,9 @@ class ProductEditScreen extends Screen
                             ->placeholder('Type a new category name (optional)')
                             ->help('If filled, it will create/use this category and override the selection.'),
                     ]),
+                    ]),
 
-                    Input::make('product.type')
-                        ->title('Product Type')
-                        ->placeholder('e.g., Chemicals, Machines')
-                        ->help('Optional: used for filtering.'),
-
-                    Quill::make('product.description')
-                        ->title('Description')
-                        ->placeholder('Enter detailed product description'),
-                ]),
-
-                Layout::rows([
+                    Layout::rows([
                     Cropper::make('product.image')
                         ->title('Product Image')
                         ->targetRelativeUrl()
@@ -143,6 +132,59 @@ class ProductEditScreen extends Screen
                         ->placeholder('Highlight this product')
                         ->help('Featured products will be highlighted in listings.')
                         ->sendTrueOrFalse(),
+                    ]),
+                ]),
+
+                'Localized Content' => Layout::tabs([
+                    'English' => Layout::rows([
+                        Input::make('product.name_translations.en')
+                            ->title('Product Name')
+                            ->value($this->product->translationInput('name')['en'] ?? null)
+                            ->required()
+                            ->placeholder('Enter product name'),
+
+                        Input::make('product.type_translations.en')
+                            ->title('Product Type')
+                            ->value($this->product->translationInput('type')['en'] ?? null)
+                            ->placeholder('e.g., Chemicals, Machines')
+                            ->help('Optional: used for filtering.'),
+
+                        TextArea::make('product.description_translations.en')
+                            ->title('Description')
+                            ->value($this->product->plainText($this->product->translationInput('description')['en'] ?? null))
+                            ->rows(5)
+                            ->placeholder('Enter detailed product description'),
+                    ]),
+
+                    'Français' => Layout::rows([
+                        Input::make('product.name_translations.fr')
+                            ->title('Nom du produit')
+                            ->value($this->product->translationInput('name')['fr'] ?? null),
+
+                        Input::make('product.type_translations.fr')
+                            ->title('Type de produit')
+                            ->value($this->product->translationInput('type')['fr'] ?? null),
+
+                        TextArea::make('product.description_translations.fr')
+                            ->title('Description')
+                            ->value($this->product->plainText($this->product->translationInput('description')['fr'] ?? null))
+                            ->rows(5),
+                    ]),
+
+                    'العربية' => Layout::rows([
+                        Input::make('product.name_translations.ar')
+                            ->title('اسم المنتج')
+                            ->value($this->product->translationInput('name')['ar'] ?? null),
+
+                        Input::make('product.type_translations.ar')
+                            ->title('نوع المنتج')
+                            ->value($this->product->translationInput('type')['ar'] ?? null),
+
+                        TextArea::make('product.description_translations.ar')
+                            ->title('الوصف')
+                            ->value($this->product->plainText($this->product->translationInput('description')['ar'] ?? null))
+                            ->rows(5),
+                    ]),
                 ]),
             ]),
         ];
@@ -170,13 +212,17 @@ class ProductEditScreen extends Screen
 
         $request->validate([
             'product.company_id' => 'required|exists:companies,id',
-            'product.name'       => 'required|max:255',
+            'product.name_translations.en' => 'required|max:255',
+            'product.name_translations.fr' => 'nullable|max:255',
+            'product.name_translations.ar' => 'nullable|max:255',
             'product.category_id' => 'nullable|exists:product_categories,id',
             'product.category_name' => 'nullable|string|max:255',
-            'product.type'       => 'nullable|max:100',
-            'product.description' => 'nullable',
+            'product.type_translations.*' => 'nullable|max:100',
+            'product.description_translations.*' => 'nullable|string',
             'product.is_featured' => 'boolean',
         ]);
+
+        $productData = $product->prepareTranslatedData($productData, ['name', 'type', 'description'], ['description']);
 
         // Create/find category if user entered it manually (overrides selected category)
         $categoryName = $productData['category_name'] ?? '';

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Models\ProductCategory;
+use App\Support\Locale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
@@ -51,8 +53,11 @@ class ProductController extends Controller
         $query->orderBy('is_featured', 'desc')
             ->orderBy('created_at', 'desc');
 
-        // 6. Return Paginated Result
-        return response()->json($query->paginate(20));
+        // 6. Return paginated result with the same paginator shape, but localized rows.
+        $products = $query->paginate(20);
+        $products->getCollection()->transform(fn (Product $product) => (new ProductResource($product))->resolve($request));
+
+        return response()->json($products);
     }
 
     /**
@@ -68,18 +73,26 @@ class ProductController extends Controller
                 'team' => fn ($q) => $q->withConnectionStatusFor($authId),
             ]),
         ])->findOrFail($id);
-        return response()->json($product);
+        return response()->json((new ProductResource($product))->resolve(request()));
     }
 
     /**
      * GET /api/products/categories
      * Returns categories with the count of associated products.
      */
-    public function categories()
+    public function categories(Request $request)
     {
-        $categories = Cache::remember('api:products:categories', now()->addMinutes(30), fn () => ProductCategory::withCount('products')
+        $locale = Locale::fromRequest($request);
+
+        $categories = Cache::remember("api:products:categories:{$locale}", now()->addMinutes(30), fn () => ProductCategory::withCount('products')
             ->orderBy('name')
-            ->get());
+            ->get()
+            ->map(fn (ProductCategory $category) => [
+                'id' => $category->id,
+                'name' => $category->localized('name', $locale),
+                'slug' => $category->slug,
+                'products_count' => $category->products_count,
+            ]));
 
         return response()->json($categories);
     }

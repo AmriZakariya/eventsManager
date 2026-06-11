@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\SpeakerResource;
 use App\Models\Speaker;
 use Illuminate\Http\Request;
 
@@ -25,9 +26,10 @@ class SpeakerController extends Controller
         }
 
         // Return paginated list, ordered by name
-        return response()->json(
-            $query->orderBy('full_name')->paginate(20)
-        );
+        $speakers = $query->orderBy('full_name')->paginate(20);
+        $speakers->getCollection()->transform(fn (Speaker $speaker) => (new SpeakerResource($speaker))->resolve($request));
+
+        return response()->json($speakers);
     }
 
     /**
@@ -40,6 +42,6 @@ class SpeakerController extends Controller
             $q->orderBy('start_time', 'asc');
         }])->findOrFail($id);
 
-        return response()->json($speaker);
+        return response()->json((new SpeakerResource($speaker))->resolve(request()));
     }
 }

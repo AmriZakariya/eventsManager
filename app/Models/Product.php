@@ -2,21 +2,25 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedContent;
 use Illuminate\Database\Eloquent\Model;
 use Orchid\Screen\AsSource;
 use Orchid\Attachment\Attachable;
 
 class Product extends Model
 {
-    use AsSource, Attachable;
+    use AsSource, Attachable, HasLocalizedContent;
 
     protected $fillable = [
-        'company_id', 'category_id', 'name',
-        'image', 'type', 'description', 'is_featured'
+        'company_id', 'category_id', 'name', 'name_translations',
+        'image', 'type', 'type_translations', 'description', 'description_translations', 'is_featured'
     ];
 
     protected $casts = [
-        'is_featured' => 'boolean'
+        'is_featured' => 'boolean',
+        'name_translations' => 'array',
+        'type_translations' => 'array',
+        'description_translations' => 'array',
     ];
 
     // Automatically append 'image_url' to JSON

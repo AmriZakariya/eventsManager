@@ -6,14 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\HomeWidget;
 use App\Models\Company;
 use App\Models\Product;
+use App\Support\Locale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $layoutData = Cache::remember('api:config:home', now()->addMinutes(5), function () {
+        $locale = Locale::fromRequest($request);
+
+        $layoutData = Cache::remember("api:config:home:{$locale}", now()->addMinutes(5), function () use ($locale) {
         // 1. Fetch all active widgets sorted by order
         $widgets = HomeWidget::where('is_active', true)
             ->with(['items' => fn($q) => $q->orderBy('order')])
@@ -21,13 +24,13 @@ class HomeController extends Controller
             ->get();
 
         // 2. Transform them into the format Flutter expects
-        return $widgets->map(function ($widget) {
+        return $widgets->map(function ($widget) use ($locale) {
 
             // MAP BACKEND TYPES TO FLUTTER APP_SECTIONS CONSTANTS
             $type = $this->mapWidgetTypeToAppSection($widget);
 
             // FETCH CONTENT (Manual Items OR Dynamic DB Data)
-            $content = $this->getWidgetContent($widget);
+            $content = $this->getWidgetContent($widget, $locale);
 
             return [
                 'id'       => $widget->id,
@@ -73,7 +76,7 @@ class HomeController extends Controller
     /**
      * Resolves content: either from `home_widget_items` or real DB tables
      */
-    private function getWidgetContent(HomeWidget $widget)
+    private function getWidgetContent(HomeWidget $widget, string $locale)
     {
         // A. DYNAMIC CONTENT (Real Data)
         if ($widget->widget_type === 'dynamic_list') {
@@ -84,7 +87,7 @@ class HomeController extends Controller
                     ->get()
                     ->map(fn($c) => [
                         'id' => $c->id,
-                        'title' => $c->name,
+                        'title' => $c->localized('name', $locale),
                         'identifier' => $c->identifier,
                         'subtitle' => $c->booth_number ? "Booth " . $c->booth_number : null,
                         'image_url' => $c->logo ? asset($c->logo) : null,
@@ -99,9 +102,9 @@ class HomeController extends Controller
                     ->get()
                     ->map(fn($p) => [
                         'id' => $p->id,
-                        'title' => $p->name,
+                        'title' => $p->localized('name', $locale),
                         'identifier' => $p->identifier,
-                        'subtitle' => $p->company->name ?? null,
+                        'subtitle' => $p->company?->localized('name', $locale),
                         'image_url' => $p->image ? asset($p->image) : null,
                         'action_id' => $p->id,
                     ]);

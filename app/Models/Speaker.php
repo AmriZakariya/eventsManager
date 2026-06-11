@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasLocalizedContent;
 use Illuminate\Database\Eloquent\Model;
 use Orchid\Screen\AsSource;
 use Orchid\Filters\Filterable;
@@ -10,10 +11,15 @@ use Orchid\Filters\Types\Like; // <--- 1. IMPORT THIS
 
 class Speaker extends Model
 {
-    use AsSource, Attachable, Filterable;
+    use AsSource, Attachable, Filterable, HasLocalizedContent;
 
     protected $fillable = [
-        'full_name', 'job_title', 'company_name', 'photo', 'bio'
+        'full_name', 'job_title', 'job_title_translations', 'company_name', 'photo', 'bio', 'bio_translations'
+    ];
+
+    protected $casts = [
+        'job_title_translations' => 'array',
+        'bio_translations' => 'array',
     ];
 
     protected $allowedSorts = [

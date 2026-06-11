@@ -41,7 +41,7 @@ class CompanyController extends Controller
 
         // 2. Category Filter
         if ($category = $request->query('category')) {
-            $query->where('category', $category);
+            $query->whereCategoryToken($category);
         }
 
         // 3. Country Filter

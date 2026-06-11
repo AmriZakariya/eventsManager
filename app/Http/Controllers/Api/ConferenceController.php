@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ConferenceResource;
 use App\Models\Conference;
-use Illuminate\Http\Request;
 
 class ConferenceController extends Controller
 {
@@ -17,6 +17,6 @@ class ConferenceController extends Controller
             ->orderBy('start_time', 'asc')
             ->get();
 
-        return response()->json($sessions);
+        return response()->json(ConferenceResource::collection($sessions)->resolve(request()));
     }
 }

@@ -18,6 +18,8 @@ class SpeakerEditScreen extends Screen
 
     public function query(Speaker $speaker): iterable
     {
+        $speaker->hydrateTranslationInputs(['job_title', 'bio']);
+
         return [
             'speaker' => $speaker,
         ];
@@ -51,10 +53,6 @@ class SpeakerEditScreen extends Screen
                     ->placeholder('e.g. John Doe')
                     ->required(),
 
-                Input::make('speaker.job_title')
-                    ->title('Job Title')
-                    ->placeholder('e.g. Senior Engineer'),
-
                 Input::make('speaker.company_name') // Matches DB: company_name
                 ->title('Company Name')
                     ->placeholder('e.g. Tech Corp'),
@@ -62,18 +60,59 @@ class SpeakerEditScreen extends Screen
                 Cropper::make('speaker.photo') // Matches DB: photo
                 ->title('Profile Photo')
                     ->targetRelativeUrl(),
+            ]),
 
-                TextArea::make('speaker.bio')
-                    ->title('Biography')
-                    ->rows(5)
-                    ->placeholder('Short bio about the speaker...'),
+            Layout::tabs([
+                'English' => Layout::rows([
+                    Input::make('speaker.job_title_translations.en')
+                        ->title('Job Title')
+                        ->value($this->speaker->translationInput('job_title')['en'] ?? null)
+                        ->placeholder('e.g. Senior Engineer'),
+
+                    TextArea::make('speaker.bio_translations.en')
+                        ->title('Biography')
+                        ->value($this->speaker->plainText($this->speaker->translationInput('bio')['en'] ?? null))
+                        ->rows(5)
+                        ->placeholder('Short bio about the speaker...'),
+                ]),
+
+                'Français' => Layout::rows([
+                    Input::make('speaker.job_title_translations.fr')
+                        ->title('Poste')
+                        ->value($this->speaker->translationInput('job_title')['fr'] ?? null),
+
+                    TextArea::make('speaker.bio_translations.fr')
+                        ->title('Biographie')
+                        ->value($this->speaker->plainText($this->speaker->translationInput('bio')['fr'] ?? null))
+                        ->rows(5),
+                ]),
+
+                'العربية' => Layout::rows([
+                    Input::make('speaker.job_title_translations.ar')
+                        ->title('المسمى الوظيفي')
+                        ->value($this->speaker->translationInput('job_title')['ar'] ?? null),
+
+                    TextArea::make('speaker.bio_translations.ar')
+                        ->title('السيرة الذاتية')
+                        ->value($this->speaker->plainText($this->speaker->translationInput('bio')['ar'] ?? null))
+                        ->rows(5),
+                ]),
             ])
         ];
     }
 
     public function save(Speaker $speaker, Request $request)
     {
-        $speaker->fill($request->get('speaker'))->save();
+        $request->validate([
+            'speaker.full_name' => 'required|string|max:255',
+            'speaker.company_name' => 'nullable|string|max:255',
+            'speaker.job_title_translations.*' => 'nullable|string|max:255',
+            'speaker.bio_translations.*' => 'nullable|string',
+        ]);
+
+        $data = $speaker->prepareTranslatedData($request->get('speaker', []), ['job_title', 'bio'], ['bio']);
+
+        $speaker->fill($data)->save();
         Toast::info('Speaker saved successfully.');
         return redirect()->route('platform.speakers.list');
     }

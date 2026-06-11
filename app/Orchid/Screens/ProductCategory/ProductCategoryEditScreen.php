@@ -21,6 +21,7 @@ class ProductCategoryEditScreen extends Screen
     {
         // Load products linked to this category
         $category->load('products');
+        $category->hydrateTranslationInputs(['name']);
 
         return [
             'category' => $category,
@@ -51,11 +52,28 @@ class ProductCategoryEditScreen extends Screen
     {
         return [
             // 1. Edit Category Form
-            Layout::rows([
-                Input::make('category.name')
-                    ->title('Category Name')
-                    ->required(),
+            Layout::tabs([
+                'English' => Layout::rows([
+                    Input::make('category.name_translations.en')
+                        ->title('Category Name')
+                        ->value($this->category->translationInput('name')['en'] ?? null)
+                        ->required(),
+                ]),
 
+                'Français' => Layout::rows([
+                    Input::make('category.name_translations.fr')
+                        ->title('Nom de la catégorie')
+                        ->value($this->category->translationInput('name')['fr'] ?? null),
+                ]),
+
+                'العربية' => Layout::rows([
+                    Input::make('category.name_translations.ar')
+                        ->title('اسم الفئة')
+                        ->value($this->category->translationInput('name')['ar'] ?? null),
+                ]),
+            ]),
+
+            Layout::rows([
                 Input::make('category.slug')
                     ->title('Slug')
                     ->help('Unique identifier for APIs (auto-generated if empty).'),
@@ -88,6 +106,14 @@ class ProductCategoryEditScreen extends Screen
     public function save(ProductCategory $category, Request $request)
     {
         $data = $request->get('category');
+        $request->validate([
+            'category.name_translations.en' => 'required|string|max:255',
+            'category.name_translations.fr' => 'nullable|string|max:255',
+            'category.name_translations.ar' => 'nullable|string|max:255',
+            'category.slug' => 'nullable|string|max:255',
+        ]);
+
+        $data = $category->prepareTranslatedData($data, ['name']);
 
         // Simple slug generation
         if (empty($data['slug'])) {
@@ -96,13 +122,13 @@ class ProductCategoryEditScreen extends Screen
 
         $category->fill($data)->save();
         Toast::info('Category saved.');
-        return redirect()->route('platform.categories.list');
+        return redirect()->route('platform.product-categories.list');
     }
 
     public function remove(ProductCategory $category)
     {
         $category->delete();
         Toast::info('Category deleted.');
-        return redirect()->route('platform.categories.list');
+        return redirect()->route('platform.product-categories.list');
     }
 }

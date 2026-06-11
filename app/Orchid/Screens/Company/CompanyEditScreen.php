@@ -23,6 +23,8 @@ class CompanyEditScreen extends Screen
 
     public function query(Company $company): array
     {
+        $company->hydrateTranslationInputs(['name', 'category', 'description', 'address']);
+
         return [
             'company' => $company
         ];
@@ -67,11 +69,6 @@ class CompanyEditScreen extends Screen
                             ->title('Logo')
                             ->targetRelativeUrl(),
 
-                        Input::make('company.name')
-                            ->title('Company Name')
-                            ->placeholder('e.g. Acme Corp')
-                            ->required(),
-
                         Input::make('company.passcode')
                             ->title('Access Code (Passcode)')
                             ->placeholder('Ex: HYGIE-A1B2')
@@ -93,16 +90,76 @@ class CompanyEditScreen extends Screen
                             ->multiple() // Allow selecting multiple types
                             ->options(Company::TYPES)
                             ->help('A company can have multiple roles (e.g. Sponsor AND Exhibitor).'),
+                    ]),
+                ]),
 
-                        Input::make('company.category')
+                'Localized Content' => Layout::tabs([
+                    'English' => Layout::rows([
+                        Input::make('company.name_translations.en')
+                            ->title('Company Name')
+                            ->placeholder('e.g. Acme Corp')
+                            ->value($this->company->translationInput('name')['en'] ?? null)
+                            ->required(),
+
+                        Input::make('company.category_translations.en')
                             ->title('Industry Category')
-                            ->placeholder('e.g. Technology, Healthcare'),
+                            ->placeholder('e.g. Technology, Healthcare')
+                            ->value($this->company->translationInput('category')['en'] ?? null)
+                            ->help('Use commas to add multiple domains. Each one will appear as a separate category button in the app.'),
+
+                        Input::make('company.address_translations.en')
+                            ->title('Full Address')
+                            ->value($this->company->translationInput('address')['en'] ?? null)
+                            ->placeholder('123 Business Blvd, City'),
+
+                        TextArea::make('company.description_translations.en')
+                            ->title('About the Company')
+                            ->value($this->company->plainText($this->company->translationInput('description')['en'] ?? null))
+                            ->rows(5)
+                            ->placeholder('Short bio...'),
                     ]),
 
-                    TextArea::make('company.description')
-                        ->title('About the Company')
-                        ->rows(5)
-                        ->placeholder('Short bio...'),
+                    'Français' => Layout::rows([
+                        Input::make('company.name_translations.fr')
+                            ->title('Nom de l’entreprise')
+                            ->value($this->company->translationInput('name')['fr'] ?? null),
+
+                        Input::make('company.category_translations.fr')
+                            ->title('Catégorie d’activité')
+                            ->value($this->company->translationInput('category')['fr'] ?? null)
+                            ->placeholder('Ex: Technologie, Santé')
+                            ->help('Séparez plusieurs domaines par des virgules.'),
+
+                        Input::make('company.address_translations.fr')
+                            ->title('Adresse complète')
+                            ->value($this->company->translationInput('address')['fr'] ?? null),
+
+                        TextArea::make('company.description_translations.fr')
+                            ->title('À propos de l’entreprise')
+                            ->value($this->company->plainText($this->company->translationInput('description')['fr'] ?? null))
+                            ->rows(5),
+                    ]),
+
+                    'العربية' => Layout::rows([
+                        Input::make('company.name_translations.ar')
+                            ->title('اسم الشركة')
+                            ->value($this->company->translationInput('name')['ar'] ?? null),
+
+                        Input::make('company.category_translations.ar')
+                            ->title('قطاع الشركة')
+                            ->value($this->company->translationInput('category')['ar'] ?? null)
+                            ->placeholder('مثال: التكنولوجيا، الصحة')
+                            ->help('افصل بين المجالات المتعددة بفواصل.'),
+
+                        Input::make('company.address_translations.ar')
+                            ->title('العنوان الكامل')
+                            ->value($this->company->translationInput('address')['ar'] ?? null),
+
+                        TextArea::make('company.description_translations.ar')
+                            ->title('نبذة عن الشركة')
+                            ->value($this->company->plainText($this->company->translationInput('description')['ar'] ?? null))
+                            ->rows(5),
+                    ]),
                 ]),
 
                 // TAB 2: LOGISTICS
@@ -117,10 +174,6 @@ class CompanyEditScreen extends Screen
                             ->title('Country')
                             ->placeholder('e.g. Morocco'),
                     ]),
-
-                    Input::make('company.address')
-                        ->title('Full Address')
-                        ->placeholder('123 Business Blvd, City'),
 
                     // JSON Input for Map
                     Code::make('company.map_coordinates')
@@ -169,7 +222,12 @@ class CompanyEditScreen extends Screen
     public function save(Company $company, Request $request)
     {
         $request->validate([
-            'company.name' => 'required|max:255',
+            'company.name_translations.en' => 'required|max:255',
+            'company.name_translations.fr' => 'nullable|max:255',
+            'company.name_translations.ar' => 'nullable|max:255',
+            'company.category_translations.*' => 'nullable|max:255',
+            'company.address_translations.*' => 'nullable|max:255',
+            'company.description_translations.*' => 'nullable|string',
             'company.passcode' => 'nullable|string|max:255',
             'catalog_upload' => 'nullable|file|mimes:pdf|max:10240', // Max 10MB
             'company.email' => 'nullable|email',
@@ -177,6 +235,7 @@ class CompanyEditScreen extends Screen
         ]);
 
         $data = $request->get('company');
+        $data = $company->prepareTranslatedData($data, ['name', 'category', 'description', 'address'], ['description']);
 
         if ($request->hasFile('catalog_upload')) {
             // Store in storage/app/public/catalogs

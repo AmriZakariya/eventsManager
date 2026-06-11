@@ -328,6 +328,30 @@ class CompanyListScreen extends Screen
                         return "<div style='display:flex;flex-wrap:wrap;gap:4px;'>{$badges}</div>";
                     }),
 
+                TD::make('category', 'Industry Domains')
+                    ->width('240px')
+                    ->render(function (Company $company) {
+                        $items = $company->localizedCategoryItems('en');
+
+                        if (empty($items)) {
+                            return "<span style='color:#CBD5E1;font-size:0.78rem;font-style:italic;'>No domains</span>";
+                        }
+
+                        $buttons = collect($items)->map(function (array $item) {
+                            $label = e($item['label']);
+                            $href = route('platform.companies.list', ['category' => $item['value']]);
+
+                            return "<a href='{$href}' style='
+                                display:inline-flex;align-items:center;
+                                border:1px solid #BFDBFE;background:#EFF6FF;color:#1D4ED8;
+                                border-radius:999px;padding:3px 9px;font-size:0.72rem;
+                                font-weight:600;text-decoration:none;
+                            '>{$label}</a>";
+                        })->implode('');
+
+                        return "<div style='display:flex;flex-wrap:wrap;gap:5px;'>{$buttons}</div>";
+                    }),
+
                 // ── LOCATION & BOOTH ──────────────────────────────────────────
                 TD::make('booth_number', 'Location & Booth')
                     ->width('175px')
@@ -550,7 +574,7 @@ class CompanyListScreen extends Screen
         }
 
         if ($category = $request->get('category')) {
-            $query->where('category', 'like', "%{$category}%");
+            $query->whereCategoryToken($category);
         }
 
         return $query;
