@@ -131,6 +131,7 @@ return [
         ],
         'scripts'     => [
             '/js/admin-sidebar-fix.js', // <--- ADD THIS LINE
+            '/js/admin-form-state-fix.js',
         ],
     ],
 

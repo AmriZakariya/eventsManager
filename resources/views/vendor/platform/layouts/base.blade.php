@@ -21,6 +21,7 @@
           class="mb-md-4 h-100"
           method="post"
           enctype="multipart/form-data"
+          data-turbo-cache="false"
           data-controller="form"
           data-form-need-prevents-form-abandonment-value="{{ var_export($needPreventsAbandonment) }}"
           data-form-failed-validation-message-value="{{ $formValidateMessage }}"

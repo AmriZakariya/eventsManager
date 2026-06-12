@@ -1,8 +1,13 @@
+@php
+    $formsForActiveTab = $manyForms instanceof \Illuminate\Support\Collection ? $manyForms->all() : (array) $manyForms;
+    $resolvedActiveTab = $activeTab ?? array_key_first($formsForActiveTab);
+@endphp
+
 <div
     class="mb-3"
     data-controller="tabs"
     data-tabs-slug="{{$templateSlug}}"
-    data-tabs-active-tab="{{$activeTab}}"
+    data-tabs-active-tab="{{$resolvedActiveTab}}"
 >
     <nav class="d-flex justify-content-center text-nowrap mb-3">
         <div class="bg-body-tertiary rounded overflow-hidden">
@@ -12,7 +17,7 @@
                         <a
                             @class([
                                 'nav-link',
-                                'active' => $activeTab === $name || ($loop->first && is_null($activeTab))
+                                'active' => $resolvedActiveTab === $name
                             ])
                             data-action="tabs#setActiveTab"
                             href="#tab-{{sha1($templateSlug.$name)}}"
@@ -36,7 +41,7 @@
                  id="tab-{{sha1($templateSlug.$name)}}"
                  @class([
                     'tab-pane',
-                    'active' => $activeTab === $name || ($loop->first && is_null($activeTab))
+                    'active' => $resolvedActiveTab === $name
                  ])
             >
                 @foreach($forms as $form)
