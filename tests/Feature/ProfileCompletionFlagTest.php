@@ -26,29 +26,21 @@ class ProfileCompletionFlagTest extends TestCase
             ->assertJsonPath('data.needs_profile_completion', true);
     }
 
-    public function test_user_lists_expose_profile_completion_flags(): void
+    public function test_api_user_resources_expose_profile_completion_flags(): void
     {
-        $authUser = User::factory()->create([
+        $user = User::factory()->create([
             'password_is_set' => true,
             'phone' => '+212600000000',
             'is_visible' => true,
         ]);
 
-        User::factory()->create([
-            'name' => 'Incomplete',
-            'last_name' => 'User',
-            'password_is_set' => false,
-            'phone' => '+212600000001',
-            'is_visible' => true,
-        ]);
+        Sanctum::actingAs($user);
 
-        Sanctum::actingAs($authUser);
-
-        $this->getJson('/api/networking/discover')
+        $this->getJson('/api/auth/me')
             ->assertOk()
-            ->assertJsonPath('data.0.password_is_set', false)
-            ->assertJsonPath('data.0.profile_completed', false)
-            ->assertJsonPath('data.0.needs_profile_completion', true);
+            ->assertJsonPath('data.password_is_set', true)
+            ->assertJsonPath('data.profile_completed', true)
+            ->assertJsonPath('data.needs_profile_completion', false);
     }
 
     public function test_admin_profile_completion_badge_uses_password_state(): void

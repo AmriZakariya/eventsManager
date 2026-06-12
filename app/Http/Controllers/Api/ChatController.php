@@ -43,6 +43,7 @@ class ChatController extends Controller
 
         $users = User::with('company')
             ->withConnectionStatusFor($userId)
+            ->profileCompleted()
             ->whereIn('id', $conversations->pluck('other_user_id'))
             ->get()
             ->keyBy('id');
@@ -202,6 +203,10 @@ class ChatController extends Controller
         }
 
         $receiver = User::findOrFail($request->receiver_id);
+
+        if (!$receiver->profile_completed) {
+            return response()->json(['message' => 'This user has not completed their profile yet.'], 422);
+        }
 
         $message = Message::create([
             'sender_id'   => $request->user()->id,

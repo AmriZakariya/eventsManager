@@ -155,6 +155,11 @@ class User extends Authenticatable
         return $query->where('app_role', $role);
     }
 
+    public function scopeProfileCompleted(Builder $query): Builder
+    {
+        return $query->where('password_is_set', true);
+    }
+
     public function scopeWithConnectionStatusFor(Builder $query, ?int $authId): Builder
     {
         if (!$authId) {

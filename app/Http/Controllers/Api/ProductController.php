@@ -24,7 +24,7 @@ class ProductController extends Controller
         $query = Product::with([
             'category',
             'company' => fn ($q) => $q->with([
-                'team' => fn ($q) => $q->withConnectionStatusFor($authId),
+                'team' => fn ($q) => $q->profileCompleted()->withConnectionStatusFor($authId),
             ]),
         ]);
 
@@ -70,7 +70,7 @@ class ProductController extends Controller
         $product = Product::with([
             'category',
             'company' => fn ($q) => $q->with([
-                'team' => fn ($q) => $q->withConnectionStatusFor($authId),
+                'team' => fn ($q) => $q->profileCompleted()->withConnectionStatusFor($authId),
             ]),
         ])->findOrFail($id);
         return response()->json((new ProductResource($product))->resolve(request()));

@@ -25,9 +25,11 @@ class NetworkingController extends Controller
         // 1. Build Query with connection_status subquery
         $query = User::with('company')
             ->withConnectionStatusFor($authId)
+            ->profileCompleted()
             ->where('id', '!=', $authId)
             ->where('is_visible', true)
             ->where('id', '!=', "1")
+            ->where('app_role', '!=', User::APP_ROLE_ADMIN)
             ->where(function ($q) {
                 $q->whereNull('phone')
                     ->orWhere('phone', '!=', 'N/A');
@@ -80,6 +82,7 @@ class NetworkingController extends Controller
         $incoming = Connection::with('requester.company')
             ->where('target_id', $authId)
             ->where('status', 'pending')
+            ->whereHas('requester', fn (Builder $q) => $q->profileCompleted())
             ->get()
             ->map(function ($c) {
                 $user = $c->requester;
@@ -96,6 +99,7 @@ class NetworkingController extends Controller
         $outgoing = Connection::with('target.company')
             ->where('requester_id', $authId)
             ->where('status', 'pending')
+            ->whereHas('target', fn (Builder $q) => $q->profileCompleted())
             ->get()
             ->map(function ($c) {
                 $user = $c->target;
@@ -114,6 +118,15 @@ class NetworkingController extends Controller
             ->where(function ($q) use ($authId) {
                 $q->where('requester_id', $authId)
                     ->orWhere('target_id', $authId);
+            })
+            ->where(function ($q) use ($authId) {
+                $q->where(function ($q) use ($authId) {
+                    $q->where('requester_id', $authId)
+                        ->whereHas('target', fn (Builder $q) => $q->profileCompleted());
+                })->orWhere(function ($q) use ($authId) {
+                    $q->where('target_id', $authId)
+                        ->whereHas('requester', fn (Builder $q) => $q->profileCompleted());
+                });
             })
             ->get()
             ->map(function ($c) use ($authId) {
@@ -153,6 +166,12 @@ class NetworkingController extends Controller
             return response()->json(['message' => 'Cannot connect to yourself'], 422);
         }
 
+        $targetUser = User::findOrFail($targetId);
+
+        if (!$targetUser->profile_completed && in_array($request->action, ['connect', 'accept'], true)) {
+            return response()->json(['message' => 'This user has not completed their profile yet.'], 422);
+        }
+
         // Handle Actions
         switch ($request->action) {
             case 'connect':
@@ -171,10 +190,7 @@ class NetworkingController extends Controller
                     ]);
 
                     // Notify Target
-                    $targetUser = User::find($targetId);
-                    if ($targetUser) {
-                        $targetUser->notify(new NewConnectionRequest($user));
-                    }
+                    $targetUser->notify(new NewConnectionRequest($user));
                 }
                 break;
 

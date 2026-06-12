@@ -70,6 +70,7 @@ class B2BController extends Controller
 
         $query = User::with('company')
             ->withConnectionStatusFor($authId)
+            ->profileCompleted()
             ->appRole(User::APP_ROLE_EXHIBITOR)
             ->orderBy('name', 'asc');
 
@@ -110,6 +111,10 @@ class B2BController extends Controller
 
         $visitor = $request->user();
         $targetUser = User::with('company')->findOrFail($request->target_user_id);
+
+        if (!$targetUser->profile_completed) {
+            return response()->json(['message' => 'This user has not completed their profile yet.'], 422);
+        }
 
         $dayStart = Carbon::parse($request->scheduled_at)->startOfDay();
         $dayEnd = (clone $dayStart)->endOfDay();
