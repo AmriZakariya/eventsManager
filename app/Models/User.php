@@ -110,7 +110,9 @@ class User extends Authenticatable
     protected $appends = [
         'avatar_url',
         'role',
-        'connection_status'
+        'connection_status',
+        'profile_completed',
+        'needs_profile_completion',
     ];
 
     // --- Relationships ---
@@ -238,6 +240,45 @@ class User extends Authenticatable
     public function getRoleAttribute(): string
     {
         return $this->app_role ?: $this->resolveLegacyAppRole();
+    }
+
+    public function getProfileCompletedAttribute(): bool
+    {
+        return (bool) $this->password_is_set;
+    }
+
+    public function getNeedsProfileCompletionAttribute(): bool
+    {
+        return !$this->profile_completed;
+    }
+
+    public function profileCompletionLabel(): string
+    {
+        return $this->profile_completed ? 'Profile Complete' : 'Needs Profile';
+    }
+
+    public function profileCompletionBadgeClass(): string
+    {
+        return $this->profile_completed ? 'bg-success' : 'bg-warning text-dark';
+    }
+
+    public function profileCompletionBadgeTitle(): string
+    {
+        return $this->profile_completed
+            ? 'This user has completed signup and has a password.'
+            : 'No password is set. The user probably came from social login or WordPress and still needs to complete their profile.';
+    }
+
+    public function profileCompletionBadgeHtml(string $extraClass = ''): string
+    {
+        $class = trim('badge '.$this->profileCompletionBadgeClass().' '.$extraClass);
+
+        return sprintf(
+            '<span class="%s" title="%s">%s</span>',
+            e($class),
+            e($this->profileCompletionBadgeTitle()),
+            e($this->profileCompletionLabel())
+        );
     }
 
     public function syncAppRole(?string $role = null): void

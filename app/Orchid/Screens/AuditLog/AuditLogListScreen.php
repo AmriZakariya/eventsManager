@@ -18,7 +18,7 @@ class AuditLogListScreen extends Screen
 {
     public function query(Request $request): iterable
     {
-        $query = AuditLog::with(['user:id,name,email,last_name'])
+        $query = AuditLog::with(['user:id,name,email,last_name,password_is_set'])
             ->filters(AuditLogFiltersLayout::class)
             ->defaultSort('created_at', 'desc');
 

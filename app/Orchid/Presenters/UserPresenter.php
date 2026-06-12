@@ -33,7 +33,7 @@ class UserPresenter extends Presenter implements Personable, Searchable
      */
     public function subTitle(): string
     {
-        $roles = 'App: '.$this->entity->appRoleLabel().' | Admin panel: '.$this->entity->adminPanelRolesLabel();
+        $roles = $this->entity->profileCompletionLabel().' | App: '.$this->entity->appRoleLabel().' | Admin panel: '.$this->entity->adminPanelRolesLabel();
 
         if ($this->entity->created_source) {
             $roles .= ' | Created: '.$this->entity->createdSourceLabel();

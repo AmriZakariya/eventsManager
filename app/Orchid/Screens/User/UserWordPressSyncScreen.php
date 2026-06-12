@@ -148,7 +148,7 @@ class UserWordPressSyncScreen extends Screen
                             : 'bg-light text-dark';
 
                         return "<div>
-                            <div><a href=\"{$url}\" class=\"fw-bold text-decoration-none\">{$name}</a> <span class='badge {$createdSourceColor}'>".e($user->createdSourceLabel())."</span></div>
+                            <div><a href=\"{$url}\" class=\"fw-bold text-decoration-none\">{$name}</a> <span class='badge {$createdSourceColor}'>".e($user->createdSourceLabel())."</span> ".$user->profileCompletionBadgeHtml('ms-1')."</div>
                             <div class=\"text-muted small\">{$email}</div>
                             <div class=\"text-muted small\">{$company}</div>
                         </div>";

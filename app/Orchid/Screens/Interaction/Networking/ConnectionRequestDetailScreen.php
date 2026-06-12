@@ -165,13 +165,14 @@ class ConnectionRequestDetailScreen extends Screen
         $company = $user->company?->name ?? 'No company';
         $url = route('platform.systems.users.edit', $user->id);
         $name = e($this->userDisplayName($user));
+        $profileBadge = $user->profileCompletionBadgeHtml();
 
         return "
             <a href=\"{$url}\" class=\"connection-detail-card text-decoration-none\">
                 <img src=\"{$avatar}\" alt=\"{$name}\" class=\"connection-detail-avatar\">
                 <div>
                     <div class=\"small text-muted text-uppercase mb-1\">{$caption}</div>
-                    <div class=\"fw-semibold text-dark\">{$name}</div>
+                    <div class=\"fw-semibold text-dark\">{$name} {$profileBadge}</div>
                     <div class=\"small text-muted\">" . e($user->email) . "</div>
                     <div class=\"small text-muted\">" . e(($user->job_title ?: 'No job title') . ' @ ' . $company) . "</div>
                 </div>

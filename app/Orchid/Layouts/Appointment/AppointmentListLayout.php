@@ -38,15 +38,18 @@ class AppointmentListLayout extends Table
             TD::make('booker', 'Visitor')
                 ->render(function (Appointment $apt) {
                     $initial = strtoupper(substr($apt->booker->name ?? '?', 0, 1));
+                    $profileBadge = $apt->booker?->profileCompletionBadgeHtml('ms-1') ?? '';
+
                     return sprintf(
                         '<div class="d-flex align-items-center">
                             <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px; font-size: 14px;">
                                 %s
                             </div>
-                            <div>%s</div>
+                            <div>%s %s</div>
                         </div>',
                         $initial,
-                        e($apt->booker->full_name ?? '-')
+                        e($apt->booker->full_name ?? '-'),
+                        $profileBadge
                     );
                 }),
 
@@ -56,6 +59,7 @@ class AppointmentListLayout extends Table
                     $companyBadge = $apt->targetUser->company
                         ? '<div><small class="badge bg-light text-dark border">' . e($apt->targetUser->company->name) . '</small></div>'
                         : '';
+                    $profileBadge = $apt->targetUser?->profileCompletionBadgeHtml('ms-1') ?? '';
 
                     return sprintf(
                         '<div class="d-flex align-items-center">
@@ -63,12 +67,13 @@ class AppointmentListLayout extends Table
                                 %s
                             </div>
                             <div>
-                                <div>%s</div>
+                                <div>%s %s</div>
                                 %s
                             </div>
                         </div>',
                         $initial,
                         e($apt->targetUser->full_name ?? '-'),
+                        $profileBadge,
                         $companyBadge
                     );
                 }),

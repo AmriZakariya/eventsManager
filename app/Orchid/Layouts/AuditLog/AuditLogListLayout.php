@@ -28,7 +28,7 @@ class AuditLogListLayout extends Table
 
                     $name = trim($log->user->name . ' ' . ($log->user->last_name ?? ''));
 
-                    return '<div class="fw-semibold">' . e($name) . '</div>'
+                    return '<div class="fw-semibold">' . e($name) . ' ' . $log->user->profileCompletionBadgeHtml('ms-1') . '</div>'
                         . '<small class="text-muted">' . e($log->user->email) . '</small>';
                 }),
 

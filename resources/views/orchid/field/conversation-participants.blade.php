@@ -23,6 +23,7 @@
                     <span class="badge bg-light text-dark border px-2 py-1 ml-1" style="font-size: 0.7rem;">
                         {{ $p1->createdSourceLabel() }}
                     </span>
+                    {!! $p1->profileCompletionBadgeHtml('ml-1') !!}
                 </div>
                 <small class="text-muted d-block text-truncate" style="max-width: 180px;">
                     <i class="bs.envelope-fill me-1" style="font-size: 0.7rem;"></i>
@@ -71,6 +72,7 @@
                     <span class="badge bg-light text-dark border px-2 py-1 ml-1" style="font-size: 0.7rem;">
                         {{ $p2->createdSourceLabel() }}
                     </span>
+                    {!! $p2->profileCompletionBadgeHtml('ml-1') !!}
                 </div>
                 <small class="text-muted d-block text-truncate" style="max-width: 180px;">
                     <i class="bs.envelope-fill me-1" style="font-size: 0.7rem;"></i>

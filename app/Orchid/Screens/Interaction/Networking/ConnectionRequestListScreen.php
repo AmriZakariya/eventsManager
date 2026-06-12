@@ -45,10 +45,10 @@ class ConnectionRequestListScreen extends Screen
             ->first();
 
         $requests = Connection::with([
-            'requester:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source',
+            'requester:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source,password_is_set',
             'requester.company:id,name',
             'requester.roles:id,name,slug',
-            'target:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source',
+            'target:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source,password_is_set',
             'target.company:id,name',
             'target.roles:id,name,slug',
         ])
@@ -237,6 +237,7 @@ class ConnectionRequestListScreen extends Screen
         $createdSource = $user->created_source ? e($user->createdSourceLabel()) : 'Unknown';
         $name = trim($user->name . ' ' . $user->last_name);
         $jobLine = trim(($user->job_title ?: 'No job title') . ' @ ' . $company);
+        $profileBadge = $user->profileCompletionBadgeHtml();
 
         return sprintf(
             '<div class="connection-persona d-flex align-items-center">
@@ -249,7 +250,7 @@ class ConnectionRequestListScreen extends Screen
                     <div class="small text-muted">%s</div>
                     <div class="small text-muted">Admin panel: %s</div>
                     <div class="small text-muted">Created: %s</div>
-                    <div class="mt-1"><span class="badge" style="background-color:%s15; color:%s; font-size: 0.65rem; border: 1px solid %s30;">%s</span></div>
+                    <div class="mt-1">%s <span class="badge" style="background-color:%s15; color:%s; font-size: 0.65rem; border: 1px solid %s30;">%s</span></div>
                 </div>
             </div>',
             $editUrl,
@@ -263,6 +264,7 @@ class ConnectionRequestListScreen extends Screen
             e(Str::limit($jobLine, 44)),
             $adminPanelRoles,
             $createdSource,
+            $profileBadge,
             $roleColor,
             $roleColor,
             $roleColor,

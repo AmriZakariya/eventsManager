@@ -94,7 +94,7 @@ class ConversationListScreen extends Screen
             ->filter();
 
         $users = User::whereIn('id', $userIds)
-            ->select(['id', 'name', 'last_name', 'email', 'avatar', 'company_id', 'app_role', 'created_source'])
+            ->select(['id', 'name', 'last_name', 'email', 'avatar', 'company_id', 'app_role', 'created_source', 'password_is_set'])
             ->with([
                 'company:id,name',
                 'roles:id,name,slug',
@@ -366,6 +366,7 @@ class ConversationListScreen extends Screen
         $fullName    = e($user->name . ' ' . $user->last_name);
         $adminPanelRoles = e($user->adminPanelRolesLabel());
         $createdSource = $user->created_source ? e($user->createdSourceLabel()) : 'Unknown';
+        $profileBadge = $user->profileCompletionBadgeHtml();
 
         return $styles . sprintf(
                 '<div class="uc">
@@ -380,6 +381,7 @@ class ConversationListScreen extends Screen
                     <span class="uc-meta"><i class="icon-briefcase" style="opacity:.6;font-size:.68rem;"></i> %s</span>
                     <span class="uc-meta">Admin panel: %s</span>
                     <span class="uc-meta">Created: %s</span>
+                    <span class="uc-meta">%s</span>
                     <span class="uc-badge %s">%s</span>
                 </div>
             </div>',
@@ -393,6 +395,7 @@ class ConversationListScreen extends Screen
                 e($company),
                 $adminPanelRoles,
                 $createdSource,
+                $profileBadge,
                 $badgeClass, $badgeLabel
             );
     }

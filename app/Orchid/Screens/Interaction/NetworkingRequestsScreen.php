@@ -3,6 +3,7 @@
 namespace App\Orchid\Screens\Interaction;
 
 use App\Models\Connection;
+use App\Models\User;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
 use Orchid\Screen\Actions\Link;
@@ -33,20 +34,14 @@ class NetworkingRequestsScreen extends Screen
             Layout::table('requests', [
 
                 TD::make('requester', 'Requester')
-                    ->render(fn($c) =>
-                        $c->requester->name . ' ' . $c->requester->last_name
-                        . ($c->requester->company ? ' (' . $c->requester->company->name . ')' : '')
-                    ),
+                    ->render(fn($c) => $this->renderSimpleUser($c->requester)),
 
                 TD::make('arrow', '')
                     ->align(TD::ALIGN_CENTER)
                     ->render(fn() => '➡️'),
 
                 TD::make('target', 'Target')
-                    ->render(fn($c) =>
-                        $c->target->name . ' ' . $c->target->last_name
-                        . ($c->target->company ? ' (' . $c->target->company->name . ')' : '')
-                    ),
+                    ->render(fn($c) => $this->renderSimpleUser($c->target)),
 
                 TD::make('status', 'Status')
                     ->render(function ($c) {
@@ -77,5 +72,19 @@ class NetworkingRequestsScreen extends Screen
                     ),
             ])
         ];
+    }
+
+    private function renderSimpleUser(?User $user): string
+    {
+        if (! $user) {
+            return '<span class="text-muted">Deleted user</span>';
+        }
+
+        $company = $user->company ? ' <span class="text-muted">(' . e($user->company->name) . ')</span>' : '';
+
+        return e(trim($user->name . ' ' . $user->last_name))
+            . ' '
+            . $user->profileCompletionBadgeHtml('ms-1')
+            . $company;
     }
 }

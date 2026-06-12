@@ -80,6 +80,7 @@ class ExhibitorUserListScreen extends Screen
         // 5. Metrics Calculation
         $total    = (clone $query)->count();
         $verified = (clone $query)->whereNotNull('email_verified_at')->count();
+        $needsProfile = (clone $query)->where('password_is_set', false)->count();
 
         return [
             'exhibitors' => $query->paginate(15),
@@ -87,6 +88,7 @@ class ExhibitorUserListScreen extends Screen
                 'total'    => $total,
                 'verified' => $verified,
                 'pending'  => $total - $verified,
+                'needs_profile' => $needsProfile,
             ],
         ];
     }
@@ -122,6 +124,7 @@ class ExhibitorUserListScreen extends Screen
                 'Total Members'   => 'metrics.total',
                 'Verified Accounts' => 'metrics.verified',
                 'Pending Review'    => 'metrics.pending',
+                'Needs Profile'     => 'metrics.needs_profile',
             ]),
 
             // 2. FILTERS ROW
@@ -173,7 +176,7 @@ class ExhibitorUserListScreen extends Screen
                         return "<div class='d-flex align-items-center'>
                                     <a href='{$editUrl}'>{$avatar}</a>
                                     <div class='lh-sm'>
-                                        <div class='fw-bold text-dark'><a href='{$editUrl}' class='text-dark text-decoration-none'>{$user->name} {$user->last_name}</a> <span class='badge {$createdSourceColor}'>".e($user->createdSourceLabel())."</span></div>
+                                        <div class='fw-bold text-dark'><a href='{$editUrl}' class='text-dark text-decoration-none'>".e(trim($user->name.' '.$user->last_name))."</a> <span class='badge {$createdSourceColor}'>".e($user->createdSourceLabel())."</span> ".$user->profileCompletionBadgeHtml('ms-1')."</div>
                                         <div class='small text-muted'>{$user->email}</div>
                                     </div>
                                 </div>";

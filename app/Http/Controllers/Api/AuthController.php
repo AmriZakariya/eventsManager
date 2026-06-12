@@ -465,6 +465,8 @@ class AuthController extends Controller
 
             'job_title' => $user->job_title,
             'password_is_set' => (bool) $user->password_is_set,
+            'profile_completed' => $user->profile_completed,
+            'needs_profile_completion' => $user->needs_profile_completion,
 
             // Critical for Visitor Identity
             'badge_code' => $user->badge_code,

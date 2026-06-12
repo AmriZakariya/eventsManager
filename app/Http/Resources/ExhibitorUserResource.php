@@ -18,6 +18,9 @@ class ExhibitorUserResource extends JsonResource
 
             // Ensure role is passed so Flutter knows to show the "EXHIBITOR" badge
             'role'           => $this->role,
+            'password_is_set' => (bool) $this->password_is_set,
+            'profile_completed' => $this->profile_completed,
+            'needs_profile_completion' => $this->needs_profile_completion,
 
             'job_title'      => $this->job_title,
             'avatar'         => $this->avatar ? asset($this->avatar) : null,

@@ -66,6 +66,7 @@ class UserListLayout extends Table
                             ->route('platform.systems.users.edit', $user->id)
                             ->class('fw-bold text-decoration-none') .
                         ' <span class="badge '.$createdSourceColor.'">'.e($user->createdSourceLabel()).'</span>' .
+                        ' '.$user->profileCompletionBadgeHtml('ms-1') .
                         ($user->is_visible ? '' : ' <span class="badge bg-secondary ms-1">Hidden</span>') .
                         '</div>';
                 }),
