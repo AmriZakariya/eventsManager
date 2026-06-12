@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use App\Models\Concerns\HasLocalizedContent;
 use App\Traits\Favoritable;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Orchid\Attachment\Attachable;
 
 class Company extends Model
 {
-    use AsSource, Attachable, Favoritable, Filterable, HasLocalizedContent;
+    use AsSource, Attachable, AuditableModel, Favoritable, Filterable, HasLocalizedContent;
 
     public const TYPES = [
         'INSTITUTIONAL_PARTNER' => 'Institutional Partner',

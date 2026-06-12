@@ -137,6 +137,11 @@ class PlatformProvider extends OrchidServiceProvider
                 ->icon('bs.shield-lock')
                 ->route('platform.systems.roles')
                 ->permission('platform.systems.roles'),
+
+            Menu::make('Audit Logs')
+                ->icon('bs.journal-text')
+                ->route('platform.audit-logs')
+                ->permission('platform.audit-logs'),
         ];
     }
 
@@ -165,7 +170,8 @@ class PlatformProvider extends OrchidServiceProvider
 
             ItemPermission::group(__('System'))
                 ->addPermission('platform.systems.roles', __('Manage Roles'))
-                ->addPermission('platform.systems.users', __('Manage Users')),
+                ->addPermission('platform.systems.users', __('Manage Users'))
+                ->addPermission('platform.audit-logs', __('View Audit Logs')),
         ];
     }
 }

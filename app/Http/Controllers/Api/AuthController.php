@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
+use App\Services\AuditLogService;
 use App\Models\Company;
 use App\Models\Connection;
 use App\Service\WordPressUserSyncService;
@@ -127,6 +128,8 @@ class AuthController extends Controller
         });
         // 👆 END FIRE AND FORGET
 
+        AuditLogService::logLogin($user->id);
+
         return response()->json([
             'message' => 'Registration successful',
             'access_token' => $token,
@@ -203,7 +206,11 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $userId = $request->user()->id;
         $request->user()->currentAccessToken()->delete();
+
+        AuditLogService::logLogout($userId);
+
         return response()->json(['message' => 'Logged out successfully']);
     }
 
@@ -422,6 +429,8 @@ class AuthController extends Controller
         }
 
         $authToken = $user->createToken('mobile_app')->plainTextToken;
+
+        AuditLogService::logLogin($user->id);
 
         return response()->json([
             'message'      => 'Login successful',

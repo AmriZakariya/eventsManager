@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use App\Models\Concerns\HasLocalizedContent;
 use Illuminate\Database\Eloquent\Model;
 use Orchid\Screen\AsSource;
@@ -11,7 +12,7 @@ use Orchid\Filters\Types\Like; // <--- 1. IMPORT THIS
 
 class Speaker extends Model
 {
-    use AsSource, Attachable, Filterable, HasLocalizedContent;
+    use AsSource, Attachable, AuditableModel, Filterable, HasLocalizedContent;
 
     protected $fillable = [
         'full_name', 'job_title', 'job_title_translations', 'company_name', 'photo', 'bio', 'bio_translations'

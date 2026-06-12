@@ -3,10 +3,11 @@ namespace App\Models;
 
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\AuditableModel;
 use Orchid\Screen\AsSource;
 
 class AwardNominee extends Model {
-    use AsSource;
+    use AsSource, AuditableModel;
     protected $fillable = [
         'award_category_id', 'company_id', 'product_name', 'image', 'is_winner'
     ];

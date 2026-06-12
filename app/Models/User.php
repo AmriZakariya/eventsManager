@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use Orchid\Platform\Models\User as Authenticatable;
@@ -13,7 +14,7 @@ use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, Notifiable;
+    use AuditableModel, HasApiTokens, HasFactory, Notifiable;
 
     public const APP_ROLE_ADMIN = 'admin';
     public const APP_ROLE_EXHIBITOR = 'exhibitor';

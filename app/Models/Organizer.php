@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use Illuminate\Database\Eloquent\Model;
 use Orchid\Screen\AsSource;
 use Orchid\Attachment\Attachable;
@@ -9,7 +10,7 @@ use Orchid\Filters\Filterable;
 
 class Organizer extends Model
 {
-    use AsSource, Attachable, Filterable;
+    use AsSource, Attachable, AuditableModel, Filterable;
 
     protected $fillable = [
         'first_name',

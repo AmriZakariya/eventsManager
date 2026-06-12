@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use App\Models\Concerns\HasLocalizedContent;
 use Illuminate\Database\Eloquent\Model;
 use Orchid\Screen\AsSource;
@@ -9,7 +10,7 @@ use Orchid\Attachment\Attachable;
 
 class Product extends Model
 {
-    use AsSource, Attachable, HasLocalizedContent;
+    use AsSource, Attachable, AuditableModel, HasLocalizedContent;
 
     protected $fillable = [
         'company_id', 'category_id', 'name', 'name_translations',

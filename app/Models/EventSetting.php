@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use Illuminate\Database\Eloquent\Model;
 use Orchid\Screen\AsSource;
 
 class EventSetting extends Model
 {
-    use AsSource;
+    use AsSource, AuditableModel;
 
     protected $fillable = [
         // Branding & Identity

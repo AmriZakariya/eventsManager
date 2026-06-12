@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use Illuminate\Database\Eloquent\Model;
 use Orchid\Screen\AsSource;
 use Orchid\Filters\Filterable;
 
 class Appointment extends Model
 {
-    use AsSource, Filterable;
+    use AsSource, AuditableModel, Filterable;
 
     protected $fillable = [
         'booker_id', 'target_user_id',

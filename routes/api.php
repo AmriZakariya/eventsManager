@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AuditLogController;
 
 /*
 |--------------------------------------------------------------------------
@@ -77,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::get('/generateBadge', [BadgeController::class, 'generateBadge']);
     Route::post('/auth/update-profile', [AuthController::class, 'updateProfile']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
 
     // Notification Routes
     Route::post('/notifications/device-token', [NotificationController::class, 'saveDeviceToken']); // ADD THIS LINE
@@ -105,3 +107,9 @@ Route::prefix('config')->group(function () {
 Route::get('/languages', [LanguageController::class, 'index']);
 Route::get('/languages/{code}/translations', [LanguageController::class, 'translations']);
 Route::get('/languages/all', [LanguageController::class, 'all']);
+
+// Admin Routes - Audit Logs
+Route::middleware(['auth:sanctum', 'can:access-admin-dashboard'])->prefix('admin')->group(function () {
+    Route::get('/audit-logs', [AuditLogController::class, 'index']);
+    Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
+});

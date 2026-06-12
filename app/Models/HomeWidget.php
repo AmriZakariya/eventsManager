@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class HomeWidget extends Model
 {
+    use AuditableModel;
+
     protected $fillable = [
         'title',
         'identifier',

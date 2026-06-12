@@ -26,6 +26,7 @@ class RolesTableSeeder extends Seeder
             'platform.organizers' => true,
             'platform.contacts' => true,
             'platform.products' => true,
+            'platform.audit-logs' => true,
         ];
         $admin->save();
 

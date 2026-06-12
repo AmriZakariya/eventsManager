@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class HomeWidgetItem extends Model
 {
+    use AuditableModel;
+
     protected $fillable = [
         'home_widget_id',
         'title',

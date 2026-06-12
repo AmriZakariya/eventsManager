@@ -50,6 +50,7 @@ use App\Orchid\Screens\Appointment\AppointmentListScreen;
 use App\Orchid\Screens\Contact\ContactRequestListScreen;
 use App\Orchid\Screens\Interaction\ConversationListScreen;
 use App\Orchid\Screens\Interaction\ConversationViewScreen;
+use App\Orchid\Screens\AuditLog\AuditLogListScreen;
 
 
 /*
@@ -281,6 +282,12 @@ Route::screen('roles', RoleListScreen::class)
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.index')
         ->push(__('Roles'), route('platform.systems.roles')));
+
+Route::screen('audit-logs', AuditLogListScreen::class)
+    ->name('platform.audit-logs')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push('Audit Logs', route('platform.audit-logs')));
 
 // Home Widgets
 Route::screen('app/widgets', HomeWidgetListScreen::class)

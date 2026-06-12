@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AuditableModel;
 use App\Models\Concerns\HasLocalizedContent;
 use Illuminate\Database\Eloquent\Model;
 use Orchid\Screen\AsSource;
 
 class ProductCategory extends Model
 {
-    use AsSource, HasLocalizedContent;
+    use AsSource, AuditableModel, HasLocalizedContent;
 
     protected $fillable = ['name', 'name_translations', 'slug'];
 
