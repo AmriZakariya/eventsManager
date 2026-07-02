@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\AwardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -27,6 +28,7 @@ use App\Http\Controllers\Api\AuditLogController;
 
 Route::get('/companies', [CompanyController::class, 'index']);
 Route::get('/companies/{id}', [CompanyController::class, 'show']);
+Route::get('/awards', [AwardController::class, 'index']);
 
 // 3. USER ACTIONS (Auth Required)
 Route::middleware('auth:sanctum')->group(function () {
