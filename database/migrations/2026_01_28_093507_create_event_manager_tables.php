@@ -301,7 +301,7 @@ return new class extends Migration
 
         Schema::create('award_nominees', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('award_category_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('award_category_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('company_id')->nullable()->constrained()->nullOnDelete();
             $table->string('product_name')->nullable();
             $table->string('image')->nullable();
