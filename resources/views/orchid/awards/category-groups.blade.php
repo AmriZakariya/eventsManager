@@ -13,6 +13,53 @@
         .award-category-toggle:hover {
             text-decoration: none;
         }
+
+        .award-pagination {
+            background: #fff;
+            border: 1px solid rgba(15, 23, 42, .08);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, .04);
+            padding: 10px 14px;
+        }
+
+        .award-pagination nav {
+            margin: 0;
+        }
+
+        .award-pagination .pagination {
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: flex-end;
+            margin: 0;
+        }
+
+        .award-pagination .page-link {
+            align-items: center;
+            border-radius: 999px !important;
+            box-shadow: none !important;
+            display: inline-flex;
+            font-size: 14px;
+            height: 36px;
+            justify-content: center;
+            min-width: 36px;
+            padding: 0 12px;
+        }
+
+        .award-pagination .page-item.active .page-link {
+            font-weight: 700;
+        }
+
+        .award-pagination svg {
+            height: 14px !important;
+            width: 14px !important;
+        }
+
+        @media (max-width: 576px) {
+            .award-pagination .pagination {
+                justify-content: flex-start;
+            }
+        }
     </style>
 
     <div class="d-flex align-items-center justify-content-between mb-3">
@@ -89,8 +136,16 @@
     @endif
 
     @if($awardGroups->hasPages())
-        <div class="d-flex justify-content-end mb-3">
-            {{ $awardGroups->links() }}
+        <div class="award-pagination mb-3">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+                <div class="text-muted small">
+                    Showing {{ $awardGroups->firstItem() }} to {{ $awardGroups->lastItem() }} of {{ $awardGroups->total() }} results
+                </div>
+
+                <div>
+                    {{ $awardGroups->onEachSide(1)->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
         </div>
     @endif
 
@@ -186,8 +241,16 @@
     @endforeach
 
     @if($awardGroups->hasPages())
-        <div class="d-flex justify-content-end">
-            {{ $awardGroups->links() }}
+        <div class="award-pagination mt-2">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+                <div class="text-muted small">
+                    Showing {{ $awardGroups->firstItem() }} to {{ $awardGroups->lastItem() }} of {{ $awardGroups->total() }} results
+                </div>
+
+                <div>
+                    {{ $awardGroups->onEachSide(1)->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
         </div>
     @endif
 
