@@ -19,6 +19,11 @@ use Laravel\Socialite\Socialite;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Firebase\JWT\JWT;
+use Firebase\JWT\JWK;
 
 class AuthController extends Controller
 {
@@ -342,6 +347,8 @@ class AuthController extends Controller
             'token_type' => 'nullable|string|in:id_token,access_token',
             'name'       => 'nullable|string|max:255',
             'avatar_url' => 'nullable|string|url|max:2048',
+            'email'      => 'nullable|email',
+            'raw_nonce'  => 'nullable|string',
         ]);
 
         $provider   = $request->provider;
@@ -349,12 +356,19 @@ class AuthController extends Controller
         $tokenType  = $request->input('token_type', 'access_token');
 
         // ── Resolve social user ───────────────────────────────────────────────
+        $appleClaims = null;
         try {
             // Google sends an id_token, everyone else sends an access_token
             if ($provider === 'google' && $tokenType === 'id_token') {
                 $socialUser = Socialite::driver('google')
                     ->stateless()
                     ->userFromToken($token);
+            } elseif ($provider === 'apple') {
+                // Apple sends an id_token (JWT). There is no Socialite Apple driver
+                // installed, so verify the identity token directly against Apple's
+                // public keys and resolve the user from its claims below.
+                $appleClaims = $this->verifyAppleIdentityToken($token, $request->input('raw_nonce'));
+                $socialUser  = null;
             } elseif ($provider === 'linkedin') {
                 // linkedin_login package gives us an OAuth access_token.
                 // Use the openid-connect driver shipped with Socialite extras,
@@ -375,7 +389,9 @@ class AuthController extends Controller
         }
 
         // ── Resolve email + avatar from social user or request fallback ───────
-        $email     = $socialUser?->getEmail() ?? $request->email;
+        // Apple: the verified id_token carries the email claim (present even on
+        // repeat sign-ins, unlike the credential), so prefer it over request data.
+        $email     = $socialUser?->getEmail() ?? ($appleClaims['email'] ?? null) ?? $request->email;
         // Prefer the avatar URL sent from Flutter (already resolved by the SDK),
         // fall back to whatever Socialite returns (may be null for LinkedIn).
         $avatarUrl = $request->input('avatar_url')
@@ -438,6 +454,88 @@ class AuthController extends Controller
             'token_type'   => 'Bearer',
             'user'         => $this->formatUser($user),
         ]);
+    }
+
+    /**
+     * Verify a "Sign in with Apple" identity token (JWT) directly against Apple's
+     * published public keys. Used because no Socialite Apple driver is installed.
+     *
+     * @return array{sub: ?string, email: ?string}
+     * @throws \Throwable when the token is invalid, expired, or fails audience/nonce checks.
+     */
+    private function verifyAppleIdentityToken(string $identityToken, ?string $rawNonce = null): array
+    {
+        // Apple rotates its signing keys; cache the JWK set for a day.
+        $keys = Cache::remember('apple_auth_keys', now()->addDay(), function () {
+            $response = Http::timeout(10)->get('https://appleid.apple.com/auth/keys');
+            if (!$response->successful()) {
+                throw new \RuntimeException('Unable to fetch Apple public keys.');
+            }
+            return $response->json();
+        });
+
+        // Decode + verify signature (RS256) against Apple's key set.
+        // Throws on bad signature or expiry.
+        $payload = (array) JWT::decode($identityToken, JWK::parseKeySet($keys));
+
+        if (($payload['iss'] ?? null) !== 'https://appleid.apple.com') {
+            throw new \RuntimeException('Apple token issuer mismatch.');
+        }
+
+        // Audience must be our app's bundle id (native Sign in with Apple flow).
+        $expectedAud = config('services.apple.client_id');
+        if ($expectedAud && ($payload['aud'] ?? null) !== $expectedAud) {
+            throw new \RuntimeException('Apple token audience mismatch.');
+        }
+
+        // Replay protection: when the client sends a raw nonce, the token's nonce
+        // claim must equal sha256(rawNonce).
+        if ($rawNonce !== null && $rawNonce !== '') {
+            if (($payload['nonce'] ?? null) !== hash('sha256', $rawNonce)) {
+                throw new \RuntimeException('Apple token nonce mismatch.');
+            }
+        }
+
+        return [
+            'sub'   => $payload['sub'] ?? null,
+            'email' => $payload['email'] ?? null,
+        ];
+    }
+
+    /**
+     * DELETE ACCOUNT
+     * Permanently deletes the authenticated user and all associated data.
+     * Required by App Store Guideline 5.1.1(v). User foreign keys cascade on
+     * delete (appointments, connections, messages, notifications); audit_logs
+     * user_id is set to null.
+     */
+    public function deleteAccount(Request $request)
+    {
+        $user   = $request->user();
+        $userId = $user->id;
+
+        // Log before deletion so the audit row's user_id is valid at insert
+        // time; the cascade will null it out afterwards, preserving the record.
+        AuditLogService::log(
+            action: 'account_deleted',
+            resourceType: 'User',
+            resourceId: $userId,
+            description: 'User permanently deleted their account (' . $user->email . ')',
+            userId: $userId
+        );
+
+        DB::transaction(function () use ($user, $userId) {
+            // Revoke all issued API tokens.
+            $user->tokens()->delete();
+
+            // Detach Orchid admin roles (pivot table has no delete cascade).
+            DB::table('role_users')->where('user_id', $userId)->delete();
+
+            // Hard delete cascades all personal data via FK constraints.
+            $user->delete();
+        });
+
+        return response()->json(['message' => 'Account deleted successfully']);
     }
 
     /**

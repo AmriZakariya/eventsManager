@@ -46,6 +46,12 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
     ],
 
+    'apple' => [
+        // Native "Sign in with Apple" flow: the identity token's audience (aud)
+        // is the iOS app's bundle id. Used to verify tokens in AuthController.
+        'client_id' => env('APPLE_CLIENT_ID', 'com.hygiecleanexpo.app'),
+    ],
+
     'wordpress_sync' => [
         'url' => env('WORDPRESS_SYNC_URL', 'https://hygiecleanexpo.com/wp-json/hc-sync/v1/users'),
         'outbound_token' => env('WORDPRESS_SYNC_OUTBOUND_TOKEN'),
