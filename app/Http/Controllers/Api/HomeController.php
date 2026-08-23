@@ -90,7 +90,7 @@ class HomeController extends Controller
                         'title' => $c->localized('name', $locale),
                         'identifier' => $c->identifier,
                         'subtitle' => $c->booth_number ? "Booth " . $c->booth_number : null,
-                        'image_url' => $c->logo ? asset($c->logo) : null,
+                        'image_url' => $this->bustCache($c->logo ? asset($c->logo) : null, $c),
                         'action_id' => $c->id,
                     ]);
             }
@@ -105,7 +105,7 @@ class HomeController extends Controller
                         'title' => $p->localized('name', $locale),
                         'identifier' => $p->identifier,
                         'subtitle' => $p->company?->localized('name', $locale),
-                        'image_url' => $p->image ? asset($p->image) : null,
+                        'image_url' => $this->bustCache($p->image ? asset($p->image) : null, $p),
                         'action_id' => $p->id,
                     ]);
             }
@@ -124,5 +124,22 @@ class HomeController extends Controller
                 'action_url' => $item->action_url,
             ];
         });
+    }
+
+    /**
+     * Append a cache-busting version (the model's last-updated timestamp) to an
+     * image URL. Mobile clients cache images by URL, so reusing the same file
+     * path after replacing a photo would otherwise keep showing the stale copy.
+     */
+    private function bustCache(?string $url, $model): ?string
+    {
+        if (!$url) return null;
+
+        $version = $model?->updated_at?->timestamp;
+        if ($version) {
+            $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . $version;
+        }
+
+        return $url;
     }
 }

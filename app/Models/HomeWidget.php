@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\AuditableModel;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class HomeWidget extends Model
 {
@@ -51,8 +52,35 @@ class HomeWidget extends Model
     public function getImageUrlAttribute()
     {
         if (!$this->image) return null;
-        if (str_starts_with($this->image, 'http')) return $this->image;
-        return asset($this->image);
+
+        $url = str_starts_with($this->image, 'http')
+            ? $this->image
+            : asset($this->image);
+
+        // Cache-busting so the app fetches the replaced photo (see HomeWidgetItem).
+        $version = $this->updated_at?->timestamp;
+        if ($version) {
+            $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . $version;
+        }
+
+        return $url;
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn() => self::flushHomeCache());
+        static::deleted(fn() => self::flushHomeCache());
+    }
+
+    /**
+     * Clear the cached home layout so admin changes appear immediately instead
+     * of waiting for the 5-minute response cache to expire.
+     */
+    public static function flushHomeCache(): void
+    {
+        foreach (['en', 'fr', 'ar'] as $locale) {
+            Cache::forget("api:config:home:{$locale}");
+        }
     }
 
     // Add this method to fix the error

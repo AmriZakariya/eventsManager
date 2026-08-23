@@ -227,4 +227,46 @@ class UserListScreen extends Screen
             'user' => $user,
         ];
     }
+
+    /**
+     * Delete a single user from the list row action.
+     * The row button calls ->method('remove', ['id' => $user->id]).
+     */
+    public function remove(Request $request): void
+    {
+        $user = User::findOrFail($request->get('id'));
+
+        if ((int) $user->id === (int) auth()->id()) {
+            Toast::warning(__('You cannot delete your own account.'));
+            return;
+        }
+
+        $user->delete();
+        Toast::info(__('User was removed.'));
+    }
+
+    /**
+     * Delete all users selected via the list checkboxes (name="users[]").
+     */
+    public function bulkDelete(Request $request): void
+    {
+        $ids = array_filter((array) $request->get('users', []));
+
+        // Never delete the currently authenticated admin.
+        $ids = array_filter($ids, fn ($id) => (int) $id !== (int) auth()->id());
+
+        if (empty($ids)) {
+            Toast::warning(__('No users selected.'));
+            return;
+        }
+
+        // Delete per-model so foreign-key cascades run just like the single
+        // delete on the detail screen.
+        $users = User::whereIn('id', $ids)->get();
+        foreach ($users as $user) {
+            $user->delete();
+        }
+
+        Toast::info(__(':count user(s) were removed.', ['count' => $users->count()]));
+    }
 }

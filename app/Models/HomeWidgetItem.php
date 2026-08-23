@@ -33,8 +33,22 @@ class HomeWidgetItem extends Model
     public function getImageUrlAttribute()
     {
         if (!$this->image) return null;
-        if (str_starts_with($this->image, 'http')) return $this->image;
-        return asset($this->image);
+
+        $url = str_starts_with($this->image, 'http')
+            ? $this->image
+            : asset($this->image);
+
+        // Cache-busting: mobile clients cache images by URL. When an admin
+        // replaces the photo but reuses the same file path, the URL is
+        // unchanged and the app keeps showing the stale cached image. Appending
+        // the record's last-updated timestamp changes the URL whenever the item
+        // is edited, forcing the app to fetch the new photo.
+        $version = $this->updated_at?->timestamp;
+        if ($version) {
+            $url .= (str_contains($url, '?') ? '&' : '?') . 'v=' . $version;
+        }
+
+        return $url;
     }
 
     protected static function boot()
@@ -48,5 +62,10 @@ class HomeWidgetItem extends Model
                 $model->order = $maxOrder ? $maxOrder + 1 : 1;
             }
         });
+
+        // Clear the cached home layout whenever an item changes so replaced
+        // photos appear immediately instead of after the 5-minute cache expiry.
+        static::saved(fn() => HomeWidget::flushHomeCache());
+        static::deleted(fn() => HomeWidget::flushHomeCache());
     }
 }
