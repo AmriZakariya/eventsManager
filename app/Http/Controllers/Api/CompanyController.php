@@ -82,8 +82,12 @@ class CompanyController extends Controller
                 break;
         }
 
-        // Returns Standard Laravel Paginated Resource (20 per page)
-        return CompanyResource::collection($query->paginate(20));
+        // Paginated resource. Defaults to 20 per page; callers (e.g. the home
+        // partner-logo section) may request more via ?per_page=, capped at 100.
+        $perPage = (int) $request->query('per_page', 20);
+        $perPage = max(1, min($perPage, 100));
+
+        return CompanyResource::collection($query->paginate($perPage));
     }
 
     /**
