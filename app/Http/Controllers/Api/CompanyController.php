@@ -82,6 +82,12 @@ class CompanyController extends Controller
                 break;
         }
 
+        // ?all=true returns the full list without pagination — used by the
+        // signup / complete-profile company dropdowns, which need every company.
+        if ($request->boolean('all')) {
+            return CompanyResource::collection($query->get());
+        }
+
         // Paginated resource. Defaults to 20 per page; callers (e.g. the home
         // partner-logo section) may request more via ?per_page=, capped at 100.
         $perPage = (int) $request->query('per_page', 20);
