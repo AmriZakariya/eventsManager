@@ -30,6 +30,31 @@ class HomeWidgetItem extends Model
         return $this->belongsTo(HomeWidget::class, 'home_widget_id');
     }
 
+    /**
+     * Internal app destinations a home item can point to. Values are the exact
+     * route paths the mobile app navigates to (see _handleNavigation in
+     * home_tab.dart) — keep them in sync. Used by the admin edit form (picker)
+     * and the items list (link preview).
+     */
+    public static function navTargets(): array
+    {
+        return [
+            '/exhibitors'    => 'Exhibitors',
+            '/products'      => 'Exhibitor Products',
+            '/speakers'      => 'Speakers',
+            '/conferences'   => 'Conferences / Program',
+            '/b2b'           => 'B2B — Networking list',
+            '/appointments'  => 'B2B — My Meetings',
+            '/networking'    => 'Networking',
+            '/inbox'         => 'Messages / Inbox',
+            '/badge'         => 'Badge',
+            '/awards'        => 'Awards',
+            '/floor-plan'    => 'Floor Plan',
+            '/contact'       => 'Contact Us',
+            '/notifications' => 'Notifications',
+        ];
+    }
+
     public function getImageUrlAttribute()
     {
         if (!$this->image) return null;

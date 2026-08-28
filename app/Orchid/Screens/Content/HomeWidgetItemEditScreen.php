@@ -7,8 +7,10 @@ use App\Models\HomeWidget;
 use Illuminate\Http\Request;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\Cropper;
 use Orchid\Screen\Fields\TextArea;
+use Illuminate\Support\Str;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\Link;
 use Orchid\Support\Facades\Layout;
@@ -41,12 +43,41 @@ class HomeWidgetItemEditScreen extends Screen
             }
         }
 
+        // Split the stored action_url into the two navigation fields so the form
+        // shows an external link in the URL box and an internal route in the picker.
+        $actionUrl = $item->action_url;
+        $isExternal = $actionUrl && Str::startsWith($actionUrl, ['http://', 'https://']);
+
         return [
             'item' => $item,
             'widget' => $this->widget,
             // Bind manual URL to the field if the current image is a valid web URL
             'manual_image_url' => filter_var($item->image, FILTER_VALIDATE_URL) ? $item->image : null,
+            'nav_internal' => $isExternal ? null : $actionUrl,
+            'nav_external' => $isExternal ? $actionUrl : null,
         ];
+    }
+
+    /**
+     * Internal app destinations the admin can point a home item to.
+     * Values are the exact route paths the mobile app navigates to
+     * (see _handleNavigation in home_tab.dart) — keep them in sync.
+     */
+    private function internalTargets(): array
+    {
+        return HomeWidgetItem::navTargets();
+    }
+
+    /**
+     * Resolve the two navigation fields into a single action_url value,
+     * external link taking priority over the internal screen.
+     */
+    private function resolveActionUrl(Request $request): ?string
+    {
+        $external = trim((string) $request->input('nav_external', ''));
+        $internal = trim((string) $request->input('nav_internal', ''));
+
+        return $external !== '' ? $external : ($internal !== '' ? $internal : null);
     }
 
     public function name(): ?string
@@ -146,10 +177,16 @@ class HomeWidgetItemEditScreen extends Screen
                         ->canSee($isSlider || $isBanner)
                         ->help('Secondary text shown below the title'),
 
-                    Input::make('item.action_url')
-                        ->title('Link URL')
-                        ->placeholder($isGrid ? '/dashboard' : 'https://example.com')
-                        ->help('Where users will be directed when clicking this item'),
+                    Select::make('nav_internal')
+                        ->title('Open a screen in the app')
+                        ->options($this->internalTargets())
+                        ->empty('— None —')
+                        ->help('Pick an app screen this item should open when tapped.'),
+
+                    Input::make('nav_external')
+                        ->title('Or external link (URL)')
+                        ->placeholder('https://example.com')
+                        ->help('If filled, this web link is used instead of the screen above.'),
                 ])->title('📝 Content Details'),
 
                 // Right Column: Visual Elements
@@ -216,7 +253,8 @@ class HomeWidgetItemEditScreen extends Screen
             'item.title' => 'required|string|max:255',
             'item.identifier' => 'nullable|string|max:255',
             'item.subtitle' => 'nullable|string|max:500',
-            'item.action_url' => 'nullable|string|max:500',
+            'nav_internal' => 'nullable|string|max:500',
+            'nav_external' => 'nullable|string|max:500',
             'item.icon' => 'nullable|string|max:50',
             'item.image' => 'nullable|string',
             'item.order' => 'required|integer|min:0',
@@ -224,6 +262,9 @@ class HomeWidgetItemEditScreen extends Screen
         ]);
 
         $data = $validated['item'];
+
+        // Merge the internal-screen picker + external-link field into action_url.
+        $data['action_url'] = $this->resolveActionUrl($request);
 
         // If user provided a manual URL, use it instead of the uploaded image
         if (!empty($validated['manual_image_url'])) {
@@ -249,10 +290,15 @@ class HomeWidgetItemEditScreen extends Screen
             'item.icon' => 'nullable|string|max:50',
             'item.image' => 'nullable|string',
             'item.order' => 'required|integer|min:0',
+            'nav_internal' => 'nullable|string|max:500',
+            'nav_external' => 'nullable|string|max:500',
             'manual_image_url' => 'nullable|string', // Safe manual URL injection
         ]);
 
         $data = $validated['item'];
+
+        // Merge the internal-screen picker + external-link field into action_url.
+        $data['action_url'] = $this->resolveActionUrl($request);
 
         // If user provided a manual URL, use it instead of the uploaded image
         if (!empty($validated['manual_image_url'])) {

@@ -32,11 +32,21 @@ class HomeWidgetItemListLayout extends Table
                     ->route('platform.content.items.edit', $item->id)
                     ->class('fw-bold')),
 
-            // 3. TARGET URL
+            // 3. TARGET / DESTINATION
             TD::make('action_url', 'Link')
-                ->render(fn ($item) => $item->action_url
-                    ? "<span class='text-muted text-xs'>{$item->action_url}</span>"
-                    : '—'),
+                ->render(function (HomeWidgetItem $item) {
+                    $url = $item->action_url;
+                    if (!$url) {
+                        return "<span class='text-muted text-xs'>—</span>";
+                    }
+                    // External web link
+                    if (str_starts_with($url, 'http')) {
+                        return "<span class='text-info text-xs'>🔗 " . e($url) . "</span>";
+                    }
+                    // Internal app screen — show its friendly label
+                    $label = HomeWidgetItem::navTargets()[$url] ?? $url;
+                    return "<span class='text-muted text-xs'>📱 " . e($label) . "</span>";
+                }),
 
             // 4. ORDER
             TD::make('order', 'Order')->sort()->width('60px'),

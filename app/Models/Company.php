@@ -17,6 +17,7 @@ class Company extends Model
     use AsSource, Attachable, AuditableModel, Favoritable, Filterable, HasLocalizedContent;
 
     public const TYPES = [
+        'ORGANIZER'             => 'Organizer',
         'INSTITUTIONAL_PARTNER' => 'Institutional Partner',
         'SPONSOR'               => 'Sponsor',
         'MEDIA_PARTNER'         => 'Media Partner',

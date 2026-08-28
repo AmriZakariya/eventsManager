@@ -186,6 +186,9 @@ class CompaniesImport implements OnEachRow, WithHeadingRow, WithChunkReading, Sk
             'INSTITUTIONAL_PARTNERS' => 'INSTITUTIONAL_PARTNER',
             'SPONSORS' => 'SPONSOR',
             'EXHIBITORS' => 'EXHIBITOR',
+            'ORGANIZERS' => 'ORGANIZER',
+            'ORGANISATEUR' => 'ORGANIZER',
+            'ORGANISATEURS' => 'ORGANIZER',
         ];
 
         $type = $aliases[$type] ?? $type;
