@@ -20,10 +20,30 @@ class Company extends Model
         'ORGANIZER'             => 'Organizer',
         'INSTITUTIONAL_PARTNER' => 'Institutional Partner',
         'SPONSOR'               => 'Sponsor',
+        'TECHNICAL_SCIENTIFIC_PARTNER' => 'Technical & Scientific Partner',
         'MEDIA_PARTNER'         => 'Media Partner',
         'EXHIBITION_PARTNER'    => 'Exhibition Partner',
         'EXHIBITOR'             => 'Exhibitor',
     ];
+
+    public static function typeCatalog(?string $locale = null): array
+    {
+        $locale ??= app()->getLocale();
+
+        $catalog = [];
+
+        foreach (self::TYPES as $value => $fallbackLabel) {
+            $translationKey = strtolower($value);
+            $translatedLabel = trans($translationKey, [], $locale);
+            $catalog[] = [
+                'value' => $value,
+                'label' => $translatedLabel === $translationKey ? $fallbackLabel : $translatedLabel,
+                'order' => count($catalog),
+            ];
+        }
+
+        return $catalog;
+    }
 
     protected $fillable = [
         'name', 'name_translations', 'logo', 'booth_number', 'map_coordinates',

@@ -131,13 +131,14 @@ class CompanyListScreen extends Screen
     {
         [$bg, $color, $border] = match($type) {
             'SPONSOR'               => ['#FFF7ED', '#C2410C', '#FFEDD5'],
+            'TECHNICAL_SCIENTIFIC_PARTNER' => ['#ECFEFF', '#0E7490', '#CFFAFE'],
             'INSTITUTIONAL_PARTNER' => ['#ECFDF5', '#047857', '#D1FAE5'],
             'MEDIA_PARTNER'         => ['#FDF4FF', '#9333EA', '#F3E8FF'],
             'EXHIBITOR'             => ['#EFF6FF', '#1D4ED8', '#DBEAFE'],
             default                 => ['#F3F4F6', '#374151', '#E5E7EB'],
         };
 
-        $label = ucwords(strtolower(str_replace('_', ' ', $type)));
+        $label = Company::TYPES[$type] ?? ucwords(strtolower(str_replace('_', ' ', $type)));
 
         return "<span style='
                     display:inline-block;
@@ -186,12 +187,7 @@ class CompanyListScreen extends Screen
 
                     Select::make('type')
                         ->title('Partner type')
-                        ->options([
-                            'EXHIBITOR'             => 'Exhibitor',
-                            'SPONSOR'               => 'Sponsor',
-                            'INSTITUTIONAL_PARTNER' => 'Institutional Partner',
-                            'MEDIA_PARTNER'         => 'Media Partner',
-                        ])
+                        ->options(Company::TYPES)
                         ->empty('All types')
                         ->value(request('type')),
 

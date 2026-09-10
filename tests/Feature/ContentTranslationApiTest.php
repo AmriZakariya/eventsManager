@@ -16,6 +16,17 @@ class ContentTranslationApiTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_company_type_catalog_uses_backend_order_and_requested_language(): void
+    {
+        $this->withHeader('Accept-Language', 'fr')
+            ->getJson('/api/companies/types')
+            ->assertOk()
+            ->assertJsonPath('data.2.value', 'SPONSOR')
+            ->assertJsonPath('data.3.value', 'TECHNICAL_SCIENTIFIC_PARTNER')
+            ->assertJsonPath('data.3.label', 'Partenaire technique et scientifique')
+            ->assertJsonPath('data.3.order', 3);
+    }
+
     public function test_company_endpoint_uses_requested_public_language(): void
     {
         Company::create([

@@ -155,5 +155,12 @@
     "meeting_cancelled_title": "Réunion annulée ⚠️",
     "meeting_cancelled_body": "La réunion prévue le :date a été annulée.",
     "meeting_update_title": "Mise à jour de la réunion",
-    "meeting_update_body": "Votre réunion du :date est maintenant :status."
+    "meeting_update_body": "Votre réunion du :date est maintenant :status.",
+    "organizer": "Organisateur",
+    "institutional_partner": "Partenaire institutionnel",
+    "sponsor": "Sponsor",
+    "technical_scientific_partner": "Partenaire technique et scientifique",
+    "media_partner": "Partenaire média",
+    "exhibition_partner": "Partenaire d'exposition",
+    "exhibitor": "Exposant"
 }

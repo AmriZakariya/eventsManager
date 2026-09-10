@@ -155,5 +155,12 @@
     "meeting_cancelled_title": "تم إلغاء الاجتماع ⚠️",
     "meeting_cancelled_body": "تم إلغاء الاجتماع المقرر بتاريخ :date.",
     "meeting_update_title": "تحديث الاجتماع",
-    "meeting_update_body": "اجتماعك بتاريخ :date هو الآن :status."
+    "meeting_update_body": "اجتماعك بتاريخ :date هو الآن :status.",
+    "organizer": "المنظّم",
+    "institutional_partner": "شريك مؤسساتي",
+    "sponsor": "راعي",
+    "technical_scientific_partner": "شريك تقني وعلمي",
+    "media_partner": "شريك إعلامي",
+    "exhibition_partner": "شريك المعرض",
+    "exhibitor": "عارض"
 }

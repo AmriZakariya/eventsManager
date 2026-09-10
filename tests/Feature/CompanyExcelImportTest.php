@@ -176,7 +176,7 @@ class CompanyExcelImportTest extends TestCase
                         'Technology',
                         'contact@example.com',
                         'https://example.com',
-                        'EXHIBITOR,SPONSOR',
+                        'EXHIBITOR,SPONSOR,Technical & Scientific Partner',
                         null,
                         '+212 600 000 000',
                         'Casablanca',
@@ -198,6 +198,9 @@ class CompanyExcelImportTest extends TestCase
 
         $this->assertSame(1, $import->createdCount());
         $this->assertSame(0, $import->skippedCount());
-        $this->assertSame(['EXHIBITOR', 'SPONSOR'], $company->type);
+        $this->assertSame(
+            ['EXHIBITOR', 'SPONSOR', 'TECHNICAL_SCIENTIFIC_PARTNER'],
+            $company->type
+        );
     }
 }

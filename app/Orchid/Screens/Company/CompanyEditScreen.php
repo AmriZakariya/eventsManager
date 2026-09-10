@@ -232,6 +232,7 @@ class CompanyEditScreen extends Screen
             'catalog_upload' => 'nullable|file|mimes:pdf|max:10240', // Max 10MB
             'company.email' => 'nullable|email',
             'company.type' => 'nullable|array', // Ensure array validation
+            'company.type.*' => 'string|in:' . implode(',', array_keys(Company::TYPES)),
         ]);
 
         $data = $request->get('company');

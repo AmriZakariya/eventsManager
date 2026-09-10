@@ -5,10 +5,21 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Http\Resources\CompanyResource;
+use App\Support\Locale;
 use Illuminate\Http\Request;
 
 class CompanyController extends Controller
 {
+    /**
+     * Return the backend-managed company type catalog in display order.
+     */
+    public function types(Request $request)
+    {
+        return response()->json([
+            'data' => Company::typeCatalog(Locale::fromRequest($request)),
+        ]);
+    }
+
     /**
      * Display a listing of companies (Exhibitors).
      * Handles: Search, Pagination, Sort, and Filters (Category, Country, Types).

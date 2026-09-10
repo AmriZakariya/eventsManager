@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\AwardController;
 
 
 Route::get('/companies', [CompanyController::class, 'index']);
+Route::get('/companies/types', [CompanyController::class, 'types']);
 Route::get('/companies/{id}', [CompanyController::class, 'show']);
 Route::get('/awards', [AwardController::class, 'index']);
 

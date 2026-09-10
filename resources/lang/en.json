@@ -193,5 +193,12 @@
     "meeting_cancelled_title": "Meeting Cancelled ⚠️",
     "meeting_cancelled_body": "The meeting scheduled for :date has been cancelled.",
     "meeting_update_title": "Meeting Update",
-    "meeting_update_body": "Your meeting on :date is now :status."
+    "meeting_update_body": "Your meeting on :date is now :status.",
+    "organizer": "Organizer",
+    "institutional_partner": "Institutional Partner",
+    "sponsor": "Sponsor",
+    "technical_scientific_partner": "Technical & Scientific Partner",
+    "media_partner": "Media Partner",
+    "exhibition_partner": "Exhibition Partner",
+    "exhibitor": "Exhibitor"
 }

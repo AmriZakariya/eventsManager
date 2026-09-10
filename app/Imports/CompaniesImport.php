@@ -184,6 +184,7 @@ class CompaniesImport implements OnEachRow, WithHeadingRow, WithChunkReading, Sk
             'EXHIBITIONS_PARTNER' => 'EXHIBITION_PARTNER',
             'MEDIA_PARTNERS' => 'MEDIA_PARTNER',
             'INSTITUTIONAL_PARTNERS' => 'INSTITUTIONAL_PARTNER',
+            'TECHNICAL_SCIENTIFIC_PARTNERS' => 'TECHNICAL_SCIENTIFIC_PARTNER',
             'SPONSORS' => 'SPONSOR',
             'EXHIBITORS' => 'EXHIBITOR',
             'ORGANIZERS' => 'ORGANIZER',
