@@ -200,15 +200,6 @@ class ExhibitorUserListScreen extends Screen
                                 <div><span class='badge bg-light text-dark border'>Admin panel: ".e($user->adminPanelRolesLabel())."</span></div>";
                     }),
 
-                // STATUS
-                TD::make('email_verified_at', 'Status')
-                    ->sort()
-                    ->alignCenter()
-                    ->render(fn($user) => $user->email_verified_at
-                        ? '<span class="badge bg-success">Verified</span>'
-                        : '<span class="badge bg-warning text-dark">Pending</span>'
-                    ),
-
                 // CREATED AT
                 TD::make('created_at', 'Joined')
                     ->sort()

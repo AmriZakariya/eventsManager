@@ -22,6 +22,8 @@ class Company extends Model
         'SPONSOR'               => 'Sponsor',
         'TECHNICAL_SCIENTIFIC_PARTNER' => 'Technical & Scientific Partner',
         'MEDIA_PARTNER'         => 'Media Partner',
+        'OFFICIAL_MEDIA_PARTNER' => 'Official Media Partner',
+        'LOGISTICS_PARTNER'     => 'Logistics Partner',
         'EXHIBITION_PARTNER'    => 'Exhibition Partner',
         'EXHIBITOR'             => 'Exhibitor',
     ];

@@ -265,7 +265,10 @@ return [
      */
 
     'turbo' => [
-        'cache'          => true,
+        // Disabled: Turbo's snapshot cache was restoring empty/stale pages when
+        // navigating "back" from a detail screen. Turning it off makes back
+        // navigation re-render fresh from the server. Prefetch stays on.
+        'cache'          => false,
         'prefetch'       => true,
         'refresh-method' => 'replace',
         'refresh-scroll' => 'preserve',
