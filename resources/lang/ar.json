@@ -161,6 +161,8 @@
     "sponsor": "راعي",
     "technical_scientific_partner": "شريك تقني وعلمي",
     "media_partner": "شريك إعلامي",
+    "official_media_partner": "شريك إعلامي رسمي",
+    "logistics_partner": "شريك لوجستي",
     "exhibition_partner": "شريك المعرض",
     "exhibitor": "عارض"
 }
