@@ -166,13 +166,7 @@ class UserEditScreen extends Screen
                 ]),
             ]))
                 ->title(__('Identity & Contact'))
-                ->description(__('Basic profile information and contact details.'))
-                ->commands(
-                    Button::make(__('Save Changes'))
-                        ->type(Color::BASIC)
-                        ->icon('bs.check-circle')
-                        ->method('save')
-                ),
+                ->description(__('Basic profile information and contact details.')),
 
             // 2. PROFESSIONAL DETAILS (Exhibitor/Visitor Context)
             Layout::block(Layout::rows([
@@ -232,13 +226,7 @@ class UserEditScreen extends Screen
                 ]),
             ]))
                 ->title(__('Professional Info'))
-                ->description(__('Employment details and categorization.'))
-                ->commands(
-                    Button::make(__('Save Changes'))
-                        ->type(Color::BASIC)
-                        ->icon('bs.check-circle')
-                        ->method('save')
-                ),
+                ->description(__('Employment details and categorization.')),
 
             // 3. AUTHENTICATION (Password, Roles)
             Layout::block(UserPasswordLayout::class)
@@ -274,10 +262,12 @@ class UserEditScreen extends Screen
             ->collapse()
             ->toArray();
 
-        // Handle Password Update
-        $user->when($request->filled('user.password'), function (Builder $builder) use ($request) {
-            $builder->getModel()->password = Hash::make($request->input('user.password'));
-        });
+        // Handle Password Update — set directly on the model so it actually
+        // persists on save(). ($user->when(...) operated on a throwaway query
+        // model, so the new password was never saved.)
+        if ($request->filled('user.password')) {
+            $user->password = Hash::make($request->input('user.password'));
+        }
 
         // Save User Data (New fields are handled automatically via $fillable in User model)
         $userData = $request->collect('user')->except(['password', 'permissions', 'roles'])->toArray();
