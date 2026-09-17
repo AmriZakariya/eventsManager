@@ -42,6 +42,11 @@ class UserEditScreen extends Screen
     {
         $user->load(['roles']);
 
+        // Never pre-fill the password field with the stored hash. Otherwise it
+        // shows the existing value and gets re-hashed on save, which breaks
+        // login. The field must start empty ("Leave empty to keep current").
+        $user->password = '';
+
         return [
             'user'       => $user,
             'permission' => $user->statusOfPermissions(),
