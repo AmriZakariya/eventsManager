@@ -25,26 +25,28 @@
         <x-orchid-icon path="bs.house" class="d-inline d-lg-none me-2 text-dark"/>
     @endauth
 
-    <div class="d-flex align-items-center {{ auth()->check() ? 'd-none d-lg-flex' : '' }}">
+    <div class="d-flex align-items-center gap-2 {{ auth()->check() ? 'd-none d-lg-flex' : '' }}">
         @if($brandLogoUrl)
-            <div class="bg-white rounded d-flex align-items-center justify-content-center me-2 shadow-sm p-1"
-                 style="width: 36px; height: 36px;">
+            <div class="bg-white rounded-3 d-flex align-items-center justify-content-center shadow-sm p-1 flex-shrink-0"
+                 style="width: 40px; height: 40px;">
                 <img src="{{ $brandLogoUrl }}"
                      alt="{{ config('app.name') }}"
                      style="max-width: 100%; max-height: 100%; object-fit: contain;">
             </div>
         @else
-            <div class="bg-dark text-white rounded d-flex align-items-center justify-content-center me-2 shadow-sm"
-                 style="width: 36px; height: 36px; font-size: 1.1rem; font-weight: 800;">
-                {{ substr(config('app.name'), 0, 1) }}
+            <div class="bg-primary text-white rounded-3 d-flex align-items-center justify-content-center shadow-sm flex-shrink-0"
+                 style="width: 40px; height: 40px; font-size: 1.15rem; font-weight: 800;">
+                {{ strtoupper(substr(config('app.name'), 0, 1)) }}
             </div>
         @endif
 
         <span class="d-flex flex-column lh-1">
-            <span class="fw-bolder text-dark" style="letter-spacing: -0.5px; font-size: 1.25rem;">
+            <span class="fw-semibold text-body-emphasis text-truncate"
+                  style="font-size: 1.02rem; letter-spacing: -0.2px; max-width: 165px;">
                 {{ config('app.name') }}
             </span>
-            <small class="text-muted" style="font-size: 0.7rem; letter-spacing: 0.3px;">
+            <small class="text-body-secondary mt-1"
+                   style="font-size: 0.68rem; letter-spacing: 0.5px; font-weight: 600;">
                 v{{ config('version.number') }}
             </small>
         </span>
