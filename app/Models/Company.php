@@ -28,6 +28,30 @@ class Company extends Model
         'EXHIBITOR'             => 'Exhibitor',
     ];
 
+    /**
+     * Presentation metadata per type, served to the mobile app so colors, icons
+     * and order are backend-driven (no app release needed to add/edit a type).
+     *
+     * - color: hex string the app parses into a color.
+     * - icon:  a name the app maps to a bundled icon (unknown names fall back to
+     *          a default icon in the app). Keep names from the app's icon map.
+     *
+     * Types without an entry fall back to the DEFAULT_TYPE_META below.
+     */
+    public const TYPE_META = [
+        'ORGANIZER'                    => ['color' => '#8B5CF6', 'icon' => 'workspace_premium'],
+        'INSTITUTIONAL_PARTNER'        => ['color' => '#10B981', 'icon' => 'account_balance'],
+        'SPONSOR'                      => ['color' => '#F59E0B', 'icon' => 'star'],
+        'TECHNICAL_SCIENTIFIC_PARTNER' => ['color' => '#0891B2', 'icon' => 'science'],
+        'MEDIA_PARTNER'                => ['color' => '#EC4899', 'icon' => 'mic'],
+        'OFFICIAL_MEDIA_PARTNER'       => ['color' => '#F43F5E', 'icon' => 'campaign'],
+        'LOGISTICS_PARTNER'            => ['color' => '#0D9488', 'icon' => 'local_shipping'],
+        'EXHIBITION_PARTNER'           => ['color' => '#3B82F6', 'icon' => 'handshake'],
+        'EXHIBITOR'                    => ['color' => '#9CA3AF', 'icon' => 'business'],
+    ];
+
+    public const DEFAULT_TYPE_META = ['color' => '#9CA3AF', 'icon' => 'business'];
+
     public static function typeCatalog(?string $locale = null): array
     {
         $locale ??= app()->getLocale();
@@ -37,9 +61,12 @@ class Company extends Model
         foreach (self::TYPES as $value => $fallbackLabel) {
             $translationKey = strtolower($value);
             $translatedLabel = trans($translationKey, [], $locale);
+            $meta = self::TYPE_META[$value] ?? self::DEFAULT_TYPE_META;
             $catalog[] = [
                 'value' => $value,
                 'label' => $translatedLabel === $translationKey ? $fallbackLabel : $translatedLabel,
+                'color' => $meta['color'] ?? self::DEFAULT_TYPE_META['color'],
+                'icon'  => $meta['icon'] ?? self::DEFAULT_TYPE_META['icon'],
                 'order' => count($catalog),
             ];
         }
