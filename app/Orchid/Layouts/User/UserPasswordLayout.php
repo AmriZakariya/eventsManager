@@ -31,6 +31,10 @@ class UserPasswordLayout extends Rows
             Password::make('user.password')
                 ->placeholder($placeholder)
                 ->title(__('Password'))
+                // Stop the browser from autofilling the saved site password
+                // into this field (which showed "password" and could overwrite
+                // the real one on save).
+                ->autocomplete('new-password')
                 ->required(! $exists),
         ];
     }
