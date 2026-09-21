@@ -218,6 +218,7 @@ class AppointmentListScreen extends Screen
             Layout::tabs([
                 'List View' => [
                     AppointmentListLayout::class,
+                    Layout::view('admin.appointment.list-scripts'),
                 ],
                 'Calendar View' => [
                     Layout::view('admin.appointment.calendar'),
@@ -362,6 +363,14 @@ class AppointmentListScreen extends Screen
         $appointment->update($validated['appointment']);
 
         Toast::info('Appointment updated successfully!');
+    }
+
+    public function deleteAppointment(Request $request)
+    {
+        $appointment = Appointment::findOrFail($request->get('id'));
+        $appointment->delete();
+
+        Toast::success('Meeting deleted successfully.');
     }
 
     public function applyFilters(Request $request)

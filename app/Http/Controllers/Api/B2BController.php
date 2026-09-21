@@ -112,6 +112,11 @@ class B2BController extends Controller
         $visitor = $request->user();
         $targetUser = User::with('company')->findOrFail($request->target_user_id);
 
+        // A user cannot book a meeting with themselves.
+        if ((int) $targetUser->id === (int) $visitor->id) {
+            return response()->json(['message' => 'You cannot book a meeting with yourself.'], 422);
+        }
+
         if (!$targetUser->profile_completed) {
             return response()->json(['message' => 'This user has not completed their profile yet.'], 422);
         }

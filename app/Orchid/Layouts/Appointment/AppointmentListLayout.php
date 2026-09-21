@@ -22,13 +22,14 @@ class AppointmentListLayout extends Table
                     $icon = $apt->scheduled_at->isFuture() ? 'bs.calendar-event' : 'bs.calendar-check';
 
                     return sprintf(
-                        '<div class="d-flex align-items-center">
+                        '<div class="d-flex align-items-center appointment-row-link" data-detail-url="%s" title="Double-click to open details">
                             <i class="%s me-2 text-muted"></i>
                             <div>
                                 <div class="fw-bold">%s</div>
                                 <small class="text-muted">%s</small>
                             </div>
                         </div>',
+                        route('platform.appointments.detail', $apt),
                         $icon,
                         $apt->scheduled_at->format('M d, Y'),
                         $apt->scheduled_at->format('h:i A')
@@ -168,10 +169,17 @@ class AppointmentListLayout extends Table
                             ->class('btn btn-sm btn-info ms-1');
                     }
 
+                    $deleteButton = Button::make('Delete')
+                        ->icon('bs.trash3')
+                        ->confirm('Delete this meeting permanently? This cannot be undone.')
+                        ->method('deleteAppointment', ['id' => $apt->id])
+                        ->class('btn btn-sm btn-outline-danger ms-1');
+
                     return sprintf(
-                        '<div class="btn-group" role="group">%s%s</div>',
+                        '<div class="btn-group" role="group">%s%s%s</div>',
                         $editButton,
-                        $quickAction
+                        $quickAction,
+                        $deleteButton
                     );
                 }),
         ];

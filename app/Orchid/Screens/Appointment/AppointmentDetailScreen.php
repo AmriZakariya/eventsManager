@@ -5,8 +5,10 @@ namespace App\Orchid\Screens\Appointment;
 use App\Models\Appointment;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Actions\Link;
+use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Sight;
 use Orchid\Support\Facades\Layout;
+use Orchid\Support\Facades\Toast;
 use Carbon\Carbon;
 
 class AppointmentDetailScreen extends Screen
@@ -45,7 +47,22 @@ class AppointmentDetailScreen extends Screen
             Link::make('Back to Calendar')
                 ->icon('bs.arrow-left')
                 ->route('platform.appointments'),
+
+            Button::make('Delete Meeting')
+                ->icon('bs.trash3')
+                ->confirm('Delete this meeting permanently? This cannot be undone.')
+                ->method('remove')
+                ->class('btn btn-outline-danger ms-2'),
         ];
+    }
+
+    public function remove(Appointment $appointment)
+    {
+        $appointment->delete();
+
+        Toast::success('Meeting deleted successfully.');
+
+        return redirect()->route('platform.appointments');
     }
 
     public function layout(): iterable

@@ -325,12 +325,12 @@
             }
 
             appointmentCalendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridWeek', // Default to week view for appointments (better UX)
+                initialView: 'timeGridDay', // Default to day view (clearest, one column per meeting slot)
                 initialDate: eventStartDate || new Date(),
                 headerToolbar: {
                     left: '',
                     center: 'title',
-                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                    right: 'timeGridDay,timeGridWeek,dayGridMonth,listWeek'
                 },
                 buttonText: {
                     today: 'Today', month: 'Month', week: 'Week', day: 'Day', list: 'List'
@@ -406,12 +406,23 @@
                     info.el.setAttribute('title', `${props.booker || 'Visitor'} -> ${props.target || 'Exhibitor'} | ${props.company || 'Independent'} | ${props.location || 'TBD'}`);
                 },
                 height: 'auto',
+                expandRows: true,
                 slotMinTime: '07:00:00',
                 slotMaxTime: '21:00:00',
+                scrollTime: '08:00:00',
+                slotDuration: '00:30:00',
+                slotLabelInterval: '01:00:00',
                 allDaySlot: false,
                 nowIndicator: true,
                 navLinks: true,
                 selectable: true,
+                dayMaxEvents: true,
+                stickyHeaderDates: true,
+                views: {
+                    timeGridDay: {
+                        dayHeaderFormat: { weekday: 'long', day: 'numeric', month: 'long' },
+                    },
+                },
                 businessHours: { daysOfWeek: [1, 2, 3, 4, 5, 6], startTime: '08:00', endTime: '18:00' },
                 eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: 'short' },
             });
