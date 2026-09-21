@@ -7,6 +7,7 @@ use Orchid\Screen\Layouts\Table;
 use Orchid\Screen\TD;
 use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Actions\Button;
+use Orchid\Screen\Actions\DropDown;
 use Orchid\Support\Color;
 
 class AppointmentListLayout extends Table
@@ -126,19 +127,19 @@ class AppointmentListLayout extends Table
 
             TD::make('Actions')
                 ->alignRight()
-                ->width('150px')
+                ->width('80px')
                 ->render(function (Appointment $apt) {
-                    $editButton = ModalToggle::make('Edit')
+                    $actions = [];
+
+                    $actions[] = ModalToggle::make('Edit')
                         ->icon('bs.pencil')
                         ->modal('editAppointmentModal')
                         ->modalTitle('Edit Appointment')
-                        ->asyncParameters(['appointment' => $apt->id])
-                        ->class('btn btn-sm btn-outline-primary');
+                        ->asyncParameters(['appointment' => $apt->id]);
 
-                    // Quick action button based on status
-                    $quickAction = '';
+                    // Quick action based on status
                     if ($apt->status === 'pending') {
-                        $quickAction = Button::make('Confirm')
+                        $actions[] = Button::make('Confirm')
                             ->icon('bs.check-lg')
                             ->confirm('Confirm this appointment?')
                             ->method('updateAppointment', [
@@ -150,10 +151,9 @@ class AppointmentListLayout extends Table
                                     'table_location' => $apt->table_location,
                                     'notes' => $apt->notes,
                                 ]
-                            ])
-                            ->class('btn btn-sm btn-success ms-1');
+                            ]);
                     } elseif ($apt->status === 'confirmed' && $apt->scheduled_at->isPast()) {
-                        $quickAction = Button::make('Complete')
+                        $actions[] = Button::make('Complete')
                             ->icon('bs.check2-all')
                             ->confirm('Mark as completed?')
                             ->method('updateAppointment', [
@@ -165,22 +165,17 @@ class AppointmentListLayout extends Table
                                     'table_location' => $apt->table_location,
                                     'notes' => $apt->notes,
                                 ]
-                            ])
-                            ->class('btn btn-sm btn-info ms-1');
+                            ]);
                     }
 
-                    $deleteButton = Button::make('Delete')
+                    $actions[] = Button::make('Delete')
                         ->icon('bs.trash3')
                         ->confirm('Delete this meeting permanently? This cannot be undone.')
-                        ->method('deleteAppointment', ['id' => $apt->id])
-                        ->class('btn btn-sm btn-outline-danger ms-1');
+                        ->method('deleteAppointment', ['id' => $apt->id]);
 
-                    return sprintf(
-                        '<div class="btn-group" role="group">%s%s%s</div>',
-                        $editButton,
-                        $quickAction,
-                        $deleteButton
-                    );
+                    return DropDown::make()
+                        ->icon('bs.three-dots-vertical')
+                        ->list($actions);
                 }),
         ];
     }
