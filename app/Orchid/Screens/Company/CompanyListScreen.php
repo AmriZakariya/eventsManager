@@ -428,6 +428,23 @@ class CompanyListScreen extends Screen
                         return "<div style='display:flex;flex-direction:column;align-items:center;gap:0;'>{$pill}{$featured}</div>";
                     }),
 
+                // ── CREATED DATE ──────────────────────────────────────────────
+                TD::make('created_at', 'Created')
+                    ->sort()
+                    ->width('140px')
+                    ->render(function (Company $c) {
+                        if (!$c->created_at) {
+                            return '<span class="text-muted">—</span>';
+                        }
+
+                        return sprintf(
+                            '<div><div class="fw-semibold" style="font-size:0.8rem;">%s</div>'
+                            . '<small class="text-muted">%s</small></div>',
+                            $c->created_at->format('M d, Y'),
+                            $c->created_at->diffForHumans()
+                        );
+                    }),
+
                 // ── ACTIONS ───────────────────────────────────────────────────
                 TD::make('actions', '')
                     ->alignRight()
