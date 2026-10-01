@@ -47,6 +47,7 @@ use App\Orchid\Screens\Feature\AwardListScreen;
 
 // Interaction
 use App\Orchid\Screens\Appointment\AppointmentListScreen;
+use App\Orchid\Screens\Contact\ContactRequestDetailScreen;
 use App\Orchid\Screens\Contact\ContactRequestListScreen;
 use App\Orchid\Screens\Interaction\ConversationListScreen;
 use App\Orchid\Screens\Interaction\ConversationViewScreen;
@@ -224,6 +225,12 @@ Route::screen('contacts', ContactRequestListScreen::class)
     ->breadcrumbs(fn ($trail) => $trail
         ->parent('platform.index')
         ->push('Inbox', route('platform.contacts')));
+
+Route::screen('contacts/{contact}', ContactRequestDetailScreen::class)
+    ->name('platform.contacts.detail')
+    ->breadcrumbs(fn ($trail, $contact) => $trail
+        ->parent('platform.contacts')
+        ->push('Message #' . $contact->id, route('platform.contacts.detail', $contact)));
 
 Route::screen('conversations', ConversationListScreen::class)
     ->name('platform.conversations.list')

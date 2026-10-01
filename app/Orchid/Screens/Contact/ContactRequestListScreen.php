@@ -162,7 +162,11 @@ class ContactRequestListScreen extends Screen
                     ->render(function (ContactRequest $c) {
                         $actions = [];
 
-                        $actions[] = ModalToggle::make('View message')
+                        $actions[] = Link::make('Open page')
+                            ->icon('bs.box-arrow-up-right')
+                            ->route('platform.contacts.detail', $c);
+
+                        $actions[] = ModalToggle::make('Quick view')
                             ->icon('bs.envelope-open')
                             ->modal('viewMessageModal')
                             ->modalTitle('Message from ' . ($c->name ?: $c->email ?: 'visitor'))
