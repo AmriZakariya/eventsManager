@@ -16,4 +16,9 @@ class ContactRequest extends Model
     protected $casts = [
         'is_handled' => 'boolean',
     ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
