@@ -87,6 +87,16 @@ class AppointmentDetailScreen extends Screen
                         return "<div class='mb-2 mt-1'><span class='badge bg-{$color} text-uppercase px-3 py-2' style='font-size: 12px; letter-spacing: 0.5px;'><i class='bi bi-record-circle-fill me-1'></i> {$apt->status}</span></div>";
                     }),
 
+                    Sight::make('created_at', 'Created')->render(fn($apt) =>
+                        "<div class='fs-6 mt-1 text-dark'>
+                            <i class='bi bi-plus-circle text-primary me-2'></i>" .
+                        Carbon::parse($apt->created_at)->diffForHumans() .
+                        " <span class='text-muted small'>(" .
+                        Carbon::parse($apt->created_at)->format('M d, Y H:i') .
+                        ")</span>
+                        </div>"
+                    ),
+
                     Sight::make('scheduled_at', 'Date & Time')->render(fn($apt) =>
                         "<div class='fs-6 mt-1 text-dark'>
                             <i class='bi bi-calendar2-week text-primary me-2'></i>" .
@@ -110,13 +120,14 @@ class AppointmentDetailScreen extends Screen
                         if (!$user) return '<span class="text-muted">Unknown User</span>';
 
                         $url = route('platform.systems.users.edit', $user->id);
-                        $initial = strtoupper(substr($user->name, 0, 1));
+                        $avatar = $this->avatarHtml($user, 'bg-primary');
+                        $name = e($user->name);
 
                         return "
                         <a href='{$url}' class='d-flex align-items-center text-decoration-none p-2 rounded participant-card'>
-                            <div class='avatar-circle bg-primary text-white me-3'>{$initial}</div>
+                            {$avatar}
                             <div>
-                                <strong class='d-block text-dark fs-6'>{$user->name}</strong>
+                                <strong class='d-block text-dark fs-6'>{$name}</strong>
                                 <span class='text-primary small fw-semibold'>View Profile &rarr;</span>
                             </div>
                         </a>";
@@ -127,13 +138,15 @@ class AppointmentDetailScreen extends Screen
                         if (!$user) return '<span class="text-muted">Unknown User</span>';
 
                         $url = route('platform.systems.users.edit', $user->id);
-                        $company = $user->company->name ?? 'Independent';
+                        $company = e($user->company->name ?? 'Independent');
+                        $avatar = $this->avatarHtml($user, 'bg-success', "<i class='bi bi-shop'></i>");
+                        $name = e($user->name);
 
                         return "
                         <a href='{$url}' class='d-flex align-items-center text-decoration-none p-2 rounded participant-card'>
-                            <div class='avatar-circle bg-success text-white me-3'><i class='bi bi-shop'></i></div>
+                            {$avatar}
                             <div>
-                                <strong class='d-block text-dark fs-6'>{$user->name}</strong>
+                                <strong class='d-block text-dark fs-6'>{$name}</strong>
                                 <span class='text-muted small'><i class='bi bi-building me-1'></i> {$company}</span>
                             </div>
                         </a>";
@@ -150,6 +163,24 @@ class AppointmentDetailScreen extends Screen
                 Layout::view('admin.appointment.timeline'),
             ]),
         ];
+    }
+
+    /**
+     * Render a participant avatar: real profile photo if available,
+     * otherwise a colored circle with an initial (or a fallback icon).
+     */
+    private function avatarHtml($user, string $bgClass, ?string $fallbackIcon = null): string
+    {
+        if ($user->avatar) {
+            $src = e($user->avatar_url);
+
+            return "<img src='{$src}' alt='' class='me-3' "
+                . "style='width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid #e2e8f0;'>";
+        }
+
+        $inner = $fallbackIcon ?? strtoupper(substr($user->name ?? '?', 0, 1));
+
+        return "<div class='avatar-circle {$bgClass} text-white me-3'>{$inner}</div>";
     }
 
     private function generateTimeline(Appointment $apt): array

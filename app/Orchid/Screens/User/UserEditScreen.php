@@ -50,6 +50,7 @@ class UserEditScreen extends Screen
         return [
             'user'       => $user,
             'permission' => $user->statusOfPermissions(),
+            'avatar_url' => $user->exists && $user->avatar ? $user->avatar_url : null,
         ];
     }
 
@@ -106,6 +107,9 @@ class UserEditScreen extends Screen
     public function layout(): iterable
     {
         return [
+
+            // 0. CURRENT PROFILE PICTURE PREVIEW (read-only)
+            Layout::view('admin.user.avatar-preview'),
 
             // 1. IDENTITY & CONTACT (Standard Info)
             Layout::block(Layout::rows([

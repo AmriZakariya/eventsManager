@@ -125,6 +125,22 @@ class AppointmentListLayout extends Table
                     );
                 }),
 
+            TD::make('created_at', 'Created')
+                ->sort()
+                ->width('140px')
+                ->render(function (Appointment $apt) {
+                    if (!$apt->created_at) {
+                        return '<span class="text-muted">—</span>';
+                    }
+
+                    return sprintf(
+                        '<div><div class="fw-semibold" style="font-size:0.8rem;">%s</div>'
+                        . '<small class="text-muted">(%s)</small></div>',
+                        $apt->created_at->diffForHumans(),
+                        $apt->created_at->format('M d, Y H:i')
+                    );
+                }),
+
             TD::make('Actions')
                 ->alignRight()
                 ->width('80px')
