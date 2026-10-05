@@ -213,6 +213,7 @@ class ConnectionRequestListScreen extends Screen
 
                 TD::make(__('Actions'))
                     ->align(TD::ALIGN_RIGHT)
+                    ->width('80px')
                     ->render(fn ($r) => $this->renderActionButtons($r)),
             ]),
         ];
@@ -255,7 +256,7 @@ class ConnectionRequestListScreen extends Screen
             </div>',
             $editUrl,
             $avatar
-                ? '<img src="' . e($avatar) . '" class="rounded-circle shadow-sm" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid #fff;" alt="' . e($name) . '">'
+                ? '<img src="' . e($avatar) . '" class="rounded-circle shadow-sm" referrerpolicy="no-referrer" style="width: 45px; height: 45px; object-fit: cover; border: 2px solid #fff;" alt="' . e($name) . '">'
                 : '<div class="rounded-circle d-inline-flex align-items-center justify-content-center shadow-sm fw-semibold" style="width: 45px; height: 45px; border: 2px solid #fff; background: #eef2ff; color: #4f46e5; font-size: 0.82rem;">' . $initials . '</div>',
             $roleColor,
             $roleLabel,
@@ -292,31 +293,28 @@ class ConnectionRequestListScreen extends Screen
 
     private function renderActionButtons($r): string
     {
-        $viewButton = Link::make('Details')
-            ->icon('bs.eye')
-            ->route('platform.networking.requests.show', $r->id)
-            ->class('btn btn-sm btn-outline-primary')
-            ->render();
+        $actions = [
+            Link::make('Details')
+                ->icon('bs.eye')
+                ->route('platform.networking.requests.show', $r->id),
+        ];
 
-        if ($r->status !== 'pending') {
-            return '<div class="d-flex justify-content-end gap-2 align-items-center">' . $viewButton . '<span class="text-muted small">Processed</span></div>';
+        if ($r->status === 'pending') {
+            $actions[] = Button::make('Approve')
+                ->icon('bs.check-lg')
+                ->confirm('Are you sure you want to manually accept this request?')
+                ->method('forceAccept', ['id' => $r->id]);
+
+            $actions[] = Button::make('Decline')
+                ->icon('bs.x-lg')
+                ->confirm('Are you sure you want to manually decline this request?')
+                ->method('forceDecline', ['id' => $r->id]);
         }
 
-        return '<div class="d-flex justify-content-end gap-2 align-items-center">' .
-            $viewButton .
-            Button::make('Approve')
-                ->icon('bs.check-lg')
-                ->class('btn btn-sm btn-outline-success')
-                ->confirm('Are you sure you want to manually accept this request?')
-                ->method('forceAccept', ['id' => $r->id])
-                ->render() .
-            Button::make('Decline')
-                ->icon('bs.x-lg')
-                ->class('btn btn-sm btn-outline-danger')
-                ->confirm('Are you sure you want to manually decline this request?')
-                ->method('forceDecline', ['id' => $r->id])
-                ->render() .
-            '</div>';
+        return DropDown::make()
+            ->icon('bs.three-dots-vertical')
+            ->list($actions)
+            ->render();
     }
 
     private function initialsForUser(User $user): string

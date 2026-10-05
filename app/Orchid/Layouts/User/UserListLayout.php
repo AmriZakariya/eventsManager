@@ -40,7 +40,7 @@ class UserListLayout extends Table
                             ? $user->avatar
                             : Storage::url($user->avatar);
 
-                        return "<img src='{$avatar}' class='rounded-circle'
+                        return "<img src='{$avatar}' class='rounded-circle' referrerpolicy='no-referrer'
                     style='width:40px;height:40px;object-fit:cover;'>";
                     }
 

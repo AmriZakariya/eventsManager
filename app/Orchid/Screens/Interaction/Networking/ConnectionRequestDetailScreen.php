@@ -169,7 +169,7 @@ class ConnectionRequestDetailScreen extends Screen
 
         return "
             <a href=\"{$url}\" class=\"connection-detail-card text-decoration-none\">
-                <img src=\"{$avatar}\" alt=\"{$name}\" class=\"connection-detail-avatar\">
+                <img src=\"{$avatar}\" alt=\"{$name}\" referrerpolicy=\"no-referrer\" class=\"connection-detail-avatar\">
                 <div>
                     <div class=\"small text-muted text-uppercase mb-1\">{$caption}</div>
                     <div class=\"fw-semibold text-dark\">{$name} {$profileBadge}</div>

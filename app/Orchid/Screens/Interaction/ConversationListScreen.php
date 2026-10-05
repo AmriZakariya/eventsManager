@@ -461,7 +461,7 @@ class ConversationListScreen extends Screen
             </div>',
                 $editUrl,
                 $avatar
-                    ? '<img src="' . e($avatar) . '" alt="' . $fullName . '" loading="lazy">'
+                    ? '<img src="' . e($avatar) . '" alt="' . $fullName . '" loading="lazy" referrerpolicy="no-referrer">'
                     : '<span style="font-weight:700;font-size:.78rem;letter-spacing:.04em;">' . $initials . '</span>',
                 $onlineDot,
                 $editUrl, $tooltip,
