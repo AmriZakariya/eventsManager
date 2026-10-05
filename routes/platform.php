@@ -232,13 +232,13 @@ Route::screen('contacts/{contact}', ContactRequestDetailScreen::class)
         ->parent('platform.contacts')
         ->push('Message #' . $contact->id, route('platform.contacts.detail', $contact)));
 
-Route::screen('conversations', ConversationListScreen::class)
+Route::screen('conversations-history', ConversationListScreen::class)
     ->name('platform.conversations.list')
     ->breadcrumbs(fn ($trail) => $trail
         ->parent('platform.index')
         ->push('Conversations', route('platform.conversations.list')));
 
-Route::screen('conversations/{user1}/{user2}', ConversationViewScreen::class)
+Route::screen('conversations-history/{user1}/{user2}', ConversationViewScreen::class)
     ->name('platform.conversations.view')
     ->breadcrumbs(fn ($trail) => $trail
         ->parent('platform.conversations.list')

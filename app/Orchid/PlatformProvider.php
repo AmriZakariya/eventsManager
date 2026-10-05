@@ -43,10 +43,9 @@ class PlatformProvider extends OrchidServiceProvider
                 ->permission('platform.contacts')
                 ->badge(fn() => \App\Models\ContactRequest::where('is_handled', 0)->count(), Color::DANGER),
 
-            Menu::make('Chat Monitoring')
-                ->icon('bs.chat-quote')
-                ->route('platform.conversations.list') // Ensure this route exists
-                ->permission('platform.contacts'),
+            // Chat Monitoring is intentionally hidden from the sidebar (sensitive
+            // data). It stays reachable by URL only: /admin/conversations-history
+            // Access is still gated by the 'platform.contacts' permission.
 
             Menu::make('Networking Requests')
                 ->icon('bs.person-plus')
