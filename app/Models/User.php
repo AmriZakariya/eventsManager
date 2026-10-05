@@ -274,6 +274,39 @@ class User extends Authenticatable
             : 'No password is set. The user probably came from social login or WordPress and still needs to complete their profile.';
     }
 
+    /**
+     * Reusable admin avatar thumbnail: real profile photo when available,
+     * otherwise a colored circle with the user's initial (or a fallback icon).
+     *
+     * Uses the `avatar_url` accessor (pure string building, no extra query) and
+     * lazy-loads the image so long lists don't fetch every photo at once.
+     */
+    public function avatarThumbHtml(int $size = 36, string $fallbackBg = 'bg-secondary', ?string $fallbackIcon = null): string
+    {
+        if ($this->avatar_url) {
+            return sprintf(
+                '<img src="%1$s" alt="" loading="lazy" referrerpolicy="no-referrer" '
+                . 'style="width:%2$dpx;height:%2$dpx;border-radius:50%%;object-fit:cover;'
+                . 'border:1px solid #e2e8f0;flex-shrink:0;background:#f1f5f9;" '
+                . 'onerror="this.style.display=\'none\'">',
+                e($this->avatar_url),
+                $size
+            );
+        }
+
+        $inner = $fallbackIcon ?? e(strtoupper(mb_substr($this->full_name ?: ($this->name ?: '?'), 0, 1)));
+        $fontSize = (int) round($size * 0.42);
+
+        return sprintf(
+            '<span class="%1$s text-white d-inline-flex align-items-center justify-content-center fw-bold flex-shrink-0" '
+            . 'style="width:%2$dpx;height:%2$dpx;border-radius:50%%;font-size:%3$dpx;">%4$s</span>',
+            e($fallbackBg),
+            $size,
+            $fontSize,
+            $inner
+        );
+    }
+
     public function profileCompletionBadgeHtml(string $extraClass = ''): string
     {
         $class = trim('badge '.$this->profileCompletionBadgeClass().' '.$extraClass);

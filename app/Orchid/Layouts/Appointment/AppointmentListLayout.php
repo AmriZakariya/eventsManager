@@ -39,17 +39,18 @@ class AppointmentListLayout extends Table
 
             TD::make('booker', 'Visitor')
                 ->render(function (Appointment $apt) {
-                    $initial = strtoupper(substr($apt->booker->name ?? '?', 0, 1));
-                    $profileBadge = $apt->booker?->profileCompletionBadgeHtml('ms-1') ?? '';
+                    if (!$apt->booker) {
+                        return '<span class="text-muted">—</span>';
+                    }
+                    $avatar = $apt->booker->avatarThumbHtml(32, 'bg-primary');
+                    $profileBadge = $apt->booker->profileCompletionBadgeHtml('ms-1');
 
                     return sprintf(
                         '<div class="d-flex align-items-center">
-                            <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px; font-size: 14px;">
-                                %s
-                            </div>
+                            <span class="me-2">%s</span>
                             <div>%s %s</div>
                         </div>',
-                        $initial,
+                        $avatar,
                         e($apt->booker->full_name ?? '-'),
                         $profileBadge
                     );
@@ -57,23 +58,24 @@ class AppointmentListLayout extends Table
 
             TD::make('targetUser', 'Exhibitor')
                 ->render(function (Appointment $apt) {
-                    $initial = strtoupper(substr($apt->targetUser->name ?? '?', 0, 1));
+                    if (!$apt->targetUser) {
+                        return '<span class="text-muted">—</span>';
+                    }
+                    $avatar = $apt->targetUser->avatarThumbHtml(32, 'bg-success');
                     $companyBadge = $apt->targetUser->company
                         ? '<div><small class="badge bg-light text-dark border">' . e($apt->targetUser->company->name) . '</small></div>'
                         : '';
-                    $profileBadge = $apt->targetUser?->profileCompletionBadgeHtml('ms-1') ?? '';
+                    $profileBadge = $apt->targetUser->profileCompletionBadgeHtml('ms-1');
 
                     return sprintf(
                         '<div class="d-flex align-items-center">
-                            <div class="bg-success bg-opacity-10 text-success rounded-circle d-flex align-items-center justify-content-center me-2 fw-bold" style="width: 32px; height: 32px; font-size: 14px;">
-                                %s
-                            </div>
+                            <span class="me-2">%s</span>
                             <div>
                                 <div>%s %s</div>
                                 %s
                             </div>
                         </div>',
-                        $initial,
+                        $avatar,
                         e($apt->targetUser->full_name ?? '-'),
                         $profileBadge,
                         $companyBadge

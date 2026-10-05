@@ -2,9 +2,7 @@
 
     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
         <div class="d-flex align-items-center">
-            <div class="avatar bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-2" style="width: 40px; height: 40px;">
-                {{ substr($user1->name, 0, 1) }}
-            </div>
+            <span class="me-2">{!! $user1->avatarThumbHtml(40, 'bg-primary') !!}</span>
             <div>
                 <h5 class="mb-0 text-dark">{{ $user1->name }}</h5>
                 <small class="text-muted">{{ $user1->email }}</small>
@@ -20,9 +18,7 @@
                 <h5 class="mb-0 text-dark">{{ $user2->name }}</h5>
                 <small class="text-muted">{{ $user2->email }}</small>
             </div>
-            <div class="avatar bg-success text-white rounded-circle d-flex justify-content-center align-items-center ms-2" style="width: 40px; height: 40px;">
-                {{ substr($user2->name, 0, 1) }}
-            </div>
+            <span class="ms-2">{!! $user2->avatarThumbHtml(40, 'bg-success') !!}</span>
         </div>
     </div>
 
