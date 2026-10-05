@@ -228,7 +228,7 @@ class ConnectionRequestListScreen extends Screen
             return '<div class="text-muted small fst-italic">User no longer exists</div>';
         }
 
-        $avatar = $user->avatar_url;
+        $avatar = $user->adminAvatarUrl();
         $initials = e($this->initialsForUser($user));
         $company = optional($user->company)->name ?? 'No Company';
         $editUrl = route('platform.systems.users.edit', $user->id);

@@ -50,7 +50,7 @@ class UserEditScreen extends Screen
         return [
             'user'       => $user,
             'permission' => $user->statusOfPermissions(),
-            'avatar_url' => $user->exists && $user->avatar ? $user->avatar_url : null,
+            'avatar_url' => $user->exists && $user->avatar ? $user->adminAvatarUrl() : null,
         ];
     }
 

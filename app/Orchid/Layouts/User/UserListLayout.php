@@ -36,9 +36,7 @@ class UserListLayout extends Table
 
                     if ($user->avatar) {
 
-                        $avatar = filter_var($user->avatar, FILTER_VALIDATE_URL)
-                            ? $user->avatar
-                            : Storage::url($user->avatar);
+                        $avatar = $user->adminAvatarUrl();
 
                         return "<img src='{$avatar}' class='rounded-circle' referrerpolicy='no-referrer'
                     style='width:40px;height:40px;object-fit:cover;'>";

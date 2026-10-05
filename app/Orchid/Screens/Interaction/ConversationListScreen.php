@@ -426,7 +426,7 @@ class ConversationListScreen extends Screen
                 </div>';
         }
 
-        $avatar = $user->avatar_url;
+        $avatar = $user->adminAvatarUrl();
         $initials = e($this->initialsForUser($user));
         $badgeClass  = $user->role === User::APP_ROLE_EXHIBITOR ? 'exhibitor' : 'visitor';
         $badgeLabel  = 'App: '.$user->appRoleLabel();

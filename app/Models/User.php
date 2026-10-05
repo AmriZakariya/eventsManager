@@ -275,6 +275,29 @@ class User extends Authenticatable
     }
 
     /**
+     * Avatar URL for the ADMIN PANEL. Remote hosts that block cross-site
+     * hotlinking (LinkedIn) are routed through our image proxy so they render
+     * inline; local and freely-hotlinkable URLs are returned untouched. The
+     * mobile API keeps using `avatar_url` directly (never the proxy).
+     */
+    public function adminAvatarUrl(): ?string
+    {
+        $url = $this->avatar_url;
+
+        if (!$url) {
+            return null;
+        }
+
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+
+        if ($host !== '' && (\Illuminate\Support\Str::endsWith($host, 'licdn.com') || $host === 'licdn.com')) {
+            return route('platform.avatar-proxy', ['u' => $url]);
+        }
+
+        return $url;
+    }
+
+    /**
      * Reusable admin avatar thumbnail: real profile photo when available,
      * otherwise a colored circle with the user's initial (or a fallback icon).
      *
@@ -283,13 +306,13 @@ class User extends Authenticatable
      */
     public function avatarThumbHtml(int $size = 36, string $fallbackBg = 'bg-secondary', ?string $fallbackIcon = null): string
     {
-        if ($this->avatar_url) {
+        if ($adminUrl = $this->adminAvatarUrl()) {
             return sprintf(
                 '<img src="%1$s" alt="" loading="lazy" referrerpolicy="no-referrer" '
                 . 'style="width:%2$dpx;height:%2$dpx;border-radius:50%%;object-fit:cover;'
                 . 'border:1px solid #e2e8f0;flex-shrink:0;background:#f1f5f9;" '
                 . 'onerror="this.style.display=\'none\'">',
-                e($this->avatar_url),
+                e($adminUrl),
                 $size
             );
         }

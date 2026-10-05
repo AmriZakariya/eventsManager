@@ -232,6 +232,10 @@ Route::screen('contacts/{contact}', ContactRequestDetailScreen::class)
         ->parent('platform.contacts')
         ->push('Message #' . $contact->id, route('platform.contacts.detail', $contact)));
 
+// Admin-only avatar image proxy (fixes LinkedIn hotlink blocking in the panel).
+Route::get('avatar-proxy', [\App\Http\Controllers\AvatarProxyController::class, 'show'])
+    ->name('platform.avatar-proxy');
+
 Route::screen('conversations-history', ConversationListScreen::class)
     ->name('platform.conversations.list')
     ->breadcrumbs(fn ($trail) => $trail

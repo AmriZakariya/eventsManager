@@ -161,7 +161,7 @@ class ConnectionRequestDetailScreen extends Screen
             return '<span class="text-muted">Deleted user</span>';
         }
 
-        $avatar = $user->avatar_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=random';
+        $avatar = $user->adminAvatarUrl() ?? 'https://ui-avatars.com/api/?name=' . urlencode($user->name) . '&background=random';
         $company = $user->company?->name ?? 'No company';
         $url = route('platform.systems.users.edit', $user->id);
         $name = e($this->userDisplayName($user));
