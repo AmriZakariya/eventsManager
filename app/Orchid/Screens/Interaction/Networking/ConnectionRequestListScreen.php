@@ -311,7 +311,7 @@ class ConnectionRequestListScreen extends Screen
                 ->method('forceDecline', ['id' => $r->id]);
         }
 
-        return DropDown::make()
+        return (string) DropDown::make()
             ->icon('bs.three-dots-vertical')
             ->list($actions)
             ->render();
