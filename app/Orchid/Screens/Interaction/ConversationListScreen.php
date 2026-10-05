@@ -102,26 +102,53 @@ class ConversationListScreen extends Screen
             ->get()
             ->keyBy('id');
 
-        // Batched last-message fetch for the page's conversations (no N+1):
-        // one query for the newest message id per pair, one to load those rows.
+        // Batched first/last message fetch for the page's conversations (no N+1):
+        // MIN(id) => who actually started the conversation (true initiator),
+        // MAX(id) => the newest message (preview).
         $latestMessages = collect();
+        $firstMessages  = collect();
         if ($userIds->isNotEmpty()) {
+            $pairKey = fn ($m) => min($m->sender_id, $m->receiver_id) . '-' . max($m->sender_id, $m->receiver_id);
+
             $latestIds = Message::query()
                 ->whereIn('sender_id', $userIds)
                 ->whereIn('receiver_id', $userIds)
-                ->selectRaw('MAX(id) as max_id')
+                ->selectRaw('MAX(id) as mid')
                 ->groupByRaw("{$pairUser1Expr}, {$pairUser2Expr}")
-                ->pluck('max_id');
+                ->pluck('mid');
+
+            $firstIds = Message::query()
+                ->whereIn('sender_id', $userIds)
+                ->whereIn('receiver_id', $userIds)
+                ->selectRaw('MIN(id) as mid')
+                ->groupByRaw("{$pairUser1Expr}, {$pairUser2Expr}")
+                ->pluck('mid');
 
             $latestMessages = Message::whereIn('id', $latestIds)
                 ->get(['id', 'sender_id', 'receiver_id', 'content', 'attachment_url', 'created_at'])
-                ->keyBy(fn ($m) => min($m->sender_id, $m->receiver_id) . '-' . max($m->sender_id, $m->receiver_id));
+                ->keyBy($pairKey);
+
+            $firstMessages = Message::whereIn('id', $firstIds)
+                ->get(['id', 'sender_id', 'receiver_id'])
+                ->keyBy($pairKey);
         }
 
-        $conversations->getCollection()->transform(function ($c) use ($users, $latestMessages) {
-            $c->p1 = $users[$c->user_1_id] ?? null;
-            $c->p2 = $users[$c->user_2_id] ?? null;
-            $c->last_message = $latestMessages[$c->user_1_id . '-' . $c->user_2_id] ?? null;
+        $conversations->getCollection()->transform(function ($c) use ($users, $latestMessages, $firstMessages) {
+            $pairKey = $c->user_1_id . '-' . $c->user_2_id;
+
+            // Order participants by who actually started the conversation.
+            $firstMsg = $firstMessages[$pairKey] ?? null;
+            if ($firstMsg) {
+                $initiatorId = $firstMsg->sender_id;
+                $recipientId = $firstMsg->receiver_id;
+            } else {
+                $initiatorId = $c->user_1_id;
+                $recipientId = $c->user_2_id;
+            }
+
+            $c->p1 = $users[$initiatorId] ?? null; // Initiator (sent the first message)
+            $c->p2 = $users[$recipientId] ?? null; // Recipient
+            $c->last_message = $latestMessages[$pairKey] ?? null;
 
             $firstDate = Carbon::parse($c->first_message_at);
             $lastDate  = Carbon::parse($c->last_message_at);
