@@ -102,9 +102,26 @@ class ConversationListScreen extends Screen
             ->get()
             ->keyBy('id');
 
-        $conversations->getCollection()->transform(function ($c) use ($users) {
+        // Batched last-message fetch for the page's conversations (no N+1):
+        // one query for the newest message id per pair, one to load those rows.
+        $latestMessages = collect();
+        if ($userIds->isNotEmpty()) {
+            $latestIds = Message::query()
+                ->whereIn('sender_id', $userIds)
+                ->whereIn('receiver_id', $userIds)
+                ->selectRaw('MAX(id) as max_id')
+                ->groupByRaw("{$pairUser1Expr}, {$pairUser2Expr}")
+                ->pluck('max_id');
+
+            $latestMessages = Message::whereIn('id', $latestIds)
+                ->get(['id', 'sender_id', 'receiver_id', 'content', 'attachment_url', 'created_at'])
+                ->keyBy(fn ($m) => min($m->sender_id, $m->receiver_id) . '-' . max($m->sender_id, $m->receiver_id));
+        }
+
+        $conversations->getCollection()->transform(function ($c) use ($users, $latestMessages) {
             $c->p1 = $users[$c->user_1_id] ?? null;
             $c->p2 = $users[$c->user_2_id] ?? null;
+            $c->last_message = $latestMessages[$c->user_1_id . '-' . $c->user_2_id] ?? null;
 
             $firstDate = Carbon::parse($c->first_message_at);
             $lastDate  = Carbon::parse($c->last_message_at);
@@ -196,21 +213,20 @@ class ConversationListScreen extends Screen
             Layout::table('conversations', [
 
                 TD::make('p1', 'Initiator')
-                    ->width('38%')
+                    ->width('23%')
                     ->render(fn($c) => $this->renderUserCard($c->p1)),
 
-                TD::make('flow', 'Activity')
-                    ->width('10%')
-                    ->align(TD::ALIGN_CENTER)
-                    ->render(fn($c) => $this->renderActivityBadge($c)),
-
                 TD::make('p2', 'Recipient')
-                    ->width('38%')
+                    ->width('23%')
                     ->render(fn($c) => $this->renderUserCard($c->p2)),
+
+                TD::make('preview', 'Last message')
+                    ->width('34%')
+                    ->render(fn($c) => $this->renderLastMessage($c)),
 
                 TD::make('last_message_at', 'Insights')
                     ->align(TD::ALIGN_RIGHT)
-                    ->width('14%')
+                    ->width('20%')
                     ->sort()
                     ->render(fn($c) => $this->renderStats($c)),
             ]),
@@ -334,6 +350,34 @@ class ConversationListScreen extends Screen
                 background:#f4f6f8; color:#7f8c8d;
                 font-size:.68rem; font-weight:600;
             }
+
+            /* ── Last Message Preview ──────────────────────── */
+            .lm { display:flex; flex-direction:column; gap:5px; max-width:100%; }
+            .lm-head {
+                display:flex; align-items:center; gap:6px;
+                font-size:.72rem; color:#95a5a6; font-weight:600;
+            }
+            .lm-dir {
+                display:inline-flex; align-items:center; gap:3px;
+                padding:1px 7px; border-radius:20px;
+                background:#eef2ff; color:#4f46e5;
+                font-size:.65rem; font-weight:700;
+                max-width:160px; overflow:hidden;
+                text-overflow:ellipsis; white-space:nowrap;
+            }
+            .lm-body {
+                font-size:.84rem; color:#2c3e50; line-height:1.4;
+                display:-webkit-box; -webkit-line-clamp:2;
+                -webkit-box-orient:vertical; overflow:hidden;
+                background:#f8fafc; border:1px solid #eef0f3;
+                border-radius:10px; padding:8px 11px;
+            }
+            .lm-attach { color:#7f8c8d; font-style:italic; }
+            .lm-empty  { color:#bdc3c7; font-style:italic; font-size:.8rem; }
+
+            /* ── Row hover ─────────────────────────────────── */
+            table tbody tr { transition:background .15s; }
+            table tbody tr:hover { background:#f8f9ff !important; }
         </style>
         CSS;
     }
@@ -346,7 +390,7 @@ class ConversationListScreen extends Screen
             return $styles . '
                 <div class="uc">
                     <div class="uc-avatar-wrap">
-                        <div class="uc-avatar deleted"><i class="icon-user"></i></div>
+                        <div class="uc-avatar deleted"><i class="bi bi-person-x"></i></div>
                     </div>
                     <div class="uc-info">
                         <span class="uc-name deleted">Deleted User</span>
@@ -363,10 +407,16 @@ class ConversationListScreen extends Screen
         $editUrl     = route('platform.systems.users.edit', $user->id);
         $isOnline    = isset($user->last_active_at) && $user->last_active_at?->diffInMinutes() < 30;
         $onlineDot   = $isOnline ? '<div class="uc-online"></div>' : '';
-        $fullName    = e($user->name . ' ' . $user->last_name);
-        $adminPanelRoles = e($user->adminPanelRolesLabel());
-        $createdSource = $user->created_source ? e($user->createdSourceLabel()) : 'Unknown';
-        $profileBadge = $user->profileCompletionBadgeHtml();
+        $fullName    = e(trim($user->name . ' ' . $user->last_name));
+
+        // Extra detail is moved into the name tooltip to keep rows scannable.
+        $tooltip = e(sprintf(
+            '%s — %s · Admin: %s · Created: %s',
+            trim($user->name . ' ' . $user->last_name),
+            $user->email,
+            $user->adminPanelRolesLabel(),
+            $user->created_source ? $user->createdSourceLabel() : 'Unknown'
+        ));
 
         return $styles . sprintf(
                 '<div class="uc">
@@ -377,11 +427,8 @@ class ConversationListScreen extends Screen
                     %s
                 </div>
                 <div class="uc-info">
-                    <a href="%s" class="uc-name" title="%s — %s">%s</a>
-                    <span class="uc-meta"><i class="icon-briefcase" style="opacity:.6;font-size:.68rem;"></i> %s</span>
-                    <span class="uc-meta">Admin panel: %s</span>
-                    <span class="uc-meta">Created: %s</span>
-                    <span class="uc-meta">%s</span>
+                    <a href="%s" class="uc-name" title="%s">%s</a>
+                    <span class="uc-meta"><i class="bi bi-briefcase" style="opacity:.6;font-size:.68rem;"></i> %s</span>
                     <span class="uc-badge %s">%s</span>
                 </div>
             </div>',
@@ -390,14 +437,52 @@ class ConversationListScreen extends Screen
                     ? '<img src="' . e($avatar) . '" alt="' . $fullName . '" loading="lazy">'
                     : '<span style="font-weight:700;font-size:.78rem;letter-spacing:.04em;">' . $initials . '</span>',
                 $onlineDot,
-                $editUrl, $fullName, e($user->email),
+                $editUrl, $tooltip,
                 $fullName,
                 e($company),
-                $adminPanelRoles,
-                $createdSource,
-                $profileBadge,
                 $badgeClass, $badgeLabel
             );
+    }
+
+    private function renderLastMessage(object $conversation): string
+    {
+        $msg = $conversation->last_message ?? null;
+
+        if (!$msg) {
+            return '<span class="lm-empty">No message content</span>';
+        }
+
+        // Resolve the sender's display name from the already-loaded participants.
+        $sender = null;
+        if ($conversation->p1 && $msg->sender_id === $conversation->p1->id) {
+            $sender = $conversation->p1;
+        } elseif ($conversation->p2 && $msg->sender_id === $conversation->p2->id) {
+            $sender = $conversation->p2;
+        }
+        $senderName = $sender ? trim($sender->name . ' ' . $sender->last_name) : 'Unknown';
+
+        // Body: text, or an attachment indicator when empty.
+        $content = trim((string) $msg->content);
+        if ($content !== '') {
+            $body = '<div class="lm-body">' . e($content) . '</div>';
+        } elseif ($msg->attachment_url) {
+            $body = '<div class="lm-body lm-attach"><i class="bi bi-paperclip"></i> Attachment</div>';
+        } else {
+            $body = '<span class="lm-empty">Empty message</span>';
+        }
+
+        return sprintf(
+            '<div class="lm">
+                <div class="lm-head">
+                    <span class="lm-dir"><i class="bi bi-arrow-return-right"></i> %s</span>
+                    <span>· %s</span>
+                </div>
+                %s
+            </div>',
+            e($senderName),
+            e(Carbon::parse($msg->created_at)->diffForHumans()),
+            $body
+        );
     }
 
     private function filterParams(string $search, string $role, string $activity, string $sort, string $direction): array
@@ -421,19 +506,6 @@ class ConversationListScreen extends Screen
         return strtoupper($first . $last) ?: 'NA';
     }
 
-    private function renderActivityBadge(object $conversation): string
-    {
-        $level = $conversation->activity_level;
-        $count = (int) $conversation->total_messages;
-
-        return sprintf(
-            '<div class="ab %s" title="%d messages total"><i class="icon-bubble"></i>%d</div>',
-            $level,
-            $count,
-            $count
-        );
-    }
-
     private function renderStats(object $conversation): string
     {
         $lastDate  = Carbon::parse($conversation->last_message_at);
@@ -454,18 +526,18 @@ class ConversationListScreen extends Screen
 
         return sprintf(
             '<div class="cs">
-                <a href="%s" class="cs-btn"><i class="icon-eye"></i> View Chat</a>
+                <a href="%s" class="cs-btn"><i class="bi bi-eye"></i> View Chat</a>
                 <div class="cs-row">
-                    <i class="icon-bubbles text-primary"></i>
+                    <i class="bi bi-chat-dots text-primary"></i>
                     <span class="cs-val">%d</span>
                     <span>messages</span>
                 </div>
                 <div class="cs-row" style="%s">
-                    <i class="icon-clock"></i>
+                    <i class="bi bi-clock"></i>
                     <span>%s</span>
                 </div>
                 <div class="cs-dur">
-                    <i class="icon-calendar" style="font-size:.65rem;"></i> %s
+                    <i class="bi bi-calendar" style="font-size:.65rem;"></i> %s
                 </div>
             </div>',
             $chatUrl,
