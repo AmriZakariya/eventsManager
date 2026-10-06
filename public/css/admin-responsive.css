@@ -1,0 +1,431 @@
+/* ==========================================================================
+   Admin responsive / mobile-friendly layer
+   --------------------------------------------------------------------------
+   Purely additive: every rule is inside a max-width media query, so the
+   desktop layout is untouched. Loaded after admin.css (see config/platform.php).
+
+   Breakpoints (Bootstrap 5):
+     <= 991.98px  tablet & below  (sidebar is already collapsed by Orchid)
+     <= 767.98px  phones          (tables become cards, 16px inputs, 2-up metrics)
+     <= 575.98px  small phones
+   ========================================================================== */
+
+html {
+    -webkit-text-size-adjust: 100%; /* mobile browsers only; ignored on desktop */
+}
+
+/* --------------------------------------------------------------------------
+   Tablet & below
+   -------------------------------------------------------------------------- */
+@media (max-width: 991.98px) {
+    img {
+        max-width: 100%;
+    }
+
+    .container-fluid {
+        padding-left: 12px;
+        padding-right: 12px;
+    }
+
+    /* Command bar: let buttons wrap instead of overflowing the screen */
+    .command-bar {
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+    }
+
+    .command-bar > li,
+    .command-bar > li > div {
+        max-width: 100%;
+    }
+
+    /* Breadcrumbs: wrap long trails */
+    .breadcrumb {
+        flex-wrap: wrap;
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+    }
+
+    /* Tabs (Orchid tabs layout): one scrollable row instead of wrapping */
+    .nav-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    .nav-tabs::-webkit-scrollbar {
+        display: none;
+    }
+    .nav-tabs .nav-link {
+        flex: 0 0 auto;
+    }
+
+    /* Pagination: wrap rather than overflow */
+    .pagination {
+        flex-wrap: wrap;
+        justify-content: center;
+        row-gap: 6px;
+    }
+
+    /* Sidebar menu: comfortable touch targets */
+    .aside .nav-link {
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    /* Tables that keep horizontal scroll (tablet): smooth + tighter cells */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+    .table > :not(caption) > * > * {
+        padding: 0.65rem 0.6rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Phones
+   -------------------------------------------------------------------------- */
+@media (max-width: 767.98px) {
+    /* Cards & blocks: less chrome, less wasted space */
+    .bg-white,
+    .card {
+        border-radius: 12px !important;
+        margin-bottom: 14px;
+    }
+    .bg-white.p-4 {
+        padding: 14px !important;
+    }
+
+    /* Prevent iOS Safari from zooming the page when an input is focused */
+    .form-control,
+    .form-select,
+    input,
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+
+    /* Buttons: bigger tap targets */
+    .btn {
+        padding: 9px 14px;
+        min-height: 40px;
+    }
+    .btn-sm {
+        min-height: 34px;
+        padding: 6px 10px;
+    }
+
+    /* Dropdown menus (row actions etc.): finger-sized items */
+    .dropdown-menu {
+        max-width: calc(100vw - 24px);
+    }
+    .dropdown-menu .btn-link,
+    .dropdown-menu .dropdown-item {
+        width: 100%;
+        min-height: 44px;
+        padding: 10px 16px;
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    /* Metrics: 2 cards per row instead of N squeezed side by side */
+    .g-mb-4 > .col {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    .g-mb-4 .p-4 {
+        padding: 14px !important;
+    }
+    .g-mb-4 .h3 {
+        font-size: 1.35rem;
+    }
+
+    /* Modals: full-screen on phones (Orchid adds modal-fullscreen-md-down) */
+    .modal-body {
+        padding: 14px;
+    }
+    .modal-footer {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .modal-footer .btn {
+        flex: 1 1 auto;
+    }
+
+    /* Forms: field titles and rows breathe a little less */
+    .layout-wrapper {
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+
+    /* ---- Chat thread (admin/conversation.blade.php) ---- */
+    .chat-thread-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 14px;
+    }
+    .chat-thread-header .chat-participant-right {
+        text-align: left !important;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+    }
+    .chat-thread-header .chat-participant-right > span {
+        margin-left: 0 !important;
+        margin-right: 8px;
+    }
+    .chat-history {
+        max-height: 70vh !important;
+        padding: 12px !important;
+    }
+    .chat-bubble-wrap {
+        max-width: 90% !important;
+    }
+
+    /* ---- Appointments calendar ---- */
+    .appointment-calendar-shell .card-header,
+    .appointment-calendar-help {
+        padding-left: 14px !important;
+        padding-right: 14px !important;
+    }
+    .appointment-calendar-shell .btn-group {
+        width: 100%;
+    }
+    .appointment-calendar-shell .btn-group .btn {
+        flex: 1 1 0;
+    }
+    #appointment-calendar {
+        min-height: 0 !important;
+        padding: 8px !important;
+    }
+    .fc .fc-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .fc .fc-toolbar-chunk {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 4px;
+    }
+    .fc .fc-toolbar-title {
+        font-size: 1.05rem !important;
+        text-align: center;
+    }
+    .fc .fc-button {
+        padding: 6px 10px;
+        font-size: 0.78rem;
+    }
+    .fc-timegrid-slot {
+        height: 3em;
+    }
+
+    /* ---- Detail pages ---- */
+    .participant-card {
+        margin-left: 0 !important;
+    }
+    .cc-timeline {
+        margin-top: 8px;
+    }
+
+    /* ----------------------------------------------------------------------
+       Tables -> stacked cards.
+       Only applies once admin-responsive.js has tagged a table with .rt-stack
+       (so if the script is missing the table simply scrolls horizontally).
+       ---------------------------------------------------------------------- */
+    .table-responsive.rt-stack-host {
+        overflow: visible;
+    }
+
+    /* Let the row-actions dropdown extend past the card/table edge instead of being clipped */
+    [data-controller="table"].overflow-hidden:has(.rt-stack-host) {
+        overflow: visible !important;
+    }
+
+    table.rt-stack {
+        display: block;
+        border: 0 !important;
+        background: transparent;
+        margin-bottom: 0;
+    }
+
+    table.rt-stack thead {
+        display: none;
+    }
+
+    table.rt-stack tbody {
+        display: block;
+        padding: 10px;
+    }
+
+    table.rt-stack tbody tr {
+        display: block;
+        position: relative;
+        margin-bottom: 12px;
+        padding: 6px 14px 8px;
+        background: #fff;
+        border: 1px solid #e9edf3;
+        border-radius: 14px;
+        box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+    }
+
+    table.rt-stack tbody tr:last-child {
+        margin-bottom: 0;
+    }
+
+    /* NB: no !important on display, so Orchid's .d-none (hidden columns) still wins */
+    table.rt-stack tbody td {
+        display: block;
+        width: auto !important;
+        min-width: 0 !important;
+        padding: 10px 0 !important;
+        border: 0 !important;
+        border-bottom: 1px dashed #eef1f6 !important;
+        text-align: left !important;
+        white-space: normal;
+        background: transparent !important;
+    }
+
+    table.rt-stack tbody td:last-child,
+    table.rt-stack tbody td.rt-last-visible {
+        border-bottom: 0 !important;
+    }
+
+    table.rt-stack tbody td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        margin-bottom: 5px;
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #94a3b8;
+    }
+
+    /* Row actions (the three-dots menu) float in the card's top-right corner */
+    table.rt-stack tbody td.rt-actions {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        padding: 0 !important;
+        border: 0 !important;
+        z-index: 2;
+    }
+
+    /* Keep the first content cell clear of the floating menu */
+    table.rt-stack tbody td.rt-main {
+        padding-right: 44px !important;
+    }
+
+    /* Checkbox / selection cell */
+    table.rt-stack tbody td.rt-check {
+        padding: 6px 0 2px !important;
+        border-bottom: 0 !important;
+    }
+
+    /* Empty-state block (Orchid renders it outside the table) */
+    [data-controller="table"] .d-md-flex.align-items-center {
+        padding-top: 20px !important;
+        padding-bottom: 24px !important;
+    }
+
+    /* ---- Stat tiles built with .col-md-3 (e.g. home-widget stats): 2 per row ---- */
+    .row.g-3 > .col-md-3 {
+        width: 50%;
+    }
+
+    /* ---- Language management ---- */
+    .language-banner > .d-flex {
+        flex-direction: column;
+    }
+    .language-banner .me-4 {
+        margin-right: 0 !important;
+        margin-bottom: 12px;
+    }
+    .editor-card .card-header > .d-flex {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    .editor-card .card-header .d-flex.gap-2 {
+        flex-wrap: wrap;
+    }
+
+    /* Translation editor table: each row becomes a Key / Translation card */
+    .translation-table,
+    .translation-table tbody {
+        display: block;
+    }
+    .translation-table thead {
+        display: none;
+    }
+    .translation-table tr.translation-row {
+        display: block;
+        position: relative;
+        padding: 12px 48px 12px 14px;
+        border-bottom: 1px solid #e9edf3;
+    }
+    .translation-table tr.translation-row > td {
+        display: block;
+        width: auto;
+        padding: 4px 0;
+        border: 0;
+        text-align: left !important;
+    }
+    .translation-table tr.translation-row > td:first-child {
+        padding-bottom: 0;
+    }
+    .translation-table tr.translation-row .row-number {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #94a3b8;
+    }
+    .translation-table tr.translation-row > td:nth-child(2)::before,
+    .translation-table tr.translation-row > td:nth-child(3)::before {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: #94a3b8;
+    }
+    .translation-table tr.translation-row > td:nth-child(2)::before {
+        content: "Key";
+    }
+    .translation-table tr.translation-row > td:nth-child(3)::before {
+        content: "Translation";
+    }
+    .translation-table tr.translation-row > td:last-child {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        padding: 0;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   Small phones
+   -------------------------------------------------------------------------- */
+@media (max-width: 575.98px) {
+    .container-fluid {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    .g-mb-4 .h3 {
+        font-size: 1.2rem;
+    }
+
+    table.rt-stack tbody {
+        padding: 8px;
+    }
+
+    table.rt-stack tbody tr {
+        padding: 4px 12px 6px;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 0.95rem !important;
+    }
+}

@@ -128,10 +128,12 @@ return [
     'resource' => [
         'stylesheets' => [
             '/css/admin.css',
+            '/css/admin-responsive.css', // mobile/tablet layer (media-query only)
         ],
         'scripts'     => [
             '/js/admin-sidebar-fix.js', // <--- ADD THIS LINE
             '/js/admin-form-state-fix.js',
+            '/js/admin-responsive.js', // tags tables for the phone card layout
         ],
     ],
 

@@ -1,22 +1,22 @@
 <div class="bg-white rounded shadow-sm p-4 mb-3">
 
-    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
-        <div class="d-flex align-items-center">
+    <div class="chat-thread-header d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+        <div class="d-flex align-items-center" style="min-width:0;">
             <span class="me-2">{!! $user1->avatarThumbHtml(40, 'bg-primary') !!}</span>
-            <div>
-                <h5 class="mb-0 text-dark">{{ $user1->name }}</h5>
-                <small class="text-muted">{{ $user1->email }}</small>
+            <div style="min-width:0;">
+                <h5 class="mb-0 text-dark text-break">{{ $user1->name }}</h5>
+                <small class="text-muted text-break">{{ $user1->email }}</small>
             </div>
         </div>
 
-        <div class="text-muted small px-3">
+        <div class="text-muted small px-3 d-none d-md-block">
             <i class="icon-refresh"></i> Interaction
         </div>
 
-        <div class="d-flex align-items-center text-end">
-            <div>
-                <h5 class="mb-0 text-dark">{{ $user2->name }}</h5>
-                <small class="text-muted">{{ $user2->email }}</small>
+        <div class="chat-participant-right d-flex align-items-center text-end" style="min-width:0;">
+            <div style="min-width:0;">
+                <h5 class="mb-0 text-dark text-break">{{ $user2->name }}</h5>
+                <small class="text-muted text-break">{{ $user2->email }}</small>
             </div>
             <span class="ms-2">{!! $user2->avatarThumbHtml(40, 'bg-success') !!}</span>
         </div>
@@ -40,7 +40,7 @@
                 @endphp
 
                 <div class="d-flex justify-content-{{ $alignment }} mb-3">
-                    <div class="d-flex flex-column align-items-{{ $alignment }}" style="max-width: 70%;">
+                    <div class="chat-bubble-wrap d-flex flex-column align-items-{{ $alignment }}" style="max-width: 70%;">
 
                         <small class="text-muted mb-1" style="font-size: 0.75rem;">
                             {{ $senderName }} • {{ $msg->created_at->format('M d, H:i') }}
@@ -49,7 +49,7 @@
                         <div class="p-3 rounded shadow-sm {{ $bgColor }} {{ $textColor }}" style="position: relative;">
 
                             @if($msg->content)
-                                <p class="mb-1" style="white-space: pre-wrap;">{{ $msg->content }}</p>
+                                <p class="mb-1" style="white-space: pre-wrap; overflow-wrap: anywhere;">{{ $msg->content }}</p>
                             @endif
 
                             @if($msg->attachment_url)
