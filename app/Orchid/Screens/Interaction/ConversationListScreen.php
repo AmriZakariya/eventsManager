@@ -9,21 +9,16 @@ use App\Models\User;
 use App\Orchid\Filters\ConversationSearchFilter;
 use App\Orchid\Filters\ConversationRoleFilter;
 use App\Orchid\Filters\ConversationDateFilter;
-use App\Orchid\Layouts\ConversationFiltersLayout;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Orchid\Screen\Screen;
-use Orchid\Screen\TD;
 use Orchid\Support\Facades\Layout;
 use Orchid\Screen\Actions\Button;
-use Orchid\Screen\Actions\DropDown;
-use Orchid\Screen\Actions\Link;
-use Orchid\Support\Color;
 
 class ConversationListScreen extends Screen
 {
     public $name = 'Conversations';
-    public $description = 'Monitor and manage user interactions across the platform';
+    public $description = 'Explore participant conversations and their latest activity';
     public $permission = 'platform.systems.users';
 
     /**
@@ -35,6 +30,7 @@ class ConversationListScreen extends Screen
     {
         // Reset styles flag on each fresh query
         self::$stylesInjected = false;
+        $styles = $this->getStyles();
 
         // Portable "conversation pair" keys across DBs (SQLite may not support LEAST/GREATEST).
         $pairUser1Expr = 'CASE WHEN sender_id < receiver_id THEN sender_id ELSE receiver_id END';
@@ -51,7 +47,7 @@ class ConversationListScreen extends Screen
 
         $activeConversations = DB::table(function ($query) use ($pairUser1Expr, $pairUser2Expr) {
             $query->from('messages')
-                ->where('created_at', '>=', now()->subDay())
+                ->where('created_at', '>=', now()->startOfDay())
                 ->selectRaw("{$pairUser1Expr} as u1")
                 ->selectRaw("{$pairUser2Expr} as u2")
                 ->groupByRaw("{$pairUser1Expr}, {$pairUser2Expr}");
@@ -154,12 +150,16 @@ class ConversationListScreen extends Screen
             $lastDate  = Carbon::parse($c->last_message_at);
 
             $c->duration_days   = $firstDate->diffInDays($lastDate);
-            $c->activity_level  = $this->calculateActivityLevel($c);
+            $c->initiator_card = $this->renderUserCard($c->p1);
+            $c->recipient_card = $this->renderUserCard($c->p2);
+            $c->preview_card = $this->renderLastMessage($c);
+            $c->activity_card = $this->renderStats($c);
 
             return $c;
         });
 
         return [
+            'styles' => $styles,
             'conversations' => $conversations,
             'metrics' => [
                 'total_convos'   => number_format($totalConversations),
@@ -172,49 +172,8 @@ class ConversationListScreen extends Screen
 
     public function commandBar(): iterable
     {
-        $search = trim((string) request('search', ''));
-        $role = (string) request('role', 'all');
-        $activity = (string) request('activity', 'all');
-        $sort = (string) request('sort', 'last_message_at');
-        $direction = (string) request('direction', 'desc');
-
         return [
-            Link::make('All Activity')
-                ->icon('bs.collection')
-                ->route('platform.conversations.list')
-                ->class('btn btn-outline-secondary'),
-
-            DropDown::make('Filters')
-                ->icon('bs.funnel')
-                ->class('btn btn-primary')
-                ->list([
-                    Link::make('All roles')
-                        ->icon('bs.people')
-                        ->route('platform.conversations.list', $this->filterParams($search, 'all', $activity, $sort, $direction))
-                        ->class($role === 'all' ? 'fw-semibold' : ''),
-                    Link::make('Exhibitors only')
-                        ->icon('bs-building')
-                        ->route('platform.conversations.list', $this->filterParams($search, 'exhibitor', $activity, $sort, $direction))
-                        ->class($role === 'exhibitor' ? 'fw-semibold' : ''),
-                    Link::make('Visitors only')
-                        ->icon('bs-person')
-                        ->route('platform.conversations.list', $this->filterParams($search, 'visitor', $activity, $sort, $direction))
-                        ->class($role === 'visitor' ? 'fw-semibold' : ''),
-                    Link::make('Active today')
-                        ->icon('bs-lightning-charge')
-                        ->route('platform.conversations.list', $this->filterParams($search, $role, 'today', $sort, $direction))
-                        ->class($activity === 'today' ? 'fw-semibold' : ''),
-                    Link::make('Last 7 days')
-                        ->icon('bs-calendar-week')
-                        ->route('platform.conversations.list', $this->filterParams($search, $role, 'week', $sort, $direction))
-                        ->class($activity === 'week' ? 'fw-semibold' : ''),
-                    Link::make('All time')
-                        ->icon('bs-clock-history')
-                        ->route('platform.conversations.list', $this->filterParams($search, $role, 'all', $sort, $direction))
-                        ->class($activity === 'all' ? 'fw-semibold' : ''),
-                ]),
-
-            Button::make('Export CSV')
+            Button::make('Export all conversations')
                 ->icon('bs.download')
                 ->method('export')
                 ->rawClick()
@@ -224,57 +183,7 @@ class ConversationListScreen extends Screen
 
     public function layout(): iterable
     {
-        return [
-            // Metrics summary bar
-            Layout::metrics([
-                'Total Conversations' => 'metrics.total_convos',
-                'Total Messages'      => 'metrics.total_messages',
-                'Active Today'        => 'metrics.active_today',
-                'Avg. Messages'       => 'metrics.avg_messages',
-            ]),
-
-            // Filters
-            ConversationFiltersLayout::class,
-
-            // Conversation table
-            Layout::table('conversations', [
-
-                TD::make('p1', 'Initiator')
-                    ->width('23%')
-                    ->render(fn($c) => $this->renderUserCard($c->p1)),
-
-                TD::make('p2', 'Recipient')
-                    ->width('23%')
-                    ->render(fn($c) => $this->renderUserCard($c->p2)),
-
-                TD::make('preview', 'Last message')
-                    ->width('34%')
-                    ->render(fn($c) => $this->renderLastMessage($c)),
-
-                TD::make('last_message_at', 'Insights')
-                    ->align(TD::ALIGN_RIGHT)
-                    ->width('20%')
-                    ->sort()
-                    ->render(fn($c) => $this->renderStats($c)),
-            ]),
-        ];
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    //  Helpers
-    // ─────────────────────────────────────────────────────────────
-
-    private function calculateActivityLevel(object $conversation): string
-    {
-        $hoursAgo = Carbon::parse($conversation->last_message_at)->diffInHours();
-
-        return match (true) {
-            $hoursAgo < 1   => 'very-high',
-            $hoursAgo < 6   => 'high',
-            $hoursAgo < 24  => 'medium',
-            $hoursAgo < 168 => 'low',
-            default         => 'inactive',
-        };
+        return [Layout::view('admin.conversations-history')];
     }
 
     private function getStyles(): string
@@ -328,31 +237,6 @@ class ConversationListScreen extends Screen
             .uc-badge.exhibitor { background:linear-gradient(135deg,#667eea,#764ba2); }
             .uc-badge.visitor   { background:linear-gradient(135deg,#f093fb,#f5576c); }
 
-            /* ── Activity Badge ────────────────────────────── */
-            .ab {
-                display:inline-flex; flex-direction:column;
-                align-items:center; justify-content:center;
-                width:52px; height:52px; border-radius:50%;
-                border:2px solid #e0e0e0;
-                background:#fff; font-size:.65rem; font-weight:700;
-                color:#bdc3c7; line-height:1.2;
-                box-shadow:0 2px 8px rgba(0,0,0,.07);
-                transition:transform .2s, box-shadow .2s;
-                cursor:default;
-            }
-            .ab:hover { transform:scale(1.08); box-shadow:0 4px 14px rgba(0,0,0,.12); }
-            .ab i { font-size:13px; margin-bottom:2px; }
-            .ab.very-high { border-color:#2ecc71; color:#2ecc71; animation:glow-green 2s infinite; }
-            .ab.high      { border-color:#3498db; color:#3498db; }
-            .ab.medium    { border-color:#f39c12; color:#f39c12; }
-            .ab.low,
-            .ab.inactive  { border-color:#bdc3c7; color:#bdc3c7; }
-
-            @keyframes glow-green {
-                0%,100% { box-shadow:0 2px 8px rgba(46,204,113,.2); }
-                50%      { box-shadow:0 2px 16px rgba(46,204,113,.5); }
-            }
-
             /* ── Conversation Stats ────────────────────────── */
             .cs { display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
             .cs-btn {
@@ -403,8 +287,7 @@ class ConversationListScreen extends Screen
             .lm-empty  { color:#bdc3c7; font-style:italic; font-size:.8rem; }
 
             /* ── Row hover ─────────────────────────────────── */
-            table tbody tr { transition:background .15s; }
-            table tbody tr:hover { background:#f8f9ff !important; }
+
         </style>
         CSS;
     }
@@ -429,7 +312,7 @@ class ConversationListScreen extends Screen
         $avatar = $user->adminAvatarUrl();
         $initials = e($this->initialsForUser($user));
         $badgeClass  = $user->role === User::APP_ROLE_EXHIBITOR ? 'exhibitor' : 'visitor';
-        $badgeLabel  = 'App: '.$user->appRoleLabel();
+        $badgeLabel  = $user->appRoleLabel();
         $company     = optional($user->company)->name ?? 'Independent';
         $editUrl     = route('platform.systems.users.edit', $user->id);
         $isOnline    = isset($user->last_active_at) && $user->last_active_at?->diffInMinutes() < 30;
@@ -455,7 +338,7 @@ class ConversationListScreen extends Screen
                 </div>
                 <div class="uc-info">
                     <a href="%s" class="uc-name" title="%s">%s</a>
-                    <span class="uc-meta"><i class="bi bi-briefcase" style="opacity:.6;font-size:.68rem;"></i> %s</span>
+                    <span class="uc-meta" title="%s"><i class="bi bi-briefcase" style="opacity:.6;font-size:.68rem;"></i> %s</span>
                     <span class="uc-badge %s">%s</span>
                 </div>
             </div>',
@@ -466,7 +349,7 @@ class ConversationListScreen extends Screen
                 $onlineDot,
                 $editUrl, $tooltip,
                 $fullName,
-                e($company),
+                e($company), e($company),
                 $badgeClass, $badgeLabel
             );
     }
@@ -502,25 +385,16 @@ class ConversationListScreen extends Screen
             '<div class="lm">
                 <div class="lm-head">
                     <span class="lm-dir"><i class="bi bi-arrow-return-right"></i> %s</span>
-                    <span>· %s</span>
+                    <time title="%s" datetime="%s">Last message · %s</time>
                 </div>
                 %s
             </div>',
             e($senderName),
+            e(Carbon::parse($msg->created_at)->format('M j, Y \a\t H:i')),
+            e(Carbon::parse($msg->created_at)->toIso8601String()),
             e(Carbon::parse($msg->created_at)->diffForHumans()),
             $body
         );
-    }
-
-    private function filterParams(string $search, string $role, string $activity, string $sort, string $direction): array
-    {
-        return array_filter([
-            'search' => $search !== '' ? $search : null,
-            'role' => $role !== 'all' ? $role : null,
-            'activity' => $activity !== 'all' ? $activity : null,
-            'sort' => $sort !== 'last_message_at' ? $sort : null,
-            'direction' => $direction !== 'desc' ? $direction : null,
-        ], static fn($value) => $value !== null && $value !== '');
     }
 
     private function initialsForUser(User $user): string
@@ -535,10 +409,6 @@ class ConversationListScreen extends Screen
 
     private function renderStats(object $conversation): string
     {
-        $lastDate  = Carbon::parse($conversation->last_message_at);
-        $isRecent  = $lastDate->diffInHours() < 24;
-        $timeClass = $isRecent ? 'color:#27ae60;font-weight:600;' : '';
-
         $chatUrl  = route('platform.conversations.view', [
             'user1' => $conversation->user_1_id,
             'user2' => $conversation->user_2_id,
@@ -546,32 +416,27 @@ class ConversationListScreen extends Screen
 
         $days        = (int) $conversation->duration_days;
         $durationTxt = match (true) {
-            $days === 0 => 'Today',
+            $days === 0 => 'Less than 1 day',
             $days === 1 => '1 day',
             default     => "{$days} days",
         };
 
+        $count = (int) $conversation->total_messages;
+        $participants = trim(($conversation->p1?->name ?? 'Deleted user') . ' and ' . ($conversation->p2?->name ?? 'Deleted user'));
+
         return sprintf(
             '<div class="cs">
-                <a href="%s" class="cs-btn"><i class="bi bi-eye"></i> View Chat</a>
-                <div class="cs-row">
-                    <i class="bi bi-chat-dots text-primary"></i>
-                    <span class="cs-val">%d</span>
-                    <span>messages</span>
-                </div>
-                <div class="cs-row" style="%s">
-                    <i class="bi bi-clock"></i>
-                    <span>%s</span>
-                </div>
-                <div class="cs-dur">
-                    <i class="bi bi-calendar" style="font-size:.65rem;"></i> %s
-                </div>
+                <div class="cs-row"><span class="cs-val">%d %s</span></div>
+                <div class="cs-dur" title="Time between the first and latest messages. First: %s. Latest: %s.">Conversation span: %s</div>
+                <a href="%s" class="cs-btn" aria-label="%s">View chat <span aria-hidden="true">→</span></a>
             </div>',
-            $chatUrl,
-            (int) $conversation->total_messages,
-            $timeClass,
-            $lastDate->diffForHumans(),
-            $durationTxt
+            $count,
+            $count === 1 ? 'message' : 'messages',
+            e(Carbon::parse($conversation->first_message_at)->format('M j, Y H:i')),
+            e(Carbon::parse($conversation->last_message_at)->format('M j, Y H:i')),
+            e($durationTxt),
+            e($chatUrl),
+            e('View chat between ' . $participants)
         );
     }
 

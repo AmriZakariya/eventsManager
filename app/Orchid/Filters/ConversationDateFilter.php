@@ -23,20 +23,18 @@ class ConversationDateFilter extends Filter
     /**
      * Apply the filter to the query.
      *
-     * Bug fixed: previously used `whereDate('created_at', '>=', ...)` for 'today',
-     * which only compares the date portion and ignores time — use `where()` instead
-     * so the full datetime is compared correctly.
+     * Match latest activity while retaining the full conversation history.
      */
     public function run(Builder $query): Builder
     {
         $activity = $this->request->get('activity', 'all');
 
         return match ($activity) {
-            'today'   => $query->where('created_at', '>=', now()->startOfDay()),
-            'week'    => $query->where('created_at', '>=', now()->subWeek()),
-            'month'   => $query->where('created_at', '>=', now()->subMonth()),
-            'quarter' => $query->where('created_at', '>=', now()->subQuarter()),
-            'year'    => $query->where('created_at', '>=', now()->subYear()),
+            'today'   => $query->havingRaw('MAX(created_at) >= ?', [now()->startOfDay()]),
+            'week'    => $query->havingRaw('MAX(created_at) >= ?', [now()->subWeek()]),
+            'month'   => $query->havingRaw('MAX(created_at) >= ?', [now()->subDays(30)]),
+            'quarter' => $query->havingRaw('MAX(created_at) >= ?', [now()->subQuarter()]),
+            'year'    => $query->havingRaw('MAX(created_at) >= ?', [now()->subYear()]),
             default   => $query,   // 'all' or any unknown value → no filter
         };
     }
