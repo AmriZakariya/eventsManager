@@ -46,11 +46,87 @@
         }
     }
 
+    function formatSize(bytes) {
+        if (bytes < 1024 * 1024) {
+            return Math.max(1, Math.round(bytes / 1024)) + ' KB';
+        }
+
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function acceptsOnlyPdf(input) {
+        const accept = (input.getAttribute('accept') || '').toLowerCase();
+
+        return accept !== '' && accept.split(',').every(function (type) {
+            type = type.trim();
+            return type === '.pdf' || type === 'application/pdf';
+        });
+    }
+
+    // Inputs with data-max-size get instant feedback: the name the file will be
+    // saved under, its size, and a blocking error if it is too big or not a PDF.
+    function showSelectionFeedback(input) {
+        const maxSize = parseInt(input.getAttribute('data-max-size') || '', 10);
+
+        if (!maxSize) {
+            return;
+        }
+
+        let box = input.parentElement.querySelector('.upload-feedback');
+
+        if (!box) {
+            box = document.createElement('div');
+            box.className = 'upload-feedback small mt-2';
+            input.insertAdjacentElement('afterend', box);
+        }
+
+        const file = input.files && input.files[0];
+        input.setCustomValidity('');
+
+        if (!file) {
+            box.innerHTML = '';
+            return;
+        }
+
+        let error = '';
+
+        if (acceptsOnlyPdf(input) && file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) {
+            error = 'This file is not a PDF. Please choose a .pdf file.';
+        } else if (file.size > maxSize) {
+            error = 'This file is ' + formatSize(file.size) + '. The maximum is ' + formatSize(maxSize) + '.';
+        }
+
+        input.setCustomValidity(error);
+        box.textContent = '';
+
+        const line = document.createElement('div');
+        line.className = error ? 'text-danger' : 'text-success';
+        line.textContent = error || ('Ready to upload: ' + file.name + ' (' + formatSize(file.size) + '). Click Save Changes to apply.');
+        box.appendChild(line);
+
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'btn btn-link btn-sm p-0 mt-1';
+        clear.textContent = 'Clear selection';
+        clear.addEventListener('click', function () {
+            input.value = '';
+            showSelectionFeedback(input);
+        });
+        box.appendChild(clear);
+
+        // A new file replaces the current one, so "remove" no longer applies.
+        const remove = document.querySelector('[data-catalog-remove]');
+        if (remove && !error) {
+            remove.checked = false;
+        }
+    }
+
     document.addEventListener('change', function (event) {
         const input = event.target;
 
         if (input instanceof HTMLInputElement && input.type === 'file') {
             sanitizeInput(input);
+            showSelectionFeedback(input);
         }
     }, true);
 

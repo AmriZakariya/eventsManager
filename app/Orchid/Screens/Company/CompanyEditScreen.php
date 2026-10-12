@@ -4,6 +4,9 @@ namespace App\Orchid\Screens\Company;
 
 use App\Models\Company;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Number;
 use Illuminate\Validation\ValidationException;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Fields\Input;
@@ -20,6 +23,8 @@ use Orchid\Support\Color;
 
 class CompanyEditScreen extends Screen
 {
+    private const CATALOG_MAX_KB = 10240; // 10 MB
+
     public $company;
 
     public function query(Company $company): array
@@ -76,16 +81,11 @@ class CompanyEditScreen extends Screen
                             ->help('Secret code for employees to register as exhibitors on the app.'),
 
                         Input::make('catalog_upload') // distinct name to handle manually
-                        ->type('file')
+                            ->type('file')
                             ->title('Company Catalog (PDF)')
                             ->accept('.pdf,application/pdf')
-                            ->help(
-                                ($this->company->catalog_file
-                                    ? "Current: <a href='".asset($this->company->catalog_file)."' target='_blank'>View Catalog</a>. Choose a new file to replace it."
-                                    : 'Upload a PDF brochure or catalog.')
-                                . ' <br><small class="text-muted">Max 10 MB (server upload limit: '
-                                . e(ini_get('upload_max_filesize')) . ').</small>'
-                            ),
+                            ->set('data-max-size', self::CATALOG_MAX_KB * 1024)
+                            ->help($this->catalogHelp()),
                     ]),
 
                     // Row 2: Categorization
@@ -248,7 +248,7 @@ class CompanyEditScreen extends Screen
                 'company.address_translations.*' => 'nullable|max:255',
                 'company.description_translations.*' => 'nullable|string',
                 'company.passcode' => 'nullable|string|max:255',
-                'catalog_upload' => 'nullable|file|mimes:pdf|max:10240', // Max 10MB
+                'catalog_upload' => 'nullable|file|mimes:pdf|max:' . self::CATALOG_MAX_KB,
                 'company.email' => 'nullable|email',
                 'company.type' => 'nullable|array', // Ensure array validation
                 'company.type.*' => 'string|in:' . implode(',', array_keys(Company::TYPES)),
@@ -281,7 +281,11 @@ class CompanyEditScreen extends Screen
                 ]);
             }
 
+            $this->deleteCatalogFile($company->catalog_file);
             $data['catalog_file'] = 'storage/' . $path;
+        } elseif ($request->boolean('remove_catalog') && $company->catalog_file) {
+            $this->deleteCatalogFile($company->catalog_file);
+            $data['catalog_file'] = null;
         }
 
         // Handle Map Coordinates (Ensure valid JSON or null)
@@ -296,6 +300,68 @@ class CompanyEditScreen extends Screen
 
         Toast::info('Company saved successfully.');
         return redirect()->route('platform.companies.list');
+    }
+
+    /**
+     * Help block for the catalog field: a card for the current file, or the upload rules.
+     */
+    private function catalogHelp(): string
+    {
+        $rules = '<span class="d-block mt-1">PDF only · max ' . (self::CATALOG_MAX_KB / 1024) . ' MB</span>';
+
+        if (! $this->company->catalog_file) {
+            return 'No catalog yet. Upload a PDF brochure or catalog.' . $rules;
+        }
+
+        $url = e($this->company->catalog_url);
+        $name = e(basename(parse_url($this->company->catalog_file, PHP_URL_PATH) ?: $this->company->catalog_file));
+        $meta = [];
+
+        $relative = $this->publicDiskPath($this->company->catalog_file);
+        $disk = Storage::disk('public');
+
+        if ($relative !== null && $disk->exists($relative)) {
+            $meta[] = Number::fileSize($disk->size($relative), precision: 1);
+            $meta[] = 'updated ' . Carbon::createFromTimestamp($disk->lastModified($relative))->diffForHumans();
+        } elseif ($relative !== null) {
+            $meta[] = '<span class="text-danger">file missing on server</span>';
+        }
+
+        return '<span class="d-flex align-items-center gap-2 border rounded p-2 mt-1 bg-light text-body">'
+            . '<span class="badge bg-danger">PDF</span>'
+            . '<span class="flex-grow-1 text-truncate" style="min-width:0">'
+            . '<span class="d-block fw-semibold" title="' . $name . '">Current catalog</span>'
+            . '<span class="d-block text-muted">' . implode(' · ', $meta) . '</span>'
+            . '</span>'
+            . '<a href="' . $url . '" target="_blank" rel="noopener" class="btn btn-sm btn-light border">View</a>'
+            . '<a href="' . $url . '" download class="btn btn-sm btn-light border">Download</a>'
+            . '</span>'
+            . '<label class="d-flex align-items-center gap-2 mt-2 text-danger" style="cursor:pointer">'
+            . '<input type="checkbox" class="form-check-input m-0" name="remove_catalog" value="1" data-catalog-remove>'
+            . 'Remove this catalog when I save'
+            . '</label>'
+            . '<span class="d-block mt-1">Or choose a new file to replace it.</span>' . $rules;
+    }
+
+    /**
+     * "storage/catalogs/x.pdf" -> "catalogs/x.pdf" on the public disk; null for external URLs.
+     */
+    private function publicDiskPath(?string $file): ?string
+    {
+        if (! $file || ! str_starts_with($file, 'storage/')) {
+            return null;
+        }
+
+        return substr($file, strlen('storage/'));
+    }
+
+    private function deleteCatalogFile(?string $file): void
+    {
+        $relative = $this->publicDiskPath($file);
+
+        if ($relative !== null && str_starts_with($relative, 'catalogs/')) {
+            Storage::disk('public')->delete($relative);
+        }
     }
 
     public function remove(Company $company)
