@@ -4,6 +4,7 @@ namespace App\Orchid\Screens\Company;
 
 use App\Models\Company;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Orchid\Screen\Screen;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\TextArea;
@@ -77,10 +78,14 @@ class CompanyEditScreen extends Screen
                         Input::make('catalog_upload') // distinct name to handle manually
                         ->type('file')
                             ->title('Company Catalog (PDF)')
-                            ->accepted('.pdf')
-                            ->help($this->company->catalog_file
-                                ? "Current: <a href='".asset($this->company->catalog_file)."' target='_blank'>View Catalog</a>"
-                                : 'Upload a PDF brochure or catalog.'),
+                            ->accept('.pdf,application/pdf')
+                            ->help(
+                                ($this->company->catalog_file
+                                    ? "Current: <a href='".asset($this->company->catalog_file)."' target='_blank'>View Catalog</a>. Choose a new file to replace it."
+                                    : 'Upload a PDF brochure or catalog.')
+                                . ' <br><small class="text-muted">Max 10 MB (server upload limit: '
+                                . e(ini_get('upload_max_filesize')) . ').</small>'
+                            ),
                     ]),
 
                     // Row 2: Categorization
@@ -221,19 +226,43 @@ class CompanyEditScreen extends Screen
 
     public function save(Company $company, Request $request)
     {
-        $request->validate([
-            'company.name_translations.en' => 'required|max:255',
-            'company.name_translations.fr' => 'nullable|max:255',
-            'company.name_translations.ar' => 'nullable|max:255',
-            'company.category_translations.*' => 'nullable|max:255',
-            'company.address_translations.*' => 'nullable|max:255',
-            'company.description_translations.*' => 'nullable|string',
-            'company.passcode' => 'nullable|string|max:255',
-            'catalog_upload' => 'nullable|file|mimes:pdf|max:10240', // Max 10MB
-            'company.email' => 'nullable|email',
-            'company.type' => 'nullable|array', // Ensure array validation
-            'company.type.*' => 'string|in:' . implode(',', array_keys(Company::TYPES)),
-        ]);
+        // A file the server rejected before Laravel saw it (usually PHP's
+        // upload_max_filesize / post_max_size) used to fail silently: the page
+        // just reloaded with nothing saved. Say exactly why instead.
+        $upload = $request->file('catalog_upload');
+        if ($upload && ! $upload->isValid()) {
+            $reason = $upload->getErrorMessage();
+            Toast::error('Catalog not uploaded: ' . $reason);
+
+            throw ValidationException::withMessages([
+                'catalog_upload' => ['The catalog could not be uploaded. ' . $reason],
+            ]);
+        }
+
+        try {
+            $request->validate([
+                'company.name_translations.en' => 'required|max:255',
+                'company.name_translations.fr' => 'nullable|max:255',
+                'company.name_translations.ar' => 'nullable|max:255',
+                'company.category_translations.*' => 'nullable|max:255',
+                'company.address_translations.*' => 'nullable|max:255',
+                'company.description_translations.*' => 'nullable|string',
+                'company.passcode' => 'nullable|string|max:255',
+                'catalog_upload' => 'nullable|file|mimes:pdf|max:10240', // Max 10MB
+                'company.email' => 'nullable|email',
+                'company.type' => 'nullable|array', // Ensure array validation
+                'company.type.*' => 'string|in:' . implode(',', array_keys(Company::TYPES)),
+            ], [
+                'catalog_upload.mimes' => 'The catalog must be a PDF file.',
+                'catalog_upload.max' => 'The catalog may not be larger than 10 MB.',
+                'catalog_upload.file' => 'The catalog upload failed. Please choose the PDF again.',
+            ]);
+        } catch (ValidationException $e) {
+            // Errors can sit under a tab that is not open; make them visible anyway.
+            Toast::error(collect($e->errors())->flatten()->take(3)->implode(' '));
+
+            throw $e;
+        }
 
         $data = $request->get('company');
         $data = $company->prepareTranslatedData($data, ['name', 'category', 'description', 'address'], ['description']);
@@ -241,6 +270,17 @@ class CompanyEditScreen extends Screen
         if ($request->hasFile('catalog_upload')) {
             // Store in storage/app/public/catalogs
             $path = $request->file('catalog_upload')->store('catalogs', 'public');
+
+            if ($path === false) {
+                // The disk is configured with 'throw' => false, so a failed write
+                // returns false. Never save a bogus "storage/" path in that case.
+                Toast::error('The catalog could not be written to storage. Check that storage/app/public is writable.');
+
+                throw ValidationException::withMessages([
+                    'catalog_upload' => ['The catalog could not be saved on the server (storage not writable).'],
+                ]);
+            }
+
             $data['catalog_file'] = 'storage/' . $path;
         }
 
