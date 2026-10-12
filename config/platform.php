@@ -134,6 +134,7 @@ return [
             '/js/admin-sidebar-fix.js', // <--- ADD THIS LINE
             '/js/admin-form-state-fix.js',
             '/js/admin-responsive.js', // tags tables for the phone card layout
+            '/js/admin-upload-fix.js', // safe upload file names + visible save errors (403/413/5xx)
         ],
     ],
 
