@@ -55,6 +55,25 @@ class UserEditScreen extends Screen
     }
 
     /**
+     * Same country codes the mobile app stores. A stored value outside the list
+     * (legacy text, "N/A") is kept as an option so it shows and is not wiped on save.
+     */
+    private function countryOptions(): array
+    {
+        $options = config('countries', []);
+        asort($options);
+
+        $current = $this->user?->country;
+
+        if (filled($current) && ! array_key_exists($current, $options)) {
+            $label = $current === 'N/A' ? 'Not provided yet (N/A)' : $current . ' (not in list)';
+            $options = [$current => $label] + $options;
+        }
+
+        return $options;
+    }
+
+    /**
      * The name of the screen displayed in the header.
      */
     public function name(): ?string
@@ -156,17 +175,7 @@ class UserEditScreen extends Screen
                 Group::make([
                     Select::make('user.country')
                         ->title('Country')
-                        ->options([
-                            'MA' => 'Morocco',
-                            'FR' => 'France',
-                            'US' => 'United States',
-                            'UK' => 'United Kingdom',
-                            'ES' => 'Spain',
-                            'DE' => 'Germany',
-                            'IT' => 'Italy',
-                            'AE' => 'United Arab Emirates',
-                            'SA' => 'Saudi Arabia',
-                        ])
+                        ->options($this->countryOptions())
                         ->empty('Select Country'),
 
                     Input::make('user.city')
