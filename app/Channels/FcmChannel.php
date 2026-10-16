@@ -73,7 +73,29 @@ class FcmChannel
                 'fcm_status'   => $response->json('error.status'),
                 'response_body' => $response->body(),
             ]));
+
+            $this->forgetDeadToken($notifiable, $token, $response->json('error') ?? [], $context);
         }
+    }
+
+    /**
+     * FCM reports a token as dead when the app was uninstalled or the token
+     * belongs to another Firebase project. Clear it so we stop retrying it on
+     * every notification. Other errors (e.g. APNs credentials) leave it alone.
+     */
+    private function forgetDeadToken($notifiable, string $token, array $error, array $context): void
+    {
+        $codes = collect($error['details'] ?? [])->pluck('errorCode')->filter()->all();
+        $dead = array_intersect($codes, ['UNREGISTERED', 'SENDER_ID_MISMATCH'])
+            || (($error['status'] ?? null) === 'NOT_FOUND');
+
+        // Only clear it if the user has not registered a new token meanwhile.
+        if (!$dead || $notifiable->fcm_token !== $token) {
+            return;
+        }
+
+        $notifiable->forceFill(['fcm_token' => null])->saveQuietly();
+        Log::info('FCM: Removed dead token.', array_merge($context, ['error_codes' => $codes]));
     }
 
     private function getAccessToken(): ?string
