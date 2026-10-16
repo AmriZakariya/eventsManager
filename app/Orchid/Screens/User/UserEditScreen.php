@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Orchid\Access\Impersonation;
 use App\Models\User;
+use App\Models\PushNotificationLog;
+use Orchid\Screen\TD;
 use App\Models\Company;
 use Orchid\Screen\Action;
 use Orchid\Screen\Actions\Button;
@@ -51,6 +53,9 @@ class UserEditScreen extends Screen
             'user'       => $user,
             'permission' => $user->statusOfPermissions(),
             'avatar_url' => $user->exists && $user->avatar ? $user->adminAvatarUrl() : null,
+            'push_logs'  => $user->exists
+                ? PushNotificationLog::where('user_id', $user->id)->latest('created_at')->limit(10)->get()
+                : collect(),
         ];
     }
 
@@ -245,6 +250,24 @@ class UserEditScreen extends Screen
             ]))
                 ->title(__('Professional Info'))
                 ->description(__('Employment details and categorization.')),
+
+            // Push notifications: device token and the latest attempts.
+            Layout::block(Layout::table('push_logs', [
+                TD::make('created_at', 'Time')
+                    ->render(fn (PushNotificationLog $log) => $log->created_at?->format('Y-m-d H:i')),
+                TD::make('notification', 'Type'),
+                TD::make('status', 'Status')
+                    ->render(fn (PushNotificationLog $log) => '<span class="badge bg-'
+                        . match ($log->status) { 'sent' => 'success', 'failed' => 'danger', default => 'secondary' }
+                        . '">' . e($log->status) . '</span>'),
+                TD::make('error_code', 'Reason')
+                    ->render(fn (PushNotificationLog $log) => $log->error_code ? '<code>' . e($log->error_code) . '</code>' : ''),
+            ]))
+                ->title(__('Push Notifications'))
+                ->description($this->user->fcm_token
+                    ? __('Device registered for push notifications. Latest 10 attempts.')
+                    : __('No device token: this user cannot receive push notifications until they open the app and allow notifications.'))
+                ->canSee($this->user->exists),
 
             // 3. AUTHENTICATION (Password, Roles)
             Layout::block(UserPasswordLayout::class)

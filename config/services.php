@@ -46,6 +46,11 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
     ],
 
+    // Push notification health alerts (php artisan push:check-health).
+    'push_monitor' => [
+        'alert_email' => env('PUSH_ALERT_EMAIL'),
+    ],
+
     // LinkedIn "Sign In with OpenID Connect". The app only sends the one-time
     // code; the secret stays on the server. The redirect must match the one
     // registered on the LinkedIn app and the one the app opens.

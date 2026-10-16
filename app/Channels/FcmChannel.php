@@ -2,6 +2,7 @@
 
 namespace App\Channels;
 
+use App\Models\PushNotificationLog;
 use Illuminate\Notifications\Notification;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -25,6 +26,7 @@ class FcmChannel
         $token = $notifiable->fcm_token;
         if (!$token) {
             Log::warning('FCM: Notifiable has no FCM token, skipping.', $context);
+            $this->record($notifiable, $notification, PushNotificationLog::STATUS_SKIPPED, null, 'no_token', 'User has no device token');
             return;
         }
 
@@ -37,6 +39,7 @@ class FcmChannel
 
         if (!$accessToken) {
             Log::error('FCM: Failed to generate OAuth access token, aborting send.', $context);
+            $this->record($notifiable, $notification, PushNotificationLog::STATUS_FAILED, $message['title'] ?? null, 'oauth_token', 'Could not get a Firebase access token');
             return;
         }
 
@@ -66,6 +69,7 @@ class FcmChannel
             Log::info('FCM: Push notification sent successfully.', array_merge($context, [
                 'message_id' => $response->json('name'),
             ]));
+            $this->record($notifiable, $notification, PushNotificationLog::STATUS_SENT, $payload['message']['notification']['title']);
         } else {
             Log::error('FCM: Push notification failed.', array_merge($context, [
                 'http_status'  => $response->status(),
@@ -74,7 +78,18 @@ class FcmChannel
                 'response_body' => $response->body(),
             ]));
 
-            $this->forgetDeadToken($notifiable, $token, $response->json('error') ?? [], $context);
+            $error = $response->json('error') ?? [];
+            $this->record(
+                $notifiable,
+                $notification,
+                PushNotificationLog::STATUS_FAILED,
+                $payload['message']['notification']['title'],
+                collect($error['details'] ?? [])->pluck('errorCode')->filter()->first() ?? ($error['status'] ?? null),
+                $error['message'] ?? null,
+                $response->status(),
+            );
+
+            $this->forgetDeadToken($notifiable, $token, $error, $context);
         }
     }
 
@@ -96,6 +111,34 @@ class FcmChannel
 
         $notifiable->forceFill(['fcm_token' => null])->saveQuietly();
         Log::info('FCM: Removed dead token.', array_merge($context, ['error_codes' => $codes]));
+    }
+
+    /**
+     * Saves the attempt for the admin monitor. Never lets a logging problem
+     * (e.g. the table not migrated yet) stop the notification itself.
+     */
+    private function record(
+        $notifiable,
+        Notification $notification,
+        string $status,
+        ?string $title = null,
+        ?string $errorCode = null,
+        ?string $errorMessage = null,
+        ?int $httpStatus = null,
+    ): void {
+        try {
+            PushNotificationLog::create([
+                'user_id'       => $notifiable instanceof \App\Models\User ? $notifiable->getKey() : null,
+                'notification'  => class_basename($notification),
+                'title'         => $title !== null ? mb_substr($title, 0, 255) : null,
+                'status'        => $status,
+                'error_code'    => $errorCode,
+                'error_message' => $errorMessage !== null ? mb_substr($errorMessage, 0, 255) : null,
+                'http_status'   => $httpStatus,
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('FCM: Could not record push log.', ['message' => $e->getMessage()]);
+        }
     }
 
     private function getAccessToken(): ?string

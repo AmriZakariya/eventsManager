@@ -141,6 +141,11 @@ class PlatformProvider extends OrchidServiceProvider
                 ->icon('bs.journal-text')
                 ->route('platform.audit-logs')
                 ->permission('platform.audit-logs'),
+
+            Menu::make('Push Notifications')
+                ->icon('bs.bell')
+                ->route('platform.push-monitor')
+                ->permission('platform.push-monitor'),
         ];
     }
 
@@ -170,7 +175,8 @@ class PlatformProvider extends OrchidServiceProvider
             ItemPermission::group(__('System'))
                 ->addPermission('platform.systems.roles', __('Manage Roles'))
                 ->addPermission('platform.systems.users', __('Manage Users'))
-                ->addPermission('platform.audit-logs', __('View Audit Logs')),
+                ->addPermission('platform.audit-logs', __('View Audit Logs'))
+                ->addPermission('platform.push-monitor', __('Monitor Push Notifications')),
         ];
     }
 }

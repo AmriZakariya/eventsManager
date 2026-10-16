@@ -16,3 +16,8 @@ Schedule::command('audit-logs:prune')->weekly();
 Schedule::command('queue:work --stop-when-empty --max-time=55 --tries=3')
     ->everyMinute()
     ->withoutOverlapping(5);
+
+// Push monitoring: alert email when notifications are stuck or failing, and
+// keep only 30 days of push logs (PushNotificationLog::prunable()).
+Schedule::command('push:check-health')->everyFiveMinutes()->withoutOverlapping();
+Schedule::command('model:prune', ['--model' => [\App\Models\PushNotificationLog::class]])->daily();
