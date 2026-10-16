@@ -427,7 +427,7 @@ class AuthController extends Controller
                 'password'       => Hash::make(Str::random(24)),
                 'password_is_set' => true,
                 'created_source' => User::CREATED_SOURCE_APP,
-                'avatar'         => $avatarUrl,   // ✅ URL stored directly
+                'avatar'         => $this->storeSocialAvatar($avatarUrl),
                 'badge_code'     => $badgeCode,
                 'app_role'       => User::APP_ROLE_VISITOR,
                 'is_visible'     => true,
@@ -438,9 +438,9 @@ class AuthController extends Controller
             ]);
             $user->syncOrchidRoleFromAppRole();
         } else {
-            // Update avatar if missing or outdated
+            // Refresh the avatar unless the user has one stored on our server.
             if ($avatarUrl && (empty($user->avatar) || str_starts_with($user->avatar, 'http'))) {
-                $user->update(['avatar' => $avatarUrl]);
+                $user->update(['avatar' => $this->storeSocialAvatar($avatarUrl)]);
             }
         }
 
@@ -830,5 +830,46 @@ class AuthController extends Controller
             'message' => 'Profile updated successfully',
             'user'    => $this->formatUser($user->fresh('company')),
         ]);
+    }
+
+    /**
+     * Provider avatar URLs expire (LinkedIn ones return 403 after a few weeks),
+     * so keep our own copy. Only known provider image hosts are fetched, since
+     * the URL can come from the request. Falls back to the URL if the download
+     * fails, which matches the old behaviour.
+     */
+    private function storeSocialAvatar(?string $url): ?string
+    {
+        if (!$url) {
+            return null;
+        }
+
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $allowedHosts = ['licdn.com', 'googleusercontent.com', 'fbcdn.net', 'fbsbx.com', 'facebook.com'];
+        $allowed = parse_url($url, PHP_URL_SCHEME) === 'https'
+            && collect($allowedHosts)->contains(fn ($h) => $host === $h || str_ends_with($host, '.' . $h));
+
+        if (!$allowed) {
+            return $url;
+        }
+
+        try {
+            $response = Http::timeout(8)->withOptions(['allow_redirects' => false])->get($url);
+            $type = strtolower(trim(explode(';', (string) $response->header('Content-Type'))[0]));
+            $extensions = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+            $body = $response->body();
+
+            if (!$response->successful() || !isset($extensions[$type]) || $body === '' || strlen($body) > 4 * 1024 * 1024) {
+                return $url;
+            }
+
+            $path = date('Y/m/d') . '/' . Str::random(40) . '.' . $extensions[$type];
+
+            return Storage::disk('public')->put($path, $body) ? $path : $url;
+        } catch (\Throwable $e) {
+            Log::warning('Could not store social avatar', ['host' => $host, 'error' => $e->getMessage()]);
+
+            return $url;
+        }
     }
 }
