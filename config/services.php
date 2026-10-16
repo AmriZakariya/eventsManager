@@ -46,6 +46,15 @@ return [
         'redirect' => env('FACEBOOK_REDIRECT_URI'),
     ],
 
+    // LinkedIn "Sign In with OpenID Connect". The app only sends the one-time
+    // code; the secret stays on the server. The redirect must match the one
+    // registered on the LinkedIn app and the one the app opens.
+    'linkedin' => [
+        'client_id' => env('LINKEDIN_CLIENT_ID'),
+        'client_secret' => env('LINKEDIN_CLIENT_SECRET'),
+        'redirect' => env('LINKEDIN_REDIRECT_URI', 'https://www.linkedin.com/developers/tools/oauth/redirect'),
+    ],
+
     'apple' => [
         // Native "Sign in with Apple" flow: the identity token's audience (aud)
         // is the iOS app's bundle id. Used to verify tokens in AuthController.

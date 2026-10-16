@@ -344,7 +344,7 @@ class AuthController extends Controller
         $request->validate([
             'provider'   => 'required|string|in:google,facebook,apple,linkedin',
             'token'      => 'required|string',
-            'token_type' => 'nullable|string|in:id_token,access_token',
+            'token_type' => 'nullable|string|in:id_token,access_token,authorization_code',
             'name'       => 'nullable|string|max:255',
             'avatar_url' => 'nullable|string|url|max:2048',
             'email'      => 'nullable|email',
@@ -370,12 +370,8 @@ class AuthController extends Controller
                 $appleClaims = $this->verifyAppleIdentityToken($token, $request->input('raw_nonce'));
                 $socialUser  = null;
             } elseif ($provider === 'linkedin') {
-                // linkedin_login package gives us an OAuth access_token.
-                // Use the openid-connect driver shipped with Socialite extras,
-                // or fall back to manual resolution using the data Flutter already sent.
-                // Since the Flutter SDK already resolved the profile (name + picture),
-                // we trust the request data and skip a Socialite round-trip.
-                $socialUser = null; // handled below
+                // Never trust the email sent by the app: resolve it from LinkedIn.
+                $socialUser = $this->resolveLinkedInUser($token, $tokenType);
             } else {
                 $socialUser = Socialite::driver($provider)
                     ->stateless()
@@ -871,5 +867,52 @@ class AuthController extends Controller
 
             return $url;
         }
+    }
+
+    /**
+     * Verifies a LinkedIn sign-in and returns the profile LinkedIn reports.
+     *
+     * New app versions send the one-time authorization code, exchanged here so
+     * the client secret never ships in the app. Older versions send an access
+     * token they obtained themselves; it is checked the same way via userinfo.
+     */
+    private function resolveLinkedInUser(string $token, string $tokenType): \Laravel\Socialite\Two\User
+    {
+        $accessToken = $token;
+
+        if ($tokenType === 'authorization_code') {
+            $response = Http::asForm()->timeout(10)->post('https://www.linkedin.com/oauth/v2/accessToken', [
+                'grant_type'    => 'authorization_code',
+                'code'          => $token,
+                'redirect_uri'  => config('services.linkedin.redirect'),
+                'client_id'     => config('services.linkedin.client_id'),
+                'client_secret' => config('services.linkedin.client_secret'),
+            ]);
+
+            $accessToken = $response->json('access_token');
+
+            if (!$response->successful() || !$accessToken) {
+                throw new \RuntimeException('LinkedIn code exchange failed (HTTP ' . $response->status() . ').');
+            }
+        }
+
+        $profile = Http::withToken($accessToken)->timeout(10)->get('https://api.linkedin.com/v2/userinfo');
+
+        if (!$profile->successful()) {
+            throw new \RuntimeException('LinkedIn token rejected (HTTP ' . $profile->status() . ').');
+        }
+
+        $data = $profile->json();
+
+        if (empty($data['email']) || ($data['email_verified'] ?? true) === false) {
+            throw new \RuntimeException('LinkedIn did not return a verified email.');
+        }
+
+        return (new \Laravel\Socialite\Two\User())->setRaw($data)->map([
+            'id'     => $data['sub'] ?? null,
+            'name'   => $data['name'] ?? trim(($data['given_name'] ?? '') . ' ' . ($data['family_name'] ?? '')),
+            'email'  => $data['email'],
+            'avatar' => $data['picture'] ?? null,
+        ]);
     }
 }
