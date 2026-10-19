@@ -53,6 +53,7 @@ use App\Orchid\Screens\Interaction\ConversationListScreen;
 use App\Orchid\Screens\Interaction\ConversationViewScreen;
 use App\Orchid\Screens\AuditLog\AuditLogListScreen;
 use App\Orchid\Screens\Push\PushNotificationMonitorScreen;
+use App\Orchid\Screens\Registrations\RegistrationStatsScreen;
 
 
 /*
@@ -300,6 +301,12 @@ Route::screen('audit-logs', AuditLogListScreen::class)
     ->breadcrumbs(fn (Trail $trail) => $trail
         ->parent('platform.index')
         ->push('Audit Logs', route('platform.audit-logs')));
+
+Route::screen('registrations', RegistrationStatsScreen::class)
+    ->name('platform.registrations')
+    ->breadcrumbs(fn (Trail $trail) => $trail
+        ->parent('platform.index')
+        ->push('Registrations', route('platform.registrations')));
 
 Route::screen('push-notifications', PushNotificationMonitorScreen::class)
     ->name('platform.push-monitor')

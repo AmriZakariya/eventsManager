@@ -58,7 +58,7 @@
                         <td>
                             @if($winner)
                                 <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-trophy-fill me-1"></i>{{ $winner->product_name }}
+                                    <i class="bi bi-trophy-fill me-1"></i>{{ $winner->display_name }}
                                 </span>
                             @else
                                 <span class="text-muted">Not selected</span>

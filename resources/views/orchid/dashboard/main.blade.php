@@ -237,6 +237,8 @@
     .cc-chart-header   { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
     .cc-chart-title    { font-size: 16px; font-weight: 700; color: var(--text-primary); }
     .cc-chart-subtitle { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-top: 4px; }
+    .cc-chart-link     { font-size: 13px; font-weight: 600; color: #4f46e5; text-decoration: none; white-space: nowrap; }
+    .cc-chart-link:hover { text-decoration: underline; }
 
     /* Shortcuts */
     .cc-actions-grid { display: flex; gap: 16px; flex-wrap: wrap; }
@@ -511,6 +513,7 @@
                         <div class="cc-chart-title">Daily Registrations</div>
                         <div class="cc-chart-subtitle">Last 14 days</div>
                     </div>
+                    <a href="{{ route('platform.registrations') }}" class="cc-chart-link">See all <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <canvas id="chart-visitors" height="90"></canvas>
             </div>
@@ -518,9 +521,10 @@
             <div class="cc-chart-card">
                 <div class="cc-chart-header">
                     <div>
-                        <div class="cc-chart-title">Weekly Cumulative</div>
-                        <div class="cc-chart-subtitle">Last 8 weeks</div>
+                        <div class="cc-chart-title">Weekly Registrations</div>
+                        <div class="cc-chart-subtitle">New visitors per week, last 8 weeks (current week in progress)</div>
                     </div>
+                    <a href="{{ route('platform.registrations') }}" class="cc-chart-link">See all <i class="bi bi-arrow-right"></i></a>
                 </div>
                 <canvas id="chart-weekly" height="90"></canvas>
             </div>
@@ -636,7 +640,7 @@
             data: {
                 labels: @json($weeklyLabels),
                 datasets: [{
-                    label: 'Visitors',
+                    label: 'New visitors',
                     data:  @json($weeklyValues),
                     backgroundColor: COLOR_INDIGO,
                     borderRadius: 6,

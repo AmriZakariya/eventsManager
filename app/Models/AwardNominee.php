@@ -15,4 +15,13 @@ class AwardNominee extends Model {
 
     public function category() { return $this->belongsTo(AwardCategory::class, 'award_category_id'); }
     public function company() { return $this->belongsTo(Company::class); }
+
+    /**
+     * The product name, or the company name when the company itself is
+     * nominated (product name left empty).
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->product_name ?: ($this->company?->name ?: 'Untitled nominee');
+    }
 }

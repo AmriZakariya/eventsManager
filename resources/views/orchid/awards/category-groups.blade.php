@@ -105,7 +105,12 @@
                         @foreach($uncategorizedNominees as $nominee)
                             <tr>
                                 <td>
-                                    <div class="fw-semibold">{{ $nominee->product_name }}</div>
+                                    @if($nominee->product_name)
+                                        <div class="fw-semibold">{{ $nominee->product_name }}</div>
+                                    @else
+                                        <div class="fw-semibold">{{ $nominee->display_name }}</div>
+                                        <div class="small text-muted">Company nominee</div>
+                                    @endif
                                     @if($nominee->image)
                                         <a class="small" href="{{ $nominee->image }}" target="_blank" rel="noopener">Image</a>
                                     @endif
@@ -174,7 +179,7 @@
                         @php($winner = $category->nominees->firstWhere('is_winner', true))
                         @if($winner)
                             <span class="badge bg-warning text-dark">
-                                <i class="bi bi-trophy-fill me-1"></i>{{ $winner->product_name }}
+                                <i class="bi bi-trophy-fill me-1"></i>{{ $winner->display_name }}
                             </span>
                         @else
                             <span class="badge bg-secondary">No winner</span>
@@ -198,7 +203,12 @@
                         @forelse($category->nominees as $nominee)
                             <tr class="{{ $nominee->is_winner ? 'table-warning' : '' }}">
                                 <td>
-                                    <div class="fw-semibold">{{ $nominee->product_name }}</div>
+                                    @if($nominee->product_name)
+                                        <div class="fw-semibold">{{ $nominee->product_name }}</div>
+                                    @else
+                                        <div class="fw-semibold">{{ $nominee->display_name }}</div>
+                                        <div class="small text-muted">Company nominee</div>
+                                    @endif
                                     @if($nominee->image)
                                         <a class="small" href="{{ $nominee->image }}" target="_blank" rel="noopener">Image</a>
                                     @endif

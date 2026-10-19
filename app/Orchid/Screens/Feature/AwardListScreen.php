@@ -156,7 +156,9 @@ class AwardListScreen extends Screen
                     ->fromModel(Company::class, 'name')
                     ->title('Company'),
 
-                Input::make('nominee.product_name')->title('Product Name'),
+                Input::make('nominee.product_name')
+                    ->title('Product Name')
+                    ->help('Optional. Leave empty if the company itself is nominated.'),
                 Input::make('nominee.image')->title('Image URL'),
 
                 CheckBox::make('nominee.is_winner')
@@ -229,11 +231,14 @@ class AwardListScreen extends Screen
             'nominee.id' => ['nullable', 'integer', 'exists:award_nominees,id'],
             'nominee.award_category_id' => ['nullable', 'integer', 'exists:award_categories,id'],
             'nominee.company_id' => ['nullable', 'integer', 'exists:companies,id'],
-            'nominee.product_name' => ['required', 'string', 'max:255'],
+            'nominee.product_name' => ['nullable', 'string', 'max:255', 'required_without:nominee.company_id'],
             'nominee.image' => ['nullable', 'string', 'max:2048'],
             'nominee.is_winner' => ['nullable', 'boolean'],
+        ], [
+            'nominee.product_name.required_without' => 'Choose a company or enter a product name.',
         ])['nominee'];
 
+        $data['product_name'] = filled($data['product_name'] ?? null) ? trim($data['product_name']) : null;
         $data['is_winner'] = (bool) ($data['is_winner'] ?? false);
 
         $data['award_category_id'] = $data['award_category_id'] ?? null;

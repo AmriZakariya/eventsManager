@@ -39,7 +39,9 @@ class AwardController extends Controller
                 'winners_count' => $category->nominees->where('is_winner', true)->count(),
                 'nominees' => $category->nominees->map(fn (AwardNominee $nominee) => [
                     'id' => $nominee->id,
-                    'product_name' => $nominee->product_name,
+                    // Company nominees have no product name; send the company name so
+                    // the app shows it instead of "Untitled nominee".
+                    'product_name' => $nominee->display_name,
                     'image' => $nominee->image,
                     'image_url' => $this->assetUrl($nominee->image),
                     'is_winner' => (bool) $nominee->is_winner,

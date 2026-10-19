@@ -106,7 +106,7 @@ class PlatformScreen extends Screen
         $apptChartLabels = $last14->map(fn($d) => Carbon::parse($d)->format('d M'))->values()->toArray();
         $apptChartValues = $last14->map(fn($d) => (int) ($rawAppts[$d] ?? 0))->values()->toArray();
 
-        // ── Chart: Weekly cumulative growth (last 8 weeks) ───────────
+        // ── Chart: New visitor registrations per week (last 8 weeks) ─
         $weeklyLabels = [];
         $weeklyValues = [];
         for ($i = 7; $i >= 0; $i--) {
