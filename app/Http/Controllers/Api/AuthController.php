@@ -116,6 +116,7 @@ class AuthController extends Controller
             'company_id' => ($request->role === 'exhibitor') ? $request->company_id : null,
             'company_name' => ($request->role === 'visitor') ? $request->company_name : null,
         ]);
+        $user->forceFill(['signup_method' => User::SIGNUP_EMAIL])->saveQuietly();
         $user->syncOrchidRoleFromAppRole();
 
         // Generate Token
@@ -433,6 +434,7 @@ class AuthController extends Controller
                 'city'           => 'N/A',
                 'company_sector' => 'N/A',
             ]);
+            $user->forceFill(['signup_method' => $provider])->saveQuietly();
             $user->syncOrchidRoleFromAppRole();
         } else {
             // Refresh the avatar unless the user has one stored on our server.
@@ -440,6 +442,8 @@ class AuthController extends Controller
                 $user->update(['avatar' => SocialAvatarStore::store($avatarUrl)]);
             }
         }
+
+        $this->rememberProviderId($user, $provider, $socialUser?->getId() ?? ($appleClaims['sub'] ?? null));
 
         $authToken = $user->createToken('mobile_app')->plainTextToken;
 
@@ -768,6 +772,7 @@ class AuthController extends Controller
             $user->badge_code = $badgeCode;
             $user->app_role = $request->input('role', User::APP_ROLE_VISITOR);
             $user->created_source = User::CREATED_SOURCE_WORDPRESS;
+            $user->signup_method = User::SIGNUP_WORDPRESS;
             $user->is_visible = true;
 
             // Set password if provided, otherwise generate a secure random one
@@ -874,5 +879,24 @@ class AuthController extends Controller
             'email'  => $data['email'],
             'avatar' => $data['picture'] ?? null,
         ]);
+    }
+
+    /**
+     * Saves the provider's account id (Google/LinkedIn/Apple "sub") the first
+     * time a user signs in with that provider. Never overwrites an existing one.
+     */
+    private function rememberProviderId(User $user, string $provider, mixed $providerId): void
+    {
+        $column = [
+            'google'   => 'google_id',
+            'linkedin' => 'linkedin_id',
+            'apple'    => 'apple_id',
+        ][$provider] ?? null;
+
+        if ($column === null || blank($providerId) || filled($user->getAttribute($column))) {
+            return;
+        }
+
+        $user->forceFill([$column => (string) $providerId])->saveQuietly();
     }
 }

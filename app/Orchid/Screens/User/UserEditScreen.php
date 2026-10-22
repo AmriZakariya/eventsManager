@@ -137,6 +137,13 @@ class UserEditScreen extends Screen
 
             // 1. IDENTITY & CONTACT (Standard Info)
             Layout::block(Layout::rows([
+                // How the account was created (set once, read-only).
+                Input::make('signup_method_display')
+                    ->title('Signed up with')
+                    ->value($this->user->exists ? $this->user->signupMethodLabel() : 'Admin')
+                    ->readonly()
+                    ->canSee($this->user->exists),
+
                 // Avatar Cropper
                 Cropper::make('user.avatar')
                     ->title('Profile Picture')
@@ -315,6 +322,7 @@ class UserEditScreen extends Screen
 
         $user->fill($userData)
             ->forceFill(['permissions' => $permissions])
+            ->forceFill($user->exists ? [] : ['signup_method' => User::SIGNUP_ADMIN])
             ->save();
 
         // Sync Orchid roles separately from the app role field.

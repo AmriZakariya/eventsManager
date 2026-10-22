@@ -37,6 +37,7 @@ class RegistrationStatsScreen extends Screen
                 'from' => $stats->from->format('Y-m-d'),
                 'to'   => $stats->to->format('Y-m-d'),
                 'type' => $stats->type,
+                'method' => $stats->method,
             ],
             'metrics' => [
                 'total'    => ['value' => number_format($total)],
@@ -51,6 +52,7 @@ class RegistrationStatsScreen extends Screen
                 'weeklyValues' => array_column($weekly, 'count'),
             ],
             // Newest first in the tables; the charts read left to right in time.
+            'methodRows' => collect($stats->byMethod())->map(fn ($row) => new Repository($row)),
             'dailyRows'  => collect(array_reverse($daily))->map(fn ($row) => new Repository($row)),
             'weeklyRows' => collect(array_reverse($weekly))->map(fn ($row) => new Repository($row)),
         ];
@@ -100,6 +102,10 @@ class RegistrationStatsScreen extends Screen
                     Select::make('filters.type')
                         ->title('Users')
                         ->options(RegistrationStats::TYPES),
+                    Select::make('filters.method')
+                        ->title('Sign-up method')
+                        ->options(RegistrationStats::methodOptions())
+                        ->empty('All methods'),
                     Button::make('Apply')
                         ->icon('bs.funnel')
                         ->type(Color::PRIMARY)
@@ -115,6 +121,20 @@ class RegistrationStatsScreen extends Screen
             ]),
 
             Layout::view('admin.registrations.charts'),
+
+            Layout::table('methodRows', [
+                TD::make('label', 'Sign-up method'),
+                TD::make('count', 'Registrations')->alignRight(),
+                TD::make('share', 'Share')->alignRight(),
+                TD::make('completed', 'Finished profile')->alignRight(),
+                TD::make('completion', 'Completion rate')->alignRight()
+                    ->render(function (Repository $row) {
+                        $rate = (int) $row->get('completion');
+                        $color = $rate >= 85 ? 'success' : ($rate >= 60 ? 'warning text-dark' : 'danger');
+
+                        return '<span class="badge bg-' . $color . '">' . e($row->get('completion')) . '</span>';
+                    }),
+            ])->title('By sign-up method (selected dates and users)'),
 
             Layout::tabs([
                 'Daily' => Layout::table('dailyRows', [
@@ -145,6 +165,7 @@ class RegistrationStatsScreen extends Screen
             'from' => $request->input('filters.from'),
             'to'   => $request->input('filters.to'),
             'type' => $request->input('filters.type'),
+            'method' => $request->input('filters.method'),
         ]));
     }
 
@@ -188,6 +209,7 @@ class RegistrationStatsScreen extends Screen
             $request->query('from', $request->input('from')),
             $request->query('to', $request->input('to')),
             $request->query('type', $request->input('type')),
+            $request->query('method', $request->input('method')),
         );
     }
 }

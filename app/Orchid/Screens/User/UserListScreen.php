@@ -225,6 +225,7 @@ class UserListScreen extends Screen
             'app_role' => $userData['roles'],
             'is_visible' => true,
         ]);
+        $user->forceFill(['signup_method' => User::SIGNUP_ADMIN])->saveQuietly();
         $user->syncOrchidRoleFromAppRole();
 
         Toast::info("User created. Password: {$tempPassword}")->delay(10000);

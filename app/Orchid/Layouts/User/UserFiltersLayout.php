@@ -6,6 +6,7 @@ use App\Orchid\Filters\GeneralSearchFilter;
 use App\Orchid\Filters\RoleFilter;
 use App\Orchid\Filters\ProfileCompletionFilter;
 use App\Orchid\Filters\SourceFilter;
+use App\Orchid\Filters\SignupMethodFilter;
 use App\Orchid\Filters\VisibilityFilter;
 use Orchid\Filters\Filter;
 use Orchid\Screen\Layouts\Selection;
@@ -22,6 +23,7 @@ class UserFiltersLayout extends Selection
             RoleFilter::class,
             ProfileCompletionFilter::class,
             SourceFilter::class,
+            SignupMethodFilter::class,
             VisibilityFilter::class,
         ];
     }

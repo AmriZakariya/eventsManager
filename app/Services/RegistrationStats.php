@@ -25,6 +25,7 @@ class RegistrationStats
         public readonly Carbon $from,
         public readonly Carbon $to,
         public readonly string $type,
+        public readonly ?string $method = null,
     ) {
     }
 
@@ -32,12 +33,13 @@ class RegistrationStats
      * Builds the stats from request values; missing values default to the
      * first registration of that type up to today.
      */
-    public static function fromInput(?string $from, ?string $to, ?string $type): self
+    public static function fromInput(?string $from, ?string $to, ?string $type, ?string $method = null): self
     {
         $type = array_key_exists((string) $type, self::TYPES) ? $type : User::APP_ROLE_VISITOR;
+        $method = array_key_exists((string) $method, self::methodOptions()) ? $method : null;
 
         $to = self::parseDate($to) ?? now();
-        $first = self::query($type)->min('created_at');
+        $first = self::query($type, $method)->min('created_at');
         $from = self::parseDate($from) ?? ($first ? Carbon::parse($first) : $to->copy()->subDays(29));
 
         if ($from->greaterThan($to)) {
@@ -48,7 +50,7 @@ class RegistrationStats
             $from = $to->copy()->subDays(self::MAX_DAYS);
         }
 
-        return new self($from->copy()->startOfDay(), $to->copy()->endOfDay(), $type);
+        return new self($from->copy()->startOfDay(), $to->copy()->endOfDay(), $type, $method);
     }
 
     /**
@@ -58,13 +60,13 @@ class RegistrationStats
      */
     public function daily(): array
     {
-        $counts = self::query($this->type)
+        $counts = self::query($this->type, $this->method)
             ->whereBetween('created_at', [$this->from, $this->to])
             ->select(DB::raw('DATE(created_at) as day'), DB::raw('count(*) as count'))
             ->groupBy('day')
             ->pluck('count', 'day');
 
-        $total = self::query($this->type)->where('created_at', '<', $this->from)->count();
+        $total = self::query($this->type, $this->method)->where('created_at', '<', $this->from)->count();
         $rows = [];
 
         for ($day = $this->from->copy(); $day->lte($this->to); $day->addDay()) {
@@ -123,9 +125,54 @@ class RegistrationStats
         ], $weeks));
     }
 
-    private static function query(string $type)
+    /** Sign-up method filter: every method, plus users from before tracking. */
+    public static function methodOptions(): array
     {
-        return $type === 'all' ? User::query() : User::appRole($type);
+        return User::signupMethodOptions() + ['unknown' => 'Unknown (before tracking)'];
+    }
+
+    /**
+     * Registrations in the range per sign-up method, with how many finished
+     * their profile. Shows which sign-up method loses people.
+     *
+     * @return array<int, array{method: string, label: string, count: int, share: string, completed: int, completion: string}>
+     */
+    public function byMethod(): array
+    {
+        $base = fn () => self::query($this->type)->whereBetween('created_at', [$this->from, $this->to]);
+
+        $counts = $base()->selectRaw('signup_method, count(*) as total')->groupBy('signup_method')->pluck('total', 'signup_method');
+        $completed = $base()->profileCompleted()->selectRaw('signup_method, count(*) as total')->groupBy('signup_method')->pluck('total', 'signup_method');
+        $all = max(1, (int) $counts->sum());
+
+        return $counts
+            ->map(function ($count, $method) use ($completed, $all) {
+                $method = $method === '' ? null : $method;
+                $done = (int) ($completed[$method ?? ''] ?? 0);
+
+                return [
+                    'method'     => $method ?? 'unknown',
+                    'label'      => self::methodOptions()[$method ?? 'unknown'] ?? (string) $method,
+                    'count'      => (int) $count,
+                    'share'      => round($count / $all * 100) . '%',
+                    'completed'  => $done,
+                    'completion' => round($done / max(1, $count) * 100) . '%',
+                ];
+            })
+            ->sortByDesc('count')
+            ->values()
+            ->all();
+    }
+
+    private static function query(string $type, ?string $method = null)
+    {
+        $query = $type === 'all' ? User::query() : User::appRole($type);
+
+        return match ($method) {
+            null => $query,
+            'unknown' => $query->whereNull('signup_method'),
+            default => $query->where('signup_method', $method),
+        };
     }
 
     private static function parseDate(?string $value): ?Carbon

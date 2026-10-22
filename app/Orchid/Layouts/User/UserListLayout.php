@@ -63,7 +63,10 @@ class UserListLayout extends Table
                         Link::make($user->name . ' ' . ($user->last_name ?? ''))
                             ->route('platform.systems.users.edit', $user->id)
                             ->class('fw-bold text-decoration-none') .
-                        ' <span class="badge '.$createdSourceColor.'">'.e($user->createdSourceLabel()).'</span>' .
+                        ' <span class="badge '.$createdSourceColor.'" title="Sign-up method: '.e($user->signupMethodLabel()).'">'
+                            .e($user->createdSourceLabel())
+                            .($user->signup_method && $user->signup_method !== User::SIGNUP_WORDPRESS ? ' · '.e($user->signupMethodLabel()) : '')
+                            .'</span>' .
                         ' '.$user->profileCompletionBadgeHtml('ms-1') .
                         ($user->is_visible ? '' : ' <span class="badge bg-secondary ms-1">Hidden</span>') .
                         '</div>';

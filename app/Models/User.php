@@ -38,6 +38,15 @@ class User extends Authenticatable
     public const WORDPRESS_SYNC_SOURCE_APP = 'app';
     public const WORDPRESS_SYNC_SOURCE_WORDPRESS = 'wordpress';
 
+    public const SIGNUP_EMAIL = 'email';
+    public const SIGNUP_GOOGLE = 'google';
+    public const SIGNUP_APPLE = 'apple';
+    public const SIGNUP_LINKEDIN = 'linkedin';
+    public const SIGNUP_FACEBOOK = 'facebook';
+    public const SIGNUP_SOCIAL = 'social'; // social, provider not recorded (before tracking)
+    public const SIGNUP_WORDPRESS = 'wordpress';
+    public const SIGNUP_ADMIN = 'admin';
+
     /**
      * Social sign-up creates the account with this placeholder in the fields
      * below; the app asks for them on its Complete Profile screen.
@@ -51,6 +60,26 @@ class User extends Authenticatable
             self::APP_ROLE_VISITOR => 'Visitor',
             self::APP_ROLE_EXHIBITOR => 'Exhibitor',
         ];
+    }
+
+    /** How the account was created; set once, when the user is created. */
+    public static function signupMethodOptions(): array
+    {
+        return [
+            self::SIGNUP_EMAIL     => 'Email',
+            self::SIGNUP_GOOGLE    => 'Google',
+            self::SIGNUP_APPLE     => 'Apple',
+            self::SIGNUP_LINKEDIN  => 'LinkedIn',
+            self::SIGNUP_FACEBOOK  => 'Facebook',
+            self::SIGNUP_SOCIAL    => 'Social (provider unknown)',
+            self::SIGNUP_WORDPRESS => 'WordPress',
+            self::SIGNUP_ADMIN     => 'Admin',
+        ];
+    }
+
+    public function signupMethodLabel(): string
+    {
+        return self::signupMethodOptions()[$this->signup_method] ?? 'Unknown';
     }
 
     public static function createdSourceOptions(): array
