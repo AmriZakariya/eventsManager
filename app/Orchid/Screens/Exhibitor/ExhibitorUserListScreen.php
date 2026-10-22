@@ -80,7 +80,7 @@ class ExhibitorUserListScreen extends Screen
         // 5. Metrics Calculation
         $total    = (clone $query)->count();
         $verified = (clone $query)->whereNotNull('email_verified_at')->count();
-        $needsProfile = (clone $query)->where('password_is_set', false)->count();
+        $needsProfile = (clone $query)->profileIncomplete()->count();
 
         return [
             'exhibitors' => $query->paginate(15),

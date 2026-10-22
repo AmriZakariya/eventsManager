@@ -30,11 +30,10 @@ class ProfileCompletionFilter extends Filter
 
     public function run(Builder $builder): Builder
     {
-        // "Profile complete" == the user has set a password (password_is_set).
-        return $builder->where(
-            'password_is_set',
-            $this->request->get('profile') === 'complete'
-        );
+        // Same rule as User::profile_completed (password set, no N/A placeholders).
+        return $this->request->get('profile') === 'complete'
+            ? $builder->profileCompleted()
+            : $builder->profileIncomplete();
     }
 
     public function display(): array

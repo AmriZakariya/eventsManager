@@ -38,6 +38,13 @@ class User extends Authenticatable
     public const WORDPRESS_SYNC_SOURCE_APP = 'app';
     public const WORDPRESS_SYNC_SOURCE_WORDPRESS = 'wordpress';
 
+    /**
+     * Social sign-up creates the account with this placeholder in the fields
+     * below; the app asks for them on its Complete Profile screen.
+     */
+    public const PROFILE_PLACEHOLDER = 'N/A';
+    public const PROFILE_REQUIRED_FIELDS = ['phone', 'city', 'country'];
+
     public static function appRoleOptions(): array
     {
         return [
@@ -169,9 +176,30 @@ class User extends Authenticatable
         return $query->where('app_role', $role);
     }
 
+    /**
+     * Complete = a password is set (WordPress/reservation users have none yet)
+     * and the social sign-up placeholders were replaced. Same rule as the app's
+     * Complete Profile screen. NULL values count as filled, as in the app.
+     */
     public function scopeProfileCompleted(Builder $query): Builder
     {
-        return $query->where('password_is_set', true);
+        return $query->where($query->qualifyColumn('password_is_set'), true)
+            ->where(function (Builder $query) {
+                foreach (self::PROFILE_REQUIRED_FIELDS as $field) {
+                    $column = $query->qualifyColumn($field);
+                    $query->where(fn (Builder $q) => $q->whereNull($column)->orWhere($column, '!=', self::PROFILE_PLACEHOLDER));
+                }
+            });
+    }
+
+    public function scopeProfileIncomplete(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query) {
+            $query->where($query->qualifyColumn('password_is_set'), false)
+                ->orWhereIn($query->qualifyColumn('phone'), [self::PROFILE_PLACEHOLDER])
+                ->orWhereIn($query->qualifyColumn('city'), [self::PROFILE_PLACEHOLDER])
+                ->orWhereIn($query->qualifyColumn('country'), [self::PROFILE_PLACEHOLDER]);
+        });
     }
 
     public function scopeWithConnectionStatusFor(Builder $query, ?int $authId): Builder
@@ -263,7 +291,19 @@ class User extends Authenticatable
 
     public function getProfileCompletedAttribute(): bool
     {
-        return (bool) $this->password_is_set;
+        return (bool) $this->password_is_set && ! $this->hasProfilePlaceholders();
+    }
+
+    /** True when social sign-up placeholders (N/A) are still in the profile. */
+    public function hasProfilePlaceholders(): bool
+    {
+        foreach (self::PROFILE_REQUIRED_FIELDS as $field) {
+            if ($this->getAttribute($field) === self::PROFILE_PLACEHOLDER) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function getNeedsProfileCompletionAttribute(): bool
@@ -283,9 +323,13 @@ class User extends Authenticatable
 
     public function profileCompletionBadgeTitle(): string
     {
-        return $this->profile_completed
-            ? 'This user has completed signup and has a password.'
-            : 'No password is set. The user probably came from social login or WordPress and still needs to complete their profile.';
+        if ($this->profile_completed) {
+            return 'This user has completed signup and has a password.';
+        }
+
+        return $this->password_is_set
+            ? 'Signed up with Google, Apple or LinkedIn but has not finished the Complete Profile step (phone, city or country still N/A).'
+            : 'No password is set. The user probably came from WordPress or a reservation and still needs to complete their profile.';
     }
 
     /**
