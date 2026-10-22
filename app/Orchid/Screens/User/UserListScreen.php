@@ -38,14 +38,36 @@ class UserListScreen extends Screen
             'roles:id,name,slug',
             'company:id,name',
         ])
-            ->filters(UserFiltersLayout::class)
-            ->defaultSort('id', 'desc');
+            ->filters(UserFiltersLayout::class);
+
+        $this->sortByCompanyName($query, $request);
+        $query->defaultSort('id', 'desc');
 
         return [
             // FIXED: Added withQueryString() to persist search/filters across pages
             'users'   => $query->paginate(20)->withQueryString(),
             'metrics' => $this->getUserMetrics(),
         ];
+    }
+
+    /**
+     * The Company column sorts by company name; users without a company come last.
+     */
+    private function sortByCompanyName($query, Request $request): void
+    {
+        $sort = collect($request->input('sort', []))->first(fn ($value) => ltrim((string) $value, '-') === 'company_id');
+
+        if ($sort === null) {
+            return;
+        }
+
+        $direction = str_starts_with($sort, '-') ? 'desc' : 'asc';
+
+        $query->orderByRaw('company_id is null')
+            ->orderBy(
+                Company::select('name')->whereColumn('companies.id', 'users.company_id')->limit(1),
+                $direction,
+            );
     }
 
     /**

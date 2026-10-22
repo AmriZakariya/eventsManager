@@ -16,6 +16,20 @@ class User extends Authenticatable
 {
     use AuditableModel, HasApiTokens, HasFactory, Notifiable;
 
+    /**
+     * Columns the admin user list may sort by. Company is sorted by name in
+     * UserListScreen, so it is not listed here.
+     */
+    protected $allowedSorts = [
+        'id',
+        'name',
+        'email',
+        'job_title',
+        'is_visible',
+        'updated_at',
+        'created_at',
+    ];
+
     public const APP_ROLE_ADMIN = 'admin';
     public const APP_ROLE_EXHIBITOR = 'exhibitor';
     public const APP_ROLE_VISITOR = 'visitor';

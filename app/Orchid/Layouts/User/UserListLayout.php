@@ -128,10 +128,9 @@ class UserListLayout extends Table
                     : '<span class="text-muted">—</span>'
                 ),
 
-            TD::make('created_at', __('Created'))
+            TD::make('created_at', __('Joined'))
                 ->usingComponent(DateTimeSplit::class)
                 ->align(TD::ALIGN_RIGHT)
-                ->defaultHidden()
                 ->sort(),
 
             TD::make('updated_at', __('Last edit'))
