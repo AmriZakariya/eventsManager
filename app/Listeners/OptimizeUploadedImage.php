@@ -13,11 +13,14 @@ use Orchid\Platform\Events\UploadFileEvent;
  */
 class OptimizeUploadedImage
 {
+    /** Upload group for images that must keep full resolution (the zoomable floor plan). */
+    public const FULL_SIZE_GROUP = 'full-size';
+
     public function handle(UploadFileEvent $event): void
     {
         $attachment = $event->attachment;
 
-        if (! str_starts_with((string) $attachment->mime, 'image/')) {
+        if ($attachment->group === self::FULL_SIZE_GROUP || ! str_starts_with((string) $attachment->mime, 'image/')) {
             return;
         }
 

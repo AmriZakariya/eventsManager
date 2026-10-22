@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\EventSetting;
 use App\Services\ImageOptimizer;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +15,7 @@ class OptimizeStoredImages extends Command
 {
     protected $signature = 'images:optimize
         {--min-kb=300 : Only touch images larger than this}
+        {--include-chat : Also optimize photos users sent in chat (chat_files/), skipped by default}
         {--dry-run : Show what would be saved without changing files}';
 
     protected $description = 'Resize and recompress large images in public storage';
@@ -30,12 +32,21 @@ class OptimizeStoredImages extends Command
         $minBytes = max(0, (int) $this->option('min-kb')) * 1024;
         $dryRun = (bool) $this->option('dry-run');
 
+        $skip = $this->fullSizeFiles();
+        foreach ($skip as $file) {
+            $this->line("Skipping {$file} (floor plan, kept full size)");
+        }
+
         $done = 0;
         $before = 0;
         $after = 0;
 
         foreach ($disk->allFiles() as $file) {
             if (! preg_match('/\.(jpe?g|png|webp)$/i', $file) || $disk->size($file) <= $minBytes) {
+                continue;
+            }
+
+            if (in_array($file, $skip, true) || (! $this->option('include-chat') && str_starts_with($file, 'chat_files/'))) {
                 continue;
             }
 
@@ -68,6 +79,22 @@ class OptimizeStoredImages extends Command
         ));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Files that must keep full resolution: the floor plan users zoom into.
+     * Settings store it as a URL ("/storage/2026/10/13/x.png"); convert to a disk path.
+     */
+    private function fullSizeFiles(): array
+    {
+        return EventSetting::query()
+            ->pluck('floor_plan_image')
+            ->filter()
+            ->map(fn ($value) => (string) parse_url($value, PHP_URL_PATH))
+            ->map(fn ($path) => preg_replace('#^/?storage/#', '', ltrim($path, '/')))
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private function kb(int $bytes): string

@@ -123,6 +123,8 @@ class EventSettingScreen extends Screen
                             Cropper::make('settings.floor_plan_image')
                                 ->title('Floor Plan / Venue Map')
                                 ->targetRelativeUrl()
+                                // Users zoom into the map: OptimizeUploadedImage keeps this group full size.
+                                ->groups(\App\Listeners\OptimizeUploadedImage::FULL_SIZE_GROUP)
                                 ->help('Interactive navigation map'),
                         ])->title('Additional Assets'),
                     ]),
