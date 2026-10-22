@@ -2,13 +2,8 @@
 
 namespace App\Providers;
 
-use App\Listeners\LogUserLogin;
-use App\Listeners\LogUserLogout;
 use App\Models\User;
-use Illuminate\Auth\Events\Login;
-use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,8 +31,9 @@ class AppServiceProvider extends ServiceProvider
             return $baseUrl . "?token={$token}&email={$notifiable->getEmailForPasswordReset()}";
         });
 
-        Event::listen(Login::class, LogUserLogin::class);
-        Event::listen(Logout::class, LogUserLogout::class);
+        // LogUserLogin / LogUserLogout are registered by Laravel's automatic
+        // event discovery (app/Listeners). Registering them here as well made
+        // every login and logout appear twice in the audit log.
 
         Gate::define('access-admin-dashboard', function (User $user): bool {
             return $user->hasAccess('platform.index')
