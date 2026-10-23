@@ -1,0 +1,316 @@
+/* Admin user list: filter bar + floating bulk-action bar (admin-user-list.js). */
+
+/* ── Filter bar ─────────────────────────────────────────────────────── */
+.ul-filters {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    padding: 18px 20px 14px;
+    margin-bottom: 24px;
+}
+
+.ul-filters-top {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.ul-search {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin: 0;
+}
+
+.ul-search > .ul-search-icon {
+    position: absolute;
+    left: 14px;
+    width: 16px;
+    height: 16px;
+    color: #94a3b8;
+    pointer-events: none;
+}
+
+.ul-search input {
+    width: 100%;
+    height: 46px;
+    padding: 0 40px 0 42px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    font-size: 15px;
+    color: #0f172a;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.ul-search input:focus {
+    outline: none;
+    background: #fff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.ul-search input::-webkit-search-cancel-button { display: none; }
+
+.ul-search-clear {
+    position: absolute;
+    right: 12px;
+    display: inline-flex;
+    color: #94a3b8;
+    text-decoration: none;
+}
+
+.ul-search-clear:hover { color: #0f172a; }
+
+.ul-more-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 46px;
+    padding: 0 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #fff;
+    color: #334155;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.ul-more-toggle:hover,
+.ul-more-toggle[aria-expanded="true"] {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.ul-count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 12px;
+    line-height: 20px;
+    text-align: center;
+}
+
+.ul-tabs {
+    display: flex;
+    gap: 6px;
+    margin-top: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.ul-tabs::-webkit-scrollbar { display: none; }
+
+.ul-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s;
+}
+
+.ul-tab span {
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.ul-tab:hover { background: #f1f5f9; color: #0f172a; }
+
+.ul-tab.is-active { background: #0f172a; color: #fff; }
+
+.ul-tab.is-active span { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+.ul-more {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.ul-more[hidden] { display: none; }
+
+.ul-select { margin: 0; }
+
+.ul-select span {
+    display: block;
+    margin-bottom: 4px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.ul-select .form-select { border-radius: 10px; }
+
+.ul-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.ul-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px 5px 12px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.ul-chip:hover { background: #dbeafe; color: #1e40af; }
+
+.ul-clear {
+    margin-left: 4px;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* ── Selected rows ──────────────────────────────────────────────────── */
+tr.ul-selected > td { background: #eff6ff !important; }
+
+input[name="users[]"],
+[data-select-all] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+/* ── Floating bulk bar ──────────────────────────────────────────────── */
+.ul-bulkbar {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 1040;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    max-width: calc(100vw - 32px);
+    padding: 10px 10px 10px 18px;
+    border-radius: 16px;
+    background: #0f172a;
+    color: #fff;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.35);
+    transform: translateX(-50%);
+    animation: ul-bar-in 0.18s ease-out;
+}
+
+.ul-bulkbar[hidden] { display: none; }
+
+@keyframes ul-bar-in {
+    from { opacity: 0; transform: translate(-50%, 12px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.ul-bulk-count {
+    font-weight: 700;
+    white-space: nowrap;
+    padding-right: 12px;
+    border-right: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.ul-bulk-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    overflow-x: auto;
+}
+
+.ul-bulk-actions .form-group { margin: 0; }
+
+.ul-bulkbar .ul-bulk-btn {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: #e2e8f0 !important;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: none !important;
+    text-decoration: none;
+}
+
+.ul-bulkbar .ul-bulk-btn:hover { background: rgba(255, 255, 255, 0.1) !important; color: #fff !important; }
+
+.ul-bulkbar .ul-bulk-danger { color: #fca5a5 !important; }
+
+.ul-bulkbar .ul-bulk-danger:hover { background: rgba(239, 68, 68, 0.18) !important; color: #fecaca !important; }
+
+.ul-bulk-clear {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    flex: none;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.ul-bulk-clear:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* On desktop, center the bar on the content area, not over the sidebar. */
+@media (min-width: 992px) {
+    .ul-bulkbar { left: calc(50% + 140px); max-width: calc(100vw - 320px); }
+}
+
+/* Keep the table's last rows and pagination reachable above the bar. */
+body.ul-has-selection { padding-bottom: 96px; }
+
+/* ── Phones ─────────────────────────────────────────────────────────── */
+@media (max-width: 767.98px) {
+    .ul-filters { padding: 14px; }
+
+    .ul-more-toggle span:not(.ul-count) { display: none; }
+
+    .ul-more { grid-template-columns: 1fr 1fr; }
+
+    .ul-bulkbar { bottom: 12px; padding: 6px 6px 6px 12px; gap: 4px; }
+
+    .ul-bulk-word { display: none; }
+
+    .ul-bulk-count {
+        min-width: 28px;
+        padding-right: 8px;
+        text-align: center;
+    }
+
+    .ul-bulk-actions { gap: 0; }
+
+    .ul-bulk-clear { width: 32px; height: 32px; }
+
+    /* Icons only; labels stay available as tooltips (set by the script). */
+    .ul-bulkbar .ul-bulk-btn { font-size: 0; padding: 8px !important; gap: 0; }
+
+    .ul-bulkbar .ul-bulk-btn svg { width: 18px; height: 18px; }
+}

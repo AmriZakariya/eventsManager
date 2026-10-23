@@ -15,6 +15,7 @@ use App\Models\Company;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\DropDown;
+use Orchid\Screen\Actions\ModalToggle;
 use Orchid\Screen\Fields\Input;
 use Orchid\Screen\Fields\Select;
 use Orchid\Screen\Fields\TextArea;
@@ -25,6 +26,7 @@ use Orchid\Support\Facades\Toast;
 use Orchid\Support\Color;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Mail;
 
 class UserListScreen extends Screen
 {
@@ -47,6 +49,7 @@ class UserListScreen extends Screen
             // FIXED: Added withQueryString() to persist search/filters across pages
             'users'   => $query->paginate(20)->withQueryString(),
             'metrics' => $this->getUserMetrics(),
+            'filterBar' => $this->filterBarData($request),
         ];
     }
 
@@ -112,13 +115,14 @@ class UserListScreen extends Screen
         return [
             Button::make('Export CSV')
                 ->icon('bs.download')
-                ->method('exportUsers')
+                ->method('exportUsers', request()->query())
+                ->rawClick()
                 ->class('btn btn-outline-secondary'),
 
-            Button::make('Quick Add')
+            ModalToggle::make('Quick Add')
                 ->icon('bs.lightning-charge')
-                ->method('quickAddUser')
                 ->modal('quickAddUserModal')
+                ->method('quickAddUser')
                 ->class('btn btn-outline-primary'),
 
             Link::make('Full Create')
@@ -139,25 +143,13 @@ class UserListScreen extends Screen
                 'With Company' => 'metrics.companies',
             ]),
 
-            // 2. Filters & Search (This renders your new GeneralSearchFilter)
-            UserFiltersLayout::class,
+            // 2. Search, role tabs, more filters and active-filter chips.
+            //    The filter classes in UserFiltersLayout still apply the query
+            //    (same URL parameters); only the display changed.
+            Layout::view('admin.users.filter-bar'),
 
-            // 3. Bulk Actions Toolbar
-            // We place this separately so it doesn't clutter the search bar
-            Layout::rows([
-                Group::make([
-                    DropDown::make('Bulk Actions')
-                        ->icon('bs.gear')
-                        ->class('btn btn-secondary btn-block')
-                        ->list([
-                            Button::make('Toggle Visibility')->icon('bs.eye')->confirm('Confirm toggle?')->method('bulkToggleVisibility'),
-                            Button::make('Assign Role')->icon('bs.person-badge')->modal('bulkAssignRoleModal')->method('bulkAssignRole'),
-                            Button::make('Assign Company')->icon('bs.building')->modal('bulkAssignCompanyModal')->method('bulkAssignCompany'),
-                            Button::make('Send Email')->icon('bs.envelope')->modal('bulkEmailModal')->method('bulkSendEmail'),
-                            Button::make('Delete Selected')->icon('bs.trash')->confirm('Cannot be undone.')->method('bulkDelete')->class('text-danger'),
-                        ]),
-                ])->autoWidth(),
-            ]),
+            // 3. Floating bar shown when users are selected (admin-user-list.js).
+            Layout::view('admin.users.bulk-bar'),
 
             // 4. Data Table
             UserListLayout::class,
@@ -180,24 +172,33 @@ class UserListScreen extends Screen
                         Input::make('user.name')->title('First Name')->required(),
                         Input::make('user.last_name')->title('Last Name')->required(),
                     ]),
-                    Select::make('user.roles')->title('Role')->required()->options($this->getRoleOptions()),
+                    Select::make('user.roles')->title('Role')->required()->options($this->bulkRoleOptions()),
                 ])
             ])->title('Quick Add')->applyButton('Create'),
 
             Layout::modal('bulkAssignRoleModal', [
-                Layout::rows([Select::make('role')->title('Select Role')->required()->options($this->getRoleOptions())])
-            ])->title('Bulk Assign Role')->applyButton('Assign'),
+                Layout::rows([
+                    Input::make('selected_users')->type('hidden')->set('data-bulk-selected', ''),
+                    Select::make('role')->title('New role')->required()->options($this->bulkRoleOptions()),
+                ]),
+            ])->title('Change role')->applyButton('Change role'),
 
             Layout::modal('bulkAssignCompanyModal', [
-                Layout::rows([Select::make('company_id')->title('Select Company')->fromModel(Company::class, 'name')->required()->empty('No Company')])
-            ])->title('Bulk Assign Company')->applyButton('Update'),
+                Layout::rows([
+                    Input::make('selected_users')->type('hidden')->set('data-bulk-selected', ''),
+                    Select::make('company_id')->title('Company')->fromModel(Company::class, 'name')->empty('No company')
+                        ->help('Exhibitors are linked to a company. Change their role to Exhibitor too if needed.'),
+                ]),
+            ])->title('Assign company')->applyButton('Assign'),
 
             Layout::modal('bulkEmailModal', [
                 Layout::rows([
-                    Input::make('email_subject')->title('Subject')->required(),
-                    TextArea::make('email_message')->title('Message')->required()->rows(5),
-                ])
-            ])->title('Bulk Email')->applyButton('Send'),
+                    Input::make('selected_users')->type('hidden')->set('data-bulk-selected', ''),
+                    Input::make('email_subject')->title('Subject')->required()->maxlength(150),
+                    TextArea::make('email_message')->title('Message')->required()->rows(6)
+                        ->help('Sent as plain text from the platform address, one email per user, in the background.'),
+                ]),
+            ])->title('Email selected users')->applyButton('Send'),
 
             Layout::modal('editUserModal', UserEditLayout::class)->async('asyncGetUser')->title('Edit User'),
         ];
@@ -291,5 +292,215 @@ class UserListScreen extends Screen
         }
 
         Toast::info(__(':count user(s) were removed.', ['count' => $users->count()]));
+    }
+
+    /**
+     * Data for the filter bar view: current values, chips and role counts.
+     */
+    private function filterBarData(Request $request): array
+    {
+        $selects = [
+            'profile'    => ['label' => 'Profile', 'options' => ['complete' => 'Profile complete', 'incomplete' => 'Needs profile']],
+            'platform'   => ['label' => 'Platform', 'options' => User::PLATFORMS + ['unknown' => 'Unknown']],
+            'signup'     => ['label' => 'Sign-up method', 'options' => User::signupMethodOptions() + ['unknown' => 'Unknown (before tracking)']],
+            'source'     => ['label' => 'Source', 'options' => User::createdSourceOptions()],
+            'visibility' => ['label' => 'Visibility', 'options' => ['visible' => 'Visible in app', 'hidden' => 'Hidden from app']],
+        ];
+
+        $roles = [
+            User::APP_ROLE_VISITOR   => 'Visitors',
+            User::APP_ROLE_EXHIBITOR => 'Exhibitors',
+            User::APP_ROLE_ADMIN     => 'Admins',
+        ];
+
+        $counts = User::query()->selectRaw('app_role, count(*) as total')->groupBy('app_role')->pluck('total', 'app_role');
+
+        $chips = [];
+        foreach ($selects as $key => $select) {
+            $value = $request->query($key);
+            if (filled($value) && isset($select['options'][$value])) {
+                $chips[] = ['key' => $key, 'label' => $select['label'] . ': ' . $select['options'][$value]];
+            }
+        }
+
+        return [
+            'search'      => (string) $request->query('search', ''),
+            'role'        => (string) $request->query('role', ''),
+            'roles'       => $roles,
+            'roleCounts'  => $counts->all(),
+            'total'       => (int) $counts->sum(),
+            'selects'     => $selects,
+            'chips'       => $chips,
+            'activeCount' => count($chips),
+        ];
+    }
+
+    private function bulkRoleOptions(): array
+    {
+        return [
+            User::APP_ROLE_VISITOR   => 'Visitor',
+            User::APP_ROLE_EXHIBITOR => 'Exhibitor',
+            User::APP_ROLE_ADMIN     => 'Administrator',
+        ];
+    }
+
+    /**
+     * Ids selected in the list: ticked checkboxes (users[]) for buttons that
+     * submit the main form, or the hidden selected_users field of a modal.
+     */
+    private function selectedIds(Request $request, bool $excludeSelf = false): array
+    {
+        $ids = array_merge(
+            (array) $request->input('users', []),
+            explode(',', (string) $request->input('selected_users', '')),
+        );
+
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+
+        if ($excludeSelf) {
+            $ids = array_values(array_filter($ids, fn ($id) => $id !== (int) auth()->id()));
+        }
+
+        return $ids;
+    }
+
+    public function bulkSetVisibility(Request $request): void
+    {
+        $ids = $this->selectedIds($request);
+        if ($ids === []) {
+            Toast::warning(__('No users selected.'));
+            return;
+        }
+
+        $visible = $request->boolean('visible');
+        $updated = 0;
+        foreach (User::whereIn('id', $ids)->get() as $user) {
+            $user->is_visible = $visible;
+            $user->save();
+            $updated++;
+        }
+
+        Toast::success($visible
+            ? __(':count user(s) are now visible in the app.', ['count' => $updated])
+            : __(':count user(s) are now hidden from the app.', ['count' => $updated]));
+    }
+
+    public function bulkAssignRole(Request $request): void
+    {
+        $request->validate(['role' => ['required', Rule::in(array_keys($this->bulkRoleOptions()))]]);
+
+        // Never change your own role here: it could lock you out of the admin.
+        $ids = $this->selectedIds($request, excludeSelf: true);
+        if ($ids === []) {
+            Toast::warning(__('No users selected (your own account is skipped).'));
+            return;
+        }
+
+        $users = User::whereIn('id', $ids)->get();
+        foreach ($users as $user) {
+            $user->app_role = $request->input('role');
+            $user->save();
+            $user->syncOrchidRoleFromAppRole();
+        }
+
+        Toast::success(__('Role changed to :role for :count user(s).', [
+            'role'  => $this->bulkRoleOptions()[$request->input('role')],
+            'count' => $users->count(),
+        ]));
+    }
+
+    public function bulkAssignCompany(Request $request): void
+    {
+        $request->validate(['company_id' => ['nullable', 'integer', 'exists:companies,id']]);
+
+        $ids = $this->selectedIds($request);
+        if ($ids === []) {
+            Toast::warning(__('No users selected.'));
+            return;
+        }
+
+        $companyId = $request->input('company_id') ?: null;
+        $users = User::whereIn('id', $ids)->get();
+        foreach ($users as $user) {
+            $user->company_id = $companyId;
+            $user->save();
+        }
+
+        $company = $companyId ? Company::find($companyId)?->name : null;
+        Toast::success($company
+            ? __(':count user(s) linked to :company.', ['count' => $users->count(), 'company' => $company])
+            : __('Company removed from :count user(s).', ['count' => $users->count()]));
+    }
+
+    public function bulkSendEmail(Request $request): void
+    {
+        $data = $request->validate([
+            'email_subject' => ['required', 'string', 'max:150'],
+            'email_message' => ['required', 'string', 'max:10000'],
+        ]);
+
+        $ids = $this->selectedIds($request);
+        if ($ids === []) {
+            Toast::warning(__('No users selected.'));
+            return;
+        }
+
+        if (count($ids) > 500) {
+            Toast::warning(__('Select at most 500 users per email.'));
+            return;
+        }
+
+        $recipients = User::whereIn('id', $ids)->whereNotNull('email')->pluck('email')->unique();
+        $subject = $data['email_subject'];
+        $message = $data['email_message'];
+
+        // One queued job per email, sent by the queue worker (cron), so the page
+        // does not wait and one bad address does not stop the others.
+        foreach ($recipients as $email) {
+            dispatch(function () use ($email, $subject, $message) {
+                Mail::raw($message, fn ($mail) => $mail->to($email)->subject($subject));
+            });
+        }
+
+        Toast::success(__('Email queued for :count user(s). It is sent within a few minutes.', ['count' => $recipients->count()]));
+    }
+
+    /**
+     * CSV of the users matching the current search and filters.
+     */
+    public function exportUsers(Request $request): StreamedResponse
+    {
+        $users = User::with('company:id,name')
+            ->filters(UserFiltersLayout::class)
+            ->orderByDesc('id')
+            ->limit(20000)
+            ->get();
+
+        $filename = 'users-' . now()->format('Y-m-d-His') . '.csv';
+
+        return response()->streamDownload(function () use ($users) {
+            $out = fopen('php://output', 'w');
+            fputcsv($out, ['ID', 'First name', 'Last name', 'Email', 'Phone', 'Job title', 'Company', 'Role', 'Profile', 'Sign-up method', 'Platform', 'Visible', 'Joined']);
+
+            foreach ($users as $user) {
+                fputcsv($out, [
+                    $user->id,
+                    $user->name,
+                    $user->last_name,
+                    $user->email,
+                    $user->phone,
+                    $user->job_title,
+                    $user->company->name ?? $user->company_name,
+                    $user->role,
+                    $user->profileCompletionLabel(),
+                    $user->signupMethodLabel(),
+                    $user->platformLabel(),
+                    $user->is_visible ? 'Yes' : 'No',
+                    $user->created_at?->format('Y-m-d H:i'),
+                ]);
+            }
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv']);
     }
 }
