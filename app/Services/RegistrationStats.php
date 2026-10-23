@@ -164,6 +164,32 @@ class RegistrationStats
             ->all();
     }
 
+    /**
+     * Registrations in the range per phone platform. Uses the platform at
+     * sign-up when known, else the one the user opens the app with now.
+     *
+     * @return array<int, array{label: string, count: int, share: string}>
+     */
+    public function byPlatform(): array
+    {
+        $counts = self::query($this->type, $this->method)
+            ->whereBetween('created_at', [$this->from, $this->to])
+            ->selectRaw("coalesce(signup_platform, platform, 'unknown') as p, count(*) as total")
+            ->groupBy('p')
+            ->pluck('total', 'p');
+        $all = max(1, (int) $counts->sum());
+
+        return $counts
+            ->map(fn ($count, $platform) => [
+                'label' => User::PLATFORMS[$platform] ?? 'Unknown',
+                'count' => (int) $count,
+                'share' => round($count / $all * 100) . '%',
+            ])
+            ->sortByDesc('count')
+            ->values()
+            ->all();
+    }
+
     private static function query(string $type, ?string $method = null)
     {
         $query = $type === 'all' ? User::query() : User::appRole($type);

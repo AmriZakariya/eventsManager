@@ -68,6 +68,11 @@ class UserListLayout extends Table
                             .($user->signup_method && $user->signup_method !== User::SIGNUP_WORDPRESS ? ' · '.e($user->signupMethodLabel()) : '')
                             .'</span>' .
                         ' '.$user->profileCompletionBadgeHtml('ms-1') .
+                        ($user->platform
+                            ? ' <span class="badge bg-light text-dark border ms-1" title="Last seen '.e($user->platform_seen_at?->diffForHumans() ?? 'n/a').'">'
+                                .'<i class="bi bi-'.($user->platform === 'ios' ? 'apple' : 'android2').'"></i> '
+                                .e($user->platformLabel()).($user->app_version ? ' '.e($user->app_version) : '').'</span>'
+                            : '') .
                         ($user->is_visible ? '' : ' <span class="badge bg-secondary ms-1">Hidden</span>') .
                         '</div>';
                 }),

@@ -116,7 +116,10 @@ class AuthController extends Controller
             'company_id' => ($request->role === 'exhibitor') ? $request->company_id : null,
             'company_name' => ($request->role === 'visitor') ? $request->company_name : null,
         ]);
-        $user->forceFill(['signup_method' => User::SIGNUP_EMAIL])->saveQuietly();
+        $user->forceFill([
+            'signup_method' => User::SIGNUP_EMAIL,
+            'signup_platform' => User::normalizePlatform($request->header('X-Platform')),
+        ])->saveQuietly();
         $user->syncOrchidRoleFromAppRole();
 
         // Generate Token
@@ -434,7 +437,11 @@ class AuthController extends Controller
                 'city'           => 'N/A',
                 'company_sector' => 'N/A',
             ]);
-            $user->forceFill(['signup_method' => $provider])->saveQuietly();
+            $user->forceFill([
+                'signup_method' => $provider,
+                'signup_platform' => User::normalizePlatform($request->header('X-Platform'))
+                    ?? ($provider === 'apple' ? 'ios' : null),
+            ])->saveQuietly();
             $user->syncOrchidRoleFromAppRole();
         } else {
             // Refresh the avatar unless the user has one stored on our server.

@@ -53,6 +53,7 @@ class RegistrationStatsScreen extends Screen
             ],
             // Newest first in the tables; the charts read left to right in time.
             'methodRows' => collect($stats->byMethod())->map(fn ($row) => new Repository($row)),
+            'platformRows' => collect($stats->byPlatform())->map(fn ($row) => new Repository($row)),
             'dailyRows'  => collect(array_reverse($daily))->map(fn ($row) => new Repository($row)),
             'weeklyRows' => collect(array_reverse($weekly))->map(fn ($row) => new Repository($row)),
         ];
@@ -135,6 +136,12 @@ class RegistrationStatsScreen extends Screen
                         return '<span class="badge bg-' . $color . '">' . e($row->get('completion')) . '</span>';
                     }),
             ])->title('By sign-up method (selected dates and users)'),
+
+            Layout::table('platformRows', [
+                TD::make('label', 'Platform'),
+                TD::make('count', 'Registrations')->alignRight(),
+                TD::make('share', 'Share')->alignRight(),
+            ])->title('By platform (Unknown = signed up before tracking and not seen since)'),
 
             Layout::tabs([
                 'Daily' => Layout::table('dailyRows', [

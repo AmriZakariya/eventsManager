@@ -239,6 +239,8 @@
     .cc-chart-subtitle { font-size: 13px; font-weight: 500; color: var(--text-muted); margin-top: 4px; }
     .cc-chart-link     { font-size: 13px; font-weight: 600; color: #4f46e5; text-decoration: none; white-space: nowrap; }
     .cc-chart-link:hover { text-decoration: underline; }
+    .cc-platform-strip { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; margin-top: 16px; padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--bg-border); border-radius: var(--radius-lg); font-size: 14px; color: var(--text-primary); }
+    .cc-platform-label { font-weight: 700; margin-right: 6px; }
 
     /* Shortcuts */
     .cc-actions-grid { display: flex; gap: 16px; flex-wrap: wrap; }
@@ -528,6 +530,13 @@
                 </div>
                 <canvas id="chart-weekly" height="90"></canvas>
             </div>
+        </div>
+
+        <div class="cc-platform-strip" title="Phone each user opened the app with most recently. Unknown = not opened since platform tracking started.">
+            <span class="cc-platform-label"><i class="bi bi-phone"></i> App users by platform</span>
+            <span><i class="bi bi-android2"></i> Android <strong>{{ number_format($platformCounts['android'] ?? 0) }}</strong></span>
+            <span><i class="bi bi-apple"></i> iOS <strong>{{ number_format($platformCounts['ios'] ?? 0) }}</strong></span>
+            <span class="text-muted">Unknown {{ number_format($platformCounts['unknown'] ?? 0) }}</span>
         </div>
     </div>
 

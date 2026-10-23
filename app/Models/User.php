@@ -62,6 +62,21 @@ class User extends Authenticatable
         ];
     }
 
+    public const PLATFORMS = ['android' => 'Android', 'ios' => 'iOS'];
+
+    /** "Android" / "iOS" header value from the app, or null if unknown. */
+    public static function normalizePlatform(?string $value): ?string
+    {
+        $value = strtolower(trim((string) $value));
+
+        return array_key_exists($value, self::PLATFORMS) ? $value : null;
+    }
+
+    public function platformLabel(): string
+    {
+        return self::PLATFORMS[$this->platform] ?? 'Unknown';
+    }
+
     /** How the account was created; set once, when the user is created. */
     public static function signupMethodOptions(): array
     {
@@ -154,6 +169,7 @@ class User extends Authenticatable
         'is_visible'           => 'boolean',
         'password_is_set'      => 'boolean',
         'is_wordpress_synced'  => 'boolean',
+        'platform_seen_at'     => 'datetime',
         'wordpress_synced_at'  => 'datetime',
     ];
 

@@ -140,6 +140,13 @@ class PlatformScreen extends Screen
         $hourlyLabels = null;
         $hourlyValues = null;
 
+        // ── App users by platform (android / ios, recorded from the app) ──
+        $platformCounts = User::query()
+            ->whereIn('app_role', [User::APP_ROLE_VISITOR, User::APP_ROLE_EXHIBITOR])
+            ->selectRaw("coalesce(platform, 'unknown') as p, count(*) as total")
+            ->groupBy('p')
+            ->pluck('total', 'p');
+
         return compact(
             'eventName', 'eventStatus', 'daysUntil', 'hoursUntil', 'minutesUntil', 'daysProgress', 'settings',
             'visitorCount', 'exhibitorCount', 'unreadMessages', 'totalMeetings',
@@ -150,7 +157,8 @@ class PlatformScreen extends Screen
             'apptChartLabels', 'apptChartValues',
             'weeklyLabels', 'weeklyValues',
             'donutLabels', 'donutValues',
-            'hourlyLabels', 'hourlyValues'
+            'hourlyLabels', 'hourlyValues',
+            'platformCounts'
         );
     }
 
