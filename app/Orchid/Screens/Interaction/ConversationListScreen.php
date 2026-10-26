@@ -426,10 +426,11 @@ class ConversationListScreen extends Screen
 
         return sprintf(
             '<div class="cs">
-                <div class="cs-row"><span class="cs-val">%d %s</span></div>
+                <div class="cs-row"><span class="cs-val%s">%d %s</span></div>
                 <div class="cs-dur" title="Time between the first and latest messages. First: %s. Latest: %s.">Conversation span: %s</div>
                 <a href="%s" class="cs-btn" aria-label="%s">View chat <span aria-hidden="true">→</span></a>
             </div>',
+            $count >= 10 ? ' is-busy' : '',
             $count,
             $count === 1 ? 'message' : 'messages',
             e(Carbon::parse($conversation->first_message_at)->format('M j, Y H:i')),

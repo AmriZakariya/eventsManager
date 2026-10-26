@@ -41,9 +41,19 @@
 .ch-empty { text-align:center; padding:48px 20px; }
 .ch-empty h3 { font-size:18px; }
 .ch-empty p { color:var(--ch-muted); }
-.ch-pagination { margin-top:20px; }
+.ch-results-right { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.ch-sort { display:inline-flex; background:#fff; border:1px solid #e2e7ef; border-radius:8px; padding:3px; gap:2px; }
+.ch-sort a { padding:5px 12px; border-radius:6px; color:var(--ch-muted); font-size:13px; font-weight:500; text-decoration:none; white-space:nowrap; }
+.ch-sort a:hover { color:#263449; background:#f4f6f8; }
+.ch-sort a.active { background:#eeeaff; color:#5444b4; font-weight:600; }
+.ch-history .cs-val { display:inline-block; padding:3px 10px; border-radius:20px; background:#f1f4f8; color:#263449; font-size:13px; }
+.ch-history .cs-val.is-busy { background:#eeeaff; color:#5444b4; }
+.ch-pagination { margin-top:20px; padding:12px 20px; background:#fff; border:1px solid #e2e7ef; border-radius:12px; }
+.ch-pagination nav > div.d-sm-flex { align-items:center; gap:12px; }
+.ch-pagination p.small { margin:0; color:var(--ch-muted); }
+.ch-pagination .pagination { margin:0; flex-wrap:wrap; }
 @media(max-width:1100px) { .ch-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; } .ch-header { display:none; } .ch-mobile-label { display:block; font-size:11px; font-weight:600; color:var(--ch-muted); margin-bottom:6px; } }
-@media(max-width:600px) { .ch-summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .ch-metric { padding:14px; } .ch-grid { grid-template-columns:minmax(0,1fr); } .ch-control { min-width:100%; } .ch-results { flex-wrap:wrap; } .ch-row { padding:16px; } }
+@media(max-width:600px) { .ch-sort { width:100%; overflow-x:auto; } .ch-summary { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; } .ch-metric { padding:14px; } .ch-grid { grid-template-columns:minmax(0,1fr); } .ch-control { min-width:100%; } .ch-results { flex-wrap:wrap; } .ch-row { padding:16px; } }
 </style>
 <div class="ch-history">
     <div class="ch-summary" aria-label="Platform totals across all conversations">
@@ -89,7 +99,14 @@
     </section>
     <div class="ch-results">
         <h2>Conversations <span class="text-muted">({{ number_format($conversations->total()) }})</span></h2>
-        <span>@if($conversations->total()) Showing {{ $conversations->firstItem() }}–{{ $conversations->lastItem() }} · @endif Platform totals above include all conversations</span>
+        <div class="ch-results-right">
+            <span>@if($conversations->total()) Showing {{ $conversations->firstItem() }}–{{ $conversations->lastItem() }} @endif</span>
+            <nav class="ch-sort" aria-label="Sort conversations">
+                @foreach(['last_message_at'=>'Latest activity','total_messages'=>'Most messages','first_message_at'=>'Recently started'] as $value=>$label)
+                    <a href="{{ request()->fullUrlWithQuery(['sort' => $value, 'page' => null]) }}" @class(['active' => request('sort','last_message_at') === $value]) @if(request('sort','last_message_at') === $value) aria-current="true" @endif>{{ $label }}</a>
+                @endforeach
+            </nav>
+        </div>
     </div>
     <div class="ch-list">
         @if($conversations->isNotEmpty())
@@ -106,5 +123,7 @@
             <div class="ch-empty"><h3>No conversations found</h3><p>Try another name, a different role, or a wider activity period.</p><a href="{{ route('platform.conversations.list') }}" class="btn btn-outline-primary">Clear filters</a></div>
         @endif
     </div>
-    <div class="ch-pagination">{{ $conversations->onEachSide(1)->links() }}</div>
+    @if($conversations->hasPages())
+        <div class="ch-pagination">{{ $conversations->onEachSide(1)->links('pagination::bootstrap-5') }}</div>
+    @endif
 </div>
