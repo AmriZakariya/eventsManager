@@ -89,7 +89,7 @@ a.upv-stat:hover { border-color:#b9aef0; background:#fafbff; color:inherit; }
                     <span class="badge bg-danger">Banned</span>
                 @endif
                 <span class="badge {{ $user->profileCompletionBadgeClass() }}" title="{{ $user->profileCompletionBadgeTitle() }}">{{ $user->profileCompletionLabel() }}</span>
-                @if($user->roles->isNotEmpty())
+                @if($user->hasAccess('platform.index'))
                     <span class="upv-badge neutral">Admin: {{ $user->adminPanelRolesLabel() }}</span>
                 @endif
             </div>

@@ -64,8 +64,9 @@ trait BansUsers
             return;
         }
 
-        if ($user->roles()->exists()) {
-            Toast::error('This user has admin panel roles. Remove them first, then ban.');
+        // Every app user has a Visitor/Exhibitor role; only real admins are protected.
+        if ($user->role === User::APP_ROLE_ADMIN || $user->hasAccess('platform.index')) {
+            Toast::error('This user can access the admin panel. Remove their admin access first, then ban.');
             return;
         }
 
