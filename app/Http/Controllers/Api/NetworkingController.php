@@ -26,6 +26,7 @@ class NetworkingController extends Controller
         $query = User::with('company')
             ->withConnectionStatusFor($authId)
             ->profileCompleted()
+            ->notBanned()
             ->where('id', '!=', $authId)
             ->where('is_visible', true)
             ->where('id', '!=', "1")
@@ -82,7 +83,7 @@ class NetworkingController extends Controller
         $incoming = Connection::with('requester.company')
             ->where('target_id', $authId)
             ->where('status', 'pending')
-            ->whereHas('requester', fn (Builder $q) => $q->profileCompleted())
+            ->whereHas('requester', fn (Builder $q) => $q->profileCompleted()->notBanned())
             ->get()
             ->map(function ($c) {
                 $user = $c->requester;
@@ -99,7 +100,7 @@ class NetworkingController extends Controller
         $outgoing = Connection::with('target.company')
             ->where('requester_id', $authId)
             ->where('status', 'pending')
-            ->whereHas('target', fn (Builder $q) => $q->profileCompleted())
+            ->whereHas('target', fn (Builder $q) => $q->profileCompleted()->notBanned())
             ->get()
             ->map(function ($c) {
                 $user = $c->target;
@@ -122,10 +123,10 @@ class NetworkingController extends Controller
             ->where(function ($q) use ($authId) {
                 $q->where(function ($q) use ($authId) {
                     $q->where('requester_id', $authId)
-                        ->whereHas('target', fn (Builder $q) => $q->profileCompleted());
+                        ->whereHas('target', fn (Builder $q) => $q->profileCompleted()->notBanned());
                 })->orWhere(function ($q) use ($authId) {
                     $q->where('target_id', $authId)
-                        ->whereHas('requester', fn (Builder $q) => $q->profileCompleted());
+                        ->whereHas('requester', fn (Builder $q) => $q->profileCompleted()->notBanned());
                 });
             })
             ->get()
@@ -167,6 +168,10 @@ class NetworkingController extends Controller
         }
 
         $targetUser = User::findOrFail($targetId);
+
+        if ($targetUser->isBanned() && in_array($request->action, ['connect', 'accept'], true)) {
+            return response()->json(['message' => 'This user is no longer available.'], 422);
+        }
 
         if (!$targetUser->profile_completed && in_array($request->action, ['connect', 'accept'], true)) {
             return response()->json(['message' => 'This user has not completed their profile yet.'], 422);

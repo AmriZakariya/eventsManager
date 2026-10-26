@@ -156,6 +156,9 @@ class User extends Authenticatable
         'password',
         'remember_token',
         'permissions',
+        'banned_at',
+        'ban_reason',
+        'banned_by',
     ];
 
     /**
@@ -170,6 +173,7 @@ class User extends Authenticatable
         'password_is_set'      => 'boolean',
         'is_wordpress_synced'  => 'boolean',
         'platform_seen_at'     => 'datetime',
+        'banned_at'            => 'datetime',
         'wordpress_synced_at'  => 'datetime',
     ];
 
@@ -226,6 +230,47 @@ class User extends Authenticatable
      * and the social sign-up placeholders were replaced. Same rule as the app's
      * Complete Profile screen. NULL values count as filled, as in the app.
      */
+    public function scopeNotBanned(Builder $query): Builder
+    {
+        return $query->whereNull($query->qualifyColumn('banned_at'));
+    }
+
+    /** Subquery of banned user IDs, for whereNotIn() on foreign keys. */
+    public static function bannedIds(): Builder
+    {
+        return static::query()->whereNotNull('banned_at')->select('id');
+    }
+
+    public function isBanned(): bool
+    {
+        return $this->banned_at !== null;
+    }
+
+    /**
+     * Block the account: logs it out everywhere and stops its push
+     * notifications. Its messages are hidden by the chat endpoints, not deleted.
+     */
+    public function ban(string $reason, ?int $bannedBy = null): void
+    {
+        $this->forceFill([
+            'banned_at'  => now(),
+            'ban_reason' => $reason,
+            'banned_by'  => $bannedBy,
+            'fcm_token'  => null,
+        ])->save();
+
+        $this->tokens()->delete();
+    }
+
+    public function unban(): void
+    {
+        $this->forceFill([
+            'banned_at'  => null,
+            'ban_reason' => null,
+            'banned_by'  => null,
+        ])->save();
+    }
+
     public function scopeProfileCompleted(Builder $query): Builder
     {
         return $query->where($query->qualifyColumn('password_is_set'), true)

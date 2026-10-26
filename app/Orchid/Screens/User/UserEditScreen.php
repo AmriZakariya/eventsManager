@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Orchid\Access\Impersonation;
 use App\Models\User;
+use App\Orchid\Screens\User\Concerns\BansUsers;
 use App\Models\PushNotificationLog;
 use Orchid\Screen\TD;
 use App\Models\Company;
@@ -33,6 +34,8 @@ use Orchid\Screen\Fields\Switcher;
 
 class UserEditScreen extends Screen
 {
+    use BansUsers;
+
     /**
      * @var User
      */
@@ -112,6 +115,8 @@ class UserEditScreen extends Screen
                 ->icon('bs.eye')
                 ->route('platform.systems.users.view', $this->user)
                 ->canSee($this->user->exists),
+
+            ...$this->banActions($this->user),
 
             Button::make(__('Impersonate user'))
                 ->icon('bg.box-arrow-in-right')
@@ -294,6 +299,8 @@ class UserEditScreen extends Screen
             Layout::block(RolePermissionLayout::class)
                 ->title(__('Permissions'))
                 ->description(__('Granular permission overrides.')),
+
+            $this->banModal(),
         ];
     }
 

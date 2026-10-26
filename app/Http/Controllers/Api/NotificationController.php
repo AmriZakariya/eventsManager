@@ -61,6 +61,7 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $notifications = AppNotification::where('user_id', $request->user()->id)
+            ->withoutBannedSenders()
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -73,6 +74,7 @@ class NotificationController extends Controller
     public function unreadCount(Request $request)
     {
         $count = AppNotification::where('user_id', $request->user()->id)
+            ->withoutBannedSenders()
             ->where('is_read', false)
             ->count();
 

@@ -31,7 +31,7 @@ class CompanyController extends Controller
         // 🚀 Eager Load 'team' to avoid N+1 queries when loading the list
         $query = Company::query()
             ->with([
-                'team' => fn ($q) => $q->profileCompleted()->withConnectionStatusFor($user?->id),
+                'team' => fn ($q) => $q->profileCompleted()->notBanned()->withConnectionStatusFor($user?->id),
             ])
             ->where('is_active', true);
 
@@ -115,7 +115,7 @@ class CompanyController extends Controller
         $user = auth('sanctum')->user();
 
         $query = Company::with([
-            'team' => fn ($q) => $q->profileCompleted()->withConnectionStatusFor($user?->id),
+            'team' => fn ($q) => $q->profileCompleted()->notBanned()->withConnectionStatusFor($user?->id),
         ]);
 
         if ($user) {

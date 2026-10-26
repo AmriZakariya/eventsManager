@@ -32,7 +32,7 @@ Route::get('/companies/{id}', [CompanyController::class, 'show']);
 Route::get('/awards', [AwardController::class, 'index']);
 
 // 3. USER ACTIONS (Auth Required)
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])->group(function () {
     Route::post('/companies/{id}/favorite', [CompanyController::class, 'toggleFavorite']);
 
     // Networking

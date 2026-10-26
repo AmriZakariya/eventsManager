@@ -29,6 +29,8 @@ class B2BController extends Controller
                 $q->where('booker_id', $userId)
                     ->orWhere('target_user_id', $userId);
             })
+            ->whereNotIn('booker_id', User::bannedIds())
+            ->whereNotIn('target_user_id', User::bannedIds())
             ->orderBy('scheduled_at', 'desc');
 
         // Optional Pagination
@@ -71,6 +73,7 @@ class B2BController extends Controller
         $query = User::with('company')
             ->withConnectionStatusFor($authId)
             ->profileCompleted()
+            ->notBanned()
             ->appRole(User::APP_ROLE_EXHIBITOR)
             ->orderBy('name', 'asc');
 
@@ -115,6 +118,10 @@ class B2BController extends Controller
         // A user cannot book a meeting with themselves.
         if ((int) $targetUser->id === (int) $visitor->id) {
             return response()->json(['message' => 'You cannot book a meeting with yourself.'], 422);
+        }
+
+        if ($targetUser->isBanned()) {
+            return response()->json(['message' => 'This user is no longer available.'], 422);
         }
 
         if (!$targetUser->profile_completed) {

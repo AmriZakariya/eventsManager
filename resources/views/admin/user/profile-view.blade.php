@@ -12,6 +12,10 @@
 <style>
 .upv { --upv-muted:#596579; --upv-border:#e2e7ef; color:#263449; }
 .upv-card { background:#fff; border:1px solid var(--upv-border); border-radius:12px; padding:20px 24px; margin-bottom:20px; }
+.upv-banned { display:flex; gap:12px; align-items:flex-start; background:#fdecec; border:1px solid #f5c2c2; color:#8a1f1f; border-radius:12px; padding:14px 18px; margin-bottom:20px; font-size:14px; }
+.upv-banned strong { display:block; font-size:15px; margin-bottom:2px; }
+.upv-banned p { margin:0; white-space:pre-line; }
+.upv-banned small { color:#a54a4a; }
 .upv-head { display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
 .upv-avatar { width:96px; height:96px; border-radius:20px; overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; font-size:30px; font-weight:700; }
 .upv-avatar img { width:100%; height:100%; object-fit:cover; }
@@ -52,6 +56,21 @@ a.upv-stat:hover { border-color:#b9aef0; background:#fafbff; color:inherit; }
 @endphp
 
 <div class="upv">
+    @if($user->isBanned())
+        <div class="upv-banned" role="status">
+            <x-orchid-icon path="bs.slash-circle" width="20" height="20"/>
+            <div>
+                <strong>This user is banned</strong>
+                <p>{{ $user->ban_reason }}</p>
+                <small>
+                    Since {{ $user->banned_at->format('M j, Y H:i') }}
+                    @if($bannedBy) · by {{ trim($bannedBy->name . ' ' . $bannedBy->last_name) }} @endif
+                    · Hidden from the app with their conversations. Nothing is deleted.
+                </small>
+            </div>
+        </div>
+    @endif
+
     {{-- Header --}}
     <div class="upv-card upv-head">
         <div class="upv-avatar">
@@ -66,6 +85,9 @@ a.upv-stat:hover { border-color:#b9aef0; background:#fafbff; color:inherit; }
             <p>{{ $headline ?: 'No job title or company' }}</p>
             <div class="upv-badges">
                 <span class="upv-badge {{ $isExhibitor ? 'exhibitor' : 'visitor' }}">{{ $user->appRoleLabel() }}</span>
+                @if($user->isBanned())
+                    <span class="badge bg-danger">Banned</span>
+                @endif
                 <span class="badge {{ $user->profileCompletionBadgeClass() }}" title="{{ $user->profileCompletionBadgeTitle() }}">{{ $user->profileCompletionLabel() }}</span>
                 @if($user->roles->isNotEmpty())
                     <span class="upv-badge neutral">Admin: {{ $user->adminPanelRolesLabel() }}</span>

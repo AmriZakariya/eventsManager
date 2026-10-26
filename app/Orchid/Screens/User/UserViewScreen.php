@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Models\Connection;
 use App\Models\Message;
 use App\Models\User;
+use App\Orchid\Screens\User\Concerns\BansUsers;
 use Illuminate\Support\Facades\DB;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
@@ -21,11 +22,14 @@ use Orchid\Support\Facades\Layout;
  */
 class UserViewScreen extends Screen
 {
+    use BansUsers;
+
     public ?User $user = null;
 
     public function query(User $user): iterable
     {
         $user->load(['company:id,name', 'roles:id,name,slug']);
+        $bannedBy = $user->banned_by ? User::find($user->banned_by, ['id', 'name', 'last_name']) : null;
         $this->user = $user;
 
         $pairExpr = 'CASE WHEN sender_id < receiver_id THEN sender_id ELSE receiver_id END, '
@@ -55,6 +59,7 @@ class UserViewScreen extends Screen
             'user'     => $user,
             'avatar'   => $user->adminAvatarUrl(),
             'activity' => $activity,
+            'bannedBy' => $bannedBy,
         ];
     }
 
@@ -80,6 +85,8 @@ class UserViewScreen extends Screen
                 ->icon('bs.arrow-left')
                 ->route('platform.systems.users'),
 
+            ...$this->banActions($this->user),
+
             Link::make('Edit')
                 ->icon('bs.pencil')
                 ->type(Color::PRIMARY)
@@ -89,6 +96,9 @@ class UserViewScreen extends Screen
 
     public function layout(): iterable
     {
-        return [Layout::view('admin.user.profile-view')];
+        return [
+            Layout::view('admin.user.profile-view'),
+            $this->banModal(),
+        ];
     }
 }

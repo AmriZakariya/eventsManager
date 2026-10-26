@@ -305,6 +305,7 @@ class UserListScreen extends Screen
             'signup'     => ['label' => 'Sign-up method', 'options' => User::signupMethodOptions() + ['unknown' => 'Unknown (before tracking)']],
             'source'     => ['label' => 'Source', 'options' => User::createdSourceOptions()],
             'visibility' => ['label' => 'Visibility', 'options' => ['visible' => 'Visible in app', 'hidden' => 'Hidden from app']],
+            'ban'        => ['label' => 'Ban status', 'options' => ['banned' => 'Banned', 'active' => 'Not banned']],
         ];
 
         $roles = [

@@ -164,11 +164,24 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->firstOrFail();
 
+        if ($user->isBanned()) {
+            return $this->bannedResponse();
+        }
+
         return response()->json([
             'access_token' => $user->createToken('mobile_app')->plainTextToken,
             'token_type' => 'Bearer',
             'user' => $this->formatUser($user),
         ]);
+    }
+
+    /** Login refused for a banned account; `code` lets the app show a clear message. */
+    private function bannedResponse(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json([
+            'message' => 'Your account has been suspended. Please contact the event organizer.',
+            'code'    => \App\Http\Middleware\EnsureNotBanned::CODE,
+        ], 403);
     }
 
     public function reservationAccess(Request $request)
@@ -183,6 +196,10 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'We could not find a reservation for this email.',
             ], 404);
+        }
+
+        if ($user->isBanned()) {
+            return $this->bannedResponse();
         }
 
         if ($user->password_is_set) {
@@ -405,6 +422,15 @@ class AuthController extends Controller
             ], 422);
         }
 
+        // A banned account must not come back through the same Google / Apple /
+        // LinkedIn identity with another email (e.g. Apple's private relay).
+        $providerColumn = ['google' => 'google_id', 'linkedin' => 'linkedin_id', 'apple' => 'apple_id'][$provider] ?? null;
+        $providerId = $socialUser?->getId() ?? ($appleClaims['sub'] ?? null);
+        if ($providerColumn && filled($providerId)
+            && User::whereNotNull('banned_at')->where($providerColumn, (string) $providerId)->exists()) {
+            return $this->bannedResponse();
+        }
+
         // ── Find or create user ───────────────────────────────────────────────
         $user = User::where('email', $email)->first();
 
@@ -448,6 +474,10 @@ class AuthController extends Controller
             if ($avatarUrl && (empty($user->avatar) || str_starts_with($user->avatar, 'http'))) {
                 $user->update(['avatar' => SocialAvatarStore::store($avatarUrl)]);
             }
+        }
+
+        if ($user->isBanned()) {
+            return $this->bannedResponse();
         }
 
         $this->rememberProviderId($user, $provider, $socialUser?->getId() ?? ($appleClaims['sub'] ?? null));

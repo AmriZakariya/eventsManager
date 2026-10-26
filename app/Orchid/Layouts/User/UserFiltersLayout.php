@@ -4,6 +4,7 @@ namespace App\Orchid\Layouts\User;
 
 use App\Orchid\Filters\GeneralSearchFilter;
 use App\Orchid\Filters\RoleFilter;
+use App\Orchid\Filters\BanStatusFilter;
 use App\Orchid\Filters\ProfileCompletionFilter;
 use App\Orchid\Filters\SourceFilter;
 use App\Orchid\Filters\SignupMethodFilter;
@@ -27,6 +28,7 @@ class UserFiltersLayout extends Selection
             SignupMethodFilter::class,
             PlatformFilter::class,
             VisibilityFilter::class,
+            BanStatusFilter::class,
         ];
     }
 }

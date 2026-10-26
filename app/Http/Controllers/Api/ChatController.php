@@ -35,6 +35,9 @@ class ChatController extends Controller
                 $q->where('sender_id', $userId)
                     ->orWhere('receiver_id', $userId);
             })
+            // Conversations with banned accounts are hidden (kept in the database).
+            ->whereNotIn('sender_id', User::bannedIds())
+            ->whereNotIn('receiver_id', User::bannedIds())
             ->when($afterMessageId, fn ($query) => $query->where('id', '>', $afterMessageId))
             ->groupBy('other_user_id')
             ->orderByDesc('latest_message_id')
@@ -44,6 +47,7 @@ class ChatController extends Controller
         $users = User::with('company')
             ->withConnectionStatusFor($userId)
             ->profileCompleted()
+            ->notBanned()
             ->whereIn('id', $conversations->pluck('other_user_id'))
             ->get()
             ->keyBy('id');
@@ -95,10 +99,12 @@ class ChatController extends Controller
 
         $unreadMessagesCount = Message::where('receiver_id', $userId)
             ->whereNull('read_at')
+            ->whereNotIn('sender_id', User::bannedIds())
             ->count();
 
         $unreadConversationsCount = Message::where('receiver_id', $userId)
             ->whereNull('read_at')
+            ->whereNotIn('sender_id', User::bannedIds())
             ->distinct('sender_id')
             ->count('sender_id');
 
@@ -137,7 +143,10 @@ class ChatController extends Controller
             })->orWhere(function ($q) use ($myId, $otherUserId) {
                 $q->where('sender_id', $otherUserId)->where('receiver_id', $myId);
             });
-        });
+        })
+            // Empty thread when the other person is banned.
+            ->whereNotIn('sender_id', User::bannedIds())
+            ->whereNotIn('receiver_id', User::bannedIds());
 
         if ($afterId) {
             $query->where('id', '>', $afterId)->orderBy('id');
@@ -203,6 +212,10 @@ class ChatController extends Controller
         }
 
         $receiver = User::findOrFail($request->receiver_id);
+
+        if ($receiver->isBanned()) {
+            return response()->json(['message' => 'This user is no longer available.'], 422);
+        }
 
         if (!$receiver->profile_completed) {
             return response()->json(['message' => 'This user has not completed their profile yet.'], 422);
