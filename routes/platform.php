@@ -22,6 +22,7 @@ use App\Orchid\Screens\Role\RoleListScreen;
 use App\Orchid\Screens\User\UserEditScreen;
 use App\Orchid\Screens\User\UserListScreen;
 use App\Orchid\Screens\User\UserProfileScreen;
+use App\Orchid\Screens\User\UserViewScreen;
 use App\Orchid\Screens\User\UserWordPressSyncScreen;
 
 // Notification Config & CMS
@@ -259,6 +260,12 @@ Route::screen('users/{user}/edit', UserEditScreen::class)
     ->breadcrumbs(fn (Trail $trail, $user) => $trail
         ->parent('platform.systems.users')
         ->push($user->name, route('platform.systems.users.edit', $user)));
+
+Route::screen('users/{user}/view', UserViewScreen::class)
+    ->name('platform.systems.users.view')
+    ->breadcrumbs(fn (Trail $trail, $user) => $trail
+        ->parent('platform.systems.users')
+        ->push($user->name, route('platform.systems.users.view', $user)));
 
 Route::screen('users/create', UserEditScreen::class)
     ->name('platform.systems.users.create')

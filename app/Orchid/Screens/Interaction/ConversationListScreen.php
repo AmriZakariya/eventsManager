@@ -314,7 +314,7 @@ class ConversationListScreen extends Screen
         $badgeClass  = $user->role === User::APP_ROLE_EXHIBITOR ? 'exhibitor' : 'visitor';
         $badgeLabel  = $user->appRoleLabel();
         $company     = optional($user->company)->name ?? 'Independent';
-        $editUrl     = route('platform.systems.users.edit', $user->id);
+        $editUrl     = route('platform.systems.users.view', $user->id);
         $isOnline    = isset($user->last_active_at) && $user->last_active_at?->diffInMinutes() < 30;
         $onlineDot   = $isOnline ? '<div class="uc-online"></div>' : '';
         $fullName    = e(trim($user->name . ' ' . $user->last_name));

@@ -19,6 +19,7 @@ use Orchid\Screen\TD;
 use App\Models\Company;
 use Orchid\Screen\Action;
 use Orchid\Screen\Actions\Button;
+use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
 use Orchid\Support\Color;
 use Orchid\Support\Facades\Layout;
@@ -107,6 +108,11 @@ class UserEditScreen extends Screen
     public function commandBar(): iterable
     {
         return [
+            Link::make(__('View'))
+                ->icon('bs.eye')
+                ->route('platform.systems.users.view', $this->user)
+                ->canSee($this->user->exists),
+
             Button::make(__('Impersonate user'))
                 ->icon('bg.box-arrow-in-right')
                 ->confirm(__('You can revert to your original state by logging out.'))

@@ -1,25 +1,31 @@
+<style>
+.chat-participant { border-radius:10px; padding:4px 8px; margin:-4px -8px; transition:background .15s; }
+.chat-participant:hover { background:#f4f6f8; }
+.chat-participant:hover h5 { color:#5444b4 !important; text-decoration:underline; }
+.chat-participant:focus-visible { outline:3px solid #9a8fe8; outline-offset:2px; }
+</style>
 <div class="bg-white rounded shadow-sm p-4 mb-3">
 
     <div class="chat-thread-header d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
-        <div class="d-flex align-items-center" style="min-width:0;">
+        <a href="{{ route('platform.systems.users.view', $user1->id) }}" class="chat-participant d-flex align-items-center text-decoration-none" style="min-width:0;" title="Open {{ $user1->name }}'s profile">
             <span class="me-2">{!! $user1->avatarThumbHtml(40, 'bg-primary') !!}</span>
             <div style="min-width:0;">
                 <h5 class="mb-0 text-dark text-break">{{ $user1->name }}</h5>
                 <small class="text-muted text-break">{{ $user1->email }}</small>
             </div>
-        </div>
+        </a>
 
         <div class="text-muted small px-3 d-none d-md-block">
             <i class="icon-refresh"></i> Interaction
         </div>
 
-        <div class="chat-participant-right d-flex align-items-center text-end" style="min-width:0;">
+        <a href="{{ route('platform.systems.users.view', $user2->id) }}" class="chat-participant chat-participant-right d-flex align-items-center text-end text-decoration-none" style="min-width:0;" title="Open {{ $user2->name }}'s profile">
             <div style="min-width:0;">
                 <h5 class="mb-0 text-dark text-break">{{ $user2->name }}</h5>
                 <small class="text-muted text-break">{{ $user2->email }}</small>
             </div>
             <span class="ms-2">{!! $user2->avatarThumbHtml(40, 'bg-success') !!}</span>
-        </div>
+        </a>
     </div>
 
     <div class="chat-history" style="max-height: 600px; overflow-y: auto; background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
