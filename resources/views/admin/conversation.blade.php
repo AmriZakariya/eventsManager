@@ -10,7 +10,7 @@
         <a href="{{ route('platform.systems.users.view', $user1->id) }}" class="chat-participant d-flex align-items-center text-decoration-none" style="min-width:0;" title="Open {{ $user1->name }}'s profile">
             <span class="me-2">{!! $user1->avatarThumbHtml(40, 'bg-primary') !!}</span>
             <div style="min-width:0;">
-                <h5 class="mb-0 text-dark text-break">{{ $user1->name }}</h5>
+                <h5 class="mb-0 text-dark text-break">{{ $user1->name }} {!! $user1->bannedBadgeHtml() !!}</h5>
                 <small class="text-muted text-break">{{ $user1->email }}</small>
             </div>
         </a>
@@ -21,7 +21,7 @@
 
         <a href="{{ route('platform.systems.users.view', $user2->id) }}" class="chat-participant chat-participant-right d-flex align-items-center text-end text-decoration-none" style="min-width:0;" title="Open {{ $user2->name }}'s profile">
             <div style="min-width:0;">
-                <h5 class="mb-0 text-dark text-break">{{ $user2->name }}</h5>
+                <h5 class="mb-0 text-dark text-break">{!! $user2->bannedBadgeHtml() !!} {{ $user2->name }}</h5>
                 <small class="text-muted text-break">{{ $user2->email }}</small>
             </div>
             <span class="ms-2">{!! $user2->avatarThumbHtml(40, 'bg-success') !!}</span>

@@ -45,10 +45,10 @@ class ConnectionRequestListScreen extends Screen
             ->first();
 
         $requests = Connection::with([
-            'requester:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source,password_is_set',
+            'requester:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source,password_is_set,banned_at,ban_reason',
             'requester.company:id,name',
             'requester.roles:id,name,slug',
-            'target:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source,password_is_set',
+            'target:id,name,last_name,email,job_title,avatar,company_id,app_role,created_source,password_is_set,banned_at,ban_reason',
             'target.company:id,name',
             'target.roles:id,name,slug',
         ])

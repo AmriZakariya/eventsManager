@@ -143,6 +143,8 @@ class UserEditScreen extends Screen
     {
         return [
 
+            Layout::view('admin.user.ban-banner'),
+
             // 0. CURRENT PROFILE PICTURE PREVIEW (read-only)
             Layout::view('admin.user.avatar-preview'),
 

@@ -478,15 +478,33 @@ class User extends Authenticatable
         );
     }
 
+    /**
+     * Profile status badge used across the admin. Banned accounts also get a red
+     * "Banned" badge in front, so every screen that shows this badge flags them.
+     */
     public function profileCompletionBadgeHtml(string $extraClass = ''): string
     {
         $class = trim('badge '.$this->profileCompletionBadgeClass().' '.$extraClass);
 
-        return sprintf(
+        return $this->bannedBadgeHtml($extraClass) . sprintf(
             '<span class="%s" title="%s">%s</span>',
             e($class),
             e($this->profileCompletionBadgeTitle()),
             e($this->profileCompletionLabel())
+        );
+    }
+
+    /** Red "Banned" badge with the reason as tooltip, or '' when not banned. */
+    public function bannedBadgeHtml(string $extraClass = ''): string
+    {
+        if (! $this->isBanned()) {
+            return '';
+        }
+
+        return sprintf(
+            '<span class="%s" title="%s">Banned</span> ',
+            e(trim('badge bg-danger '.$extraClass)),
+            e('Banned '.$this->banned_at->format('M j, Y').($this->ban_reason ? ': '.$this->ban_reason : ''))
         );
     }
 

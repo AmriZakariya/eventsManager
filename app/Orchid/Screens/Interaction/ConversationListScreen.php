@@ -90,7 +90,7 @@ class ConversationListScreen extends Screen
             ->filter();
 
         $users = User::whereIn('id', $userIds)
-            ->select(['id', 'name', 'last_name', 'email', 'avatar', 'company_id', 'app_role', 'created_source', 'password_is_set', 'banned_at'])
+            ->select(['id', 'name', 'last_name', 'email', 'avatar', 'company_id', 'app_role', 'created_source', 'password_is_set', 'banned_at', 'ban_reason'])
             ->with([
                 'company:id,name',
                 'roles:id,name,slug',
@@ -351,7 +351,7 @@ class ConversationListScreen extends Screen
                 $fullName,
                 e($company), e($company),
                 $badgeClass, $badgeLabel,
-                $user->isBanned() ? ' <span class="badge bg-danger" style="font-size:10px;">Banned</span>' : ''
+                $user->isBanned() ? ' ' . $user->bannedBadgeHtml() : ''
             );
     }
 

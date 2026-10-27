@@ -68,9 +68,6 @@ class UserListLayout extends Table
                             .($user->signup_method && $user->signup_method !== User::SIGNUP_WORDPRESS ? ' · '.e($user->signupMethodLabel()) : '')
                             .'</span>' .
                         ' '.$user->profileCompletionBadgeHtml('ms-1') .
-                        ($user->isBanned()
-                            ? ' <span class="badge bg-danger ms-1" title="'.e('Banned '.$user->banned_at->format('M j, Y').': '.$user->ban_reason).'">Banned</span>'
-                            : '') .
                         ($user->platform
                             ? ' <span class="badge bg-light text-dark border ms-1" title="Last seen '.e($user->platform_seen_at?->diffForHumans() ?? 'n/a').'">'
                                 .'<i class="bi bi-'.($user->platform === 'ios' ? 'apple' : 'android2').'"></i> '

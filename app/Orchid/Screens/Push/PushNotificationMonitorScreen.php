@@ -41,7 +41,7 @@ class PushNotificationMonitorScreen extends Screen
             'queueStuck' => $queue['oldest_seconds'] > self::STUCK_AFTER,
             'byType'  => $rows(PushMonitor::byType()),
             'reasons' => $rows(PushMonitor::reasons()),
-            'recent'  => PushNotificationLog::with('user:id,name,last_name,email')
+            'recent'  => PushNotificationLog::with('user:id,name,last_name,email,banned_at,ban_reason')
                 ->latest('created_at')
                 ->limit(50)
                 ->get(),
@@ -123,7 +123,7 @@ class PushNotificationMonitorScreen extends Screen
                         $name = trim($log->user->name . ' ' . $log->user->last_name);
 
                         return '<a href="' . e(route('platform.systems.users.edit', $log->user_id)) . '">'
-                            . e($name ?: $log->user->email) . '</a>';
+                            . e($name ?: $log->user->email) . '</a> ' . $log->user->bannedBadgeHtml();
                     }),
                 TD::make('notification', 'Type'),
                 TD::make('title', 'Title')->width('260px'),

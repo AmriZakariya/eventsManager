@@ -29,7 +29,6 @@ class UserViewScreen extends Screen
     public function query(User $user): iterable
     {
         $user->load(['company:id,name', 'roles:id,name,slug']);
-        $bannedBy = $user->banned_by ? User::find($user->banned_by, ['id', 'name', 'last_name']) : null;
         $this->user = $user;
 
         $pairExpr = 'CASE WHEN sender_id < receiver_id THEN sender_id ELSE receiver_id END, '
@@ -59,7 +58,6 @@ class UserViewScreen extends Screen
             'user'     => $user,
             'avatar'   => $user->adminAvatarUrl(),
             'activity' => $activity,
-            'bannedBy' => $bannedBy,
         ];
     }
 
