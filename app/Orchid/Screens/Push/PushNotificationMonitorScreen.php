@@ -91,16 +91,24 @@ class PushNotificationMonitorScreen extends Screen
     {
         return [
             Layout::rows([
-                CheckBox::make('broadcast.all_users')->title('Send to all users')->value(true),
-                \Orchid\Screen\Fields\Select::make('broadcast.user_ids')->title('Selected users')->multiple()->options($this->userOptions())->help('Choose users when sending to a specific audience.'),
-                Input::make('broadcast.title.en')->title('English title')->required(),
-                TextArea::make('broadcast.body.en')->title('English message')->rows(3)->required(),
-                Input::make('broadcast.title.fr')->title('French title')->required(),
-                TextArea::make('broadcast.body.fr')->title('French message')->rows(3)->required(),
-                Input::make('broadcast.title.ar')->title('Arabic title')->required(),
-                TextArea::make('broadcast.body.ar')->title('Arabic message')->rows(3)->required(),
-                Button::make('Send notification')->icon('bs.send')->type(Color::PRIMARY)->method('sendBroadcast')->confirm('Send this notification to the selected recipients?'),
+                CheckBox::make('broadcast.all_users')->title('Audience: all users')->value(true),
+                \Orchid\Screen\Fields\Select::make('broadcast.user_ids')->title('Or choose users')->multiple()->options($this->userOptions()),
+                Input::make('broadcast.title.en')->title('Title')->required(),
+                TextArea::make('broadcast.body.en')->title('Message')->rows(4)->required()->help('This default message is used for every recipient unless you add a translation.'),
             ])->title('Compose notification'),
+            Layout::tabs([
+                'Français (optionnel)' => Layout::rows([
+                    Input::make('broadcast.title.fr')->title('French title'),
+                    TextArea::make('broadcast.body.fr')->title('French message')->rows(3),
+                ]),
+                'العربية (اختياري)' => Layout::rows([
+                    Input::make('broadcast.title.ar')->title('Arabic title'),
+                    TextArea::make('broadcast.body.ar')->title('Arabic message')->rows(3),
+                ]),
+            ]),
+            Layout::rows([
+                Button::make('Send notification')->icon('bs.send')->type(Color::PRIMARY)->method('sendBroadcast')->confirm('Send this notification to the selected recipients?'),
+            ]),
             Layout::view('admin.push.monitor-alert'),
 
             Layout::metrics([
@@ -161,14 +169,22 @@ class PushNotificationMonitorScreen extends Screen
             'all_users' => ['nullable', 'boolean'], 'user_ids' => ['nullable', 'array'],
             'user_ids.*' => ['integer', 'distinct', 'exists:users,id'],
             'title.en' => ['required', 'string', 'max:255'], 'body.en' => ['required', 'string', 'max:5000'],
-            'title.fr' => ['required', 'string', 'max:255'], 'body.fr' => ['required', 'string', 'max:5000'],
-            'title.ar' => ['required', 'string', 'max:255'], 'body.ar' => ['required', 'string', 'max:5000'],
+            'title.fr' => ['nullable', 'string', 'max:255'], 'body.fr' => ['nullable', 'string', 'max:5000'],
+            'title.ar' => ['nullable', 'string', 'max:255'], 'body.ar' => ['nullable', 'string', 'max:5000'],
         ]);
         if ($validator->fails()) { Toast::error($validator->errors()->first()); return; }
         $all = filter_var($data['all_users'] ?? false, FILTER_VALIDATE_BOOLEAN);
         if (!$all && empty($data['user_ids'])) { Toast::error('Select at least one user or choose all users.'); return; }
         $users = User::query()->when(!$all, fn ($q) => $q->whereIn('id', $data['user_ids']))->get();
-        foreach ($users as $user) $user->notify(new AdminBroadcastNotification($data['title'], $data['body']));
+        $titles = ['en' => $data['title']['en']];
+        $bodies = ['en' => $data['body']['en']];
+        foreach (['fr', 'ar'] as $locale) {
+            if (filled($data['title'][$locale] ?? null) && filled($data['body'][$locale] ?? null)) {
+                $titles[$locale] = $data['title'][$locale];
+                $bodies[$locale] = $data['body'][$locale];
+            }
+        }
+        foreach ($users as $user) $user->notify(new AdminBroadcastNotification($titles, $bodies));
         Toast::success('Notification queued for ' . $users->count() . ' user(s).');
     }
 

@@ -25,7 +25,10 @@ class AdminBroadcastNotification extends Notification implements ShouldQueue
     private function content($notifiable): array
     {
         $locale = Locale::normalize($notifiable->locale ?? null);
-        return ['title' => $this->titles[$locale] ?? $this->titles['en'], 'body' => $this->bodies[$locale] ?? $this->bodies['en']];
+        return [
+            'title' => $this->titles[$locale] ?? $this->titles['en'],
+            'body' => $this->bodies[$locale] ?? $this->bodies['en'],
+        ];
     }
 
     public function toApp($notifiable): array
