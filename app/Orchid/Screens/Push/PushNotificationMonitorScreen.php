@@ -5,13 +5,20 @@ declare(strict_types=1);
 namespace App\Orchid\Screens\Push;
 
 use App\Models\PushNotificationLog;
+use App\Models\EventSetting;
+use App\Models\User;
+use App\Notifications\AdminBroadcastNotification;
 use App\Services\PushMonitor;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Repository;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
+use Orchid\Screen\Fields\CheckBox;
+use Orchid\Screen\Fields\Input;
+use Orchid\Screen\Fields\TextArea;
 use Orchid\Support\Color;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
@@ -39,6 +46,7 @@ class PushNotificationMonitorScreen extends Screen
                 'rate7'   => ['value' => $this->successRate($week)],
             ],
             'queueStuck' => $queue['oldest_seconds'] > self::STUCK_AFTER,
+            'users' => User::query()->orderBy('name')->limit(5000)->get()->mapWithKeys(fn (User $user) => [$user->id => trim($user->name . ' ' . $user->last_name) . ' — ' . $user->email])->all(),
             'byType'  => $rows(PushMonitor::byType()),
             'reasons' => $rows(PushMonitor::reasons()),
             'recent'  => PushNotificationLog::with('user:id,name,last_name,email,banned_at,ban_reason')
@@ -82,6 +90,17 @@ class PushNotificationMonitorScreen extends Screen
     public function layout(): iterable
     {
         return [
+            Layout::rows([
+                CheckBox::make('broadcast.all_users')->title('Send to all users')->value(true),
+                \Orchid\Screen\Fields\Select::make('broadcast.user_ids')->title('Selected users')->multiple()->options($this->userOptions())->help('Choose users when sending to a specific audience.'),
+                Input::make('broadcast.title.en')->title('English title')->required(),
+                TextArea::make('broadcast.body.en')->title('English message')->rows(3)->required(),
+                Input::make('broadcast.title.fr')->title('French title')->required(),
+                TextArea::make('broadcast.body.fr')->title('French message')->rows(3)->required(),
+                Input::make('broadcast.title.ar')->title('Arabic title')->required(),
+                TextArea::make('broadcast.body.ar')->title('Arabic message')->rows(3)->required(),
+                Button::make('Send notification')->icon('bs.send')->type(Color::PRIMARY)->method('sendBroadcast')->confirm('Send this notification to the selected recipients?'),
+            ])->title('Compose notification'),
             Layout::view('admin.push.monitor-alert'),
 
             Layout::metrics([
@@ -133,6 +152,29 @@ class PushNotificationMonitorScreen extends Screen
                     ->render(fn (PushNotificationLog $log) => $log->error_code ? '<code>' . e($log->error_code) . '</code>' : ''),
             ])->title('Latest 50 attempts'),
         ];
+    }
+
+    public function sendBroadcast(): void
+    {
+        $data = request()->input('broadcast', []);
+        $validator = Validator::make($data, [
+            'all_users' => ['nullable', 'boolean'], 'user_ids' => ['nullable', 'array'],
+            'user_ids.*' => ['integer', 'distinct', 'exists:users,id'],
+            'title.en' => ['required', 'string', 'max:255'], 'body.en' => ['required', 'string', 'max:5000'],
+            'title.fr' => ['required', 'string', 'max:255'], 'body.fr' => ['required', 'string', 'max:5000'],
+            'title.ar' => ['required', 'string', 'max:255'], 'body.ar' => ['required', 'string', 'max:5000'],
+        ]);
+        if ($validator->fails()) { Toast::error($validator->errors()->first()); return; }
+        $all = filter_var($data['all_users'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        if (!$all && empty($data['user_ids'])) { Toast::error('Select at least one user or choose all users.'); return; }
+        $users = User::query()->when(!$all, fn ($q) => $q->whereIn('id', $data['user_ids']))->get();
+        foreach ($users as $user) $user->notify(new AdminBroadcastNotification($data['title'], $data['body']));
+        Toast::success('Notification queued for ' . $users->count() . ' user(s).');
+    }
+
+    private function userOptions(): array
+    {
+        return User::query()->orderBy('name')->limit(5000)->get()->mapWithKeys(fn (User $user) => [$user->id => trim($user->name . ' ' . $user->last_name) . ' — ' . $user->email])->all();
     }
 
     /**
