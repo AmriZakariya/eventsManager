@@ -91,7 +91,7 @@ class PushNotificationMonitorScreen extends Screen
     {
         return [
             Layout::rows([
-                CheckBox::make('broadcast.all_users')->title('Audience: all users')->value(true),
+                CheckBox::make('broadcast.all_users')->title('Audience: all users')->value(true)->sendTrueOrFalse(),
                 \Orchid\Screen\Fields\Select::make('broadcast.user_ids')->title('Or choose users')->multiple()->options($this->userOptions()),
                 Input::make('broadcast.title.en')->title('Title')->required(),
                 TextArea::make('broadcast.body.en')->title('Message')->rows(4)->required()->help('This default message is used for every recipient unless you add a translation.'),
