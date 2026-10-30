@@ -71,5 +71,8 @@ return [
         'outbound_token' => env('WORDPRESS_SYNC_OUTBOUND_TOKEN'),
         'inbound_token' => env('WORDPRESS_SYNC_INBOUND_TOKEN'),
     ],
+    'badging' => [
+        'token' => env('BADGING_API_TOKEN'),
+    ],
 
 ];

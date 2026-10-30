@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AwardController;
+use App\Http\Controllers\Api\BadgingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -30,6 +31,7 @@ Route::get('/companies', [CompanyController::class, 'index']);
 Route::get('/companies/types', [CompanyController::class, 'types']);
 Route::get('/companies/{id}', [CompanyController::class, 'show']);
 Route::get('/awards', [AwardController::class, 'index']);
+Route::get('/integrations/badging/users', [BadgingController::class, 'index']);
 
 // 3. USER ACTIONS (Auth Required)
 Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])->group(function () {
