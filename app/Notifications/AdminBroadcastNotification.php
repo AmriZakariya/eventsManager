@@ -13,8 +13,12 @@ class AdminBroadcastNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(private array $titles, private array $bodies)
+    /** AdminBroadcast row this push belongs to; null for test sends. */
+    public ?int $broadcastId = null;
+
+    public function __construct(private array $titles, private array $bodies, ?int $broadcastId = null)
     {
+        $this->broadcastId = $broadcastId;
     }
 
     public function via($notifiable): array

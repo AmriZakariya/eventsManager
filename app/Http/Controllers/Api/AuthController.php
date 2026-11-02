@@ -8,6 +8,7 @@ use App\Services\AuditLogService;
 use App\Services\SocialAvatarStore;
 use App\Models\Company;
 use App\Models\Connection;
+use App\Service\WordPressBadgeService;
 use App\Service\WordPressUserSyncService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\Request;
@@ -127,11 +128,14 @@ class AuthController extends Controller
 
         app()->terminating(function () use ($user, $request) {
             try {
-                app(WordPressUserSyncService::class)->syncUser(
+                $synced = app(WordPressUserSyncService::class)->syncUser(
                     $user->fresh('company'),
                     $request->password,
                     User::WORDPRESS_SYNC_SOURCE_APP
                 );
+                if ($synced) {
+                    app(WordPressBadgeService::class)->refresh($user);
+                }
             } catch (\Exception $e) {
                 Log::error('WP Sync Failed: ' . $e->getMessage());
             }
@@ -223,6 +227,8 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
+        app(WordPressBadgeService::class)->ensure($request->user());
+
         return response()->json([
             'data' => $this->formatUser($request->user())
         ]);
@@ -606,6 +612,9 @@ class AuthController extends Controller
 
             // Critical for Visitor Identity
             'badge_code' => $user->badge_code,
+            // Website badge (HCX-…) and the exact text the badge QR must encode.
+            'web_badge_code' => $user->web_badge_code,
+            'badge_qr' => $user->badgeQrData(),
 
             // Avatar (Returns full URL if it exists)
             'avatar_url' => $user->avatar
@@ -763,11 +772,14 @@ class AuthController extends Controller
         if (!empty($validated['password'])) {
             app()->terminating(function () use ($user, $validated) {
                 try {
-                    app(WordPressUserSyncService::class)->syncUser(
+                    $synced = app(WordPressUserSyncService::class)->syncUser(
                         $user->fresh('company'),
                         $validated['password'],
                         User::WORDPRESS_SYNC_SOURCE_APP
                     );
+                    if ($synced && ! $user->web_badge_code) {
+                        app(WordPressBadgeService::class)->refresh($user);
+                    }
                 } catch (\Exception $e) {
                     Log::error('WP Sync Failed after complete profile: ' . $e->getMessage());
                 }
@@ -831,6 +843,13 @@ class AuthController extends Controller
         $user->country = $request->input('country', $user->country ?? 'N/A');
         $user->city = $request->input('city', $user->city ?? 'N/A');
         $user->app_role = $request->input('role', $user->app_role ?: User::APP_ROLE_VISITOR);
+
+        // The website's badge code (HCX-…). Our own badge_code stays unchanged.
+        $webBadgeCode = $request->input('uid') ?: $request->input('badge_code');
+        if (WordPressBadgeService::isValidCode($webBadgeCode)) {
+            $user->web_badge_code = $webBadgeCode;
+            $user->web_badge_checked_at = now();
+        }
 
         $user->save();
         $user->syncOrchidRoleFromAppRole();

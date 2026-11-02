@@ -262,6 +262,12 @@ class UserEditScreen extends Screen
                         ->disabled() // Usually auto-generated, keep read-only
                         ->help('Auto-generated unique ID'),
 
+                    Input::make('user.web_badge_code')
+                        ->title('Website badge code')
+                        ->disabled()
+                        ->placeholder('Not received from the website yet')
+                        ->help('From hygiecleanexpo.com (HCX-…). Used in the badge QR. Refresh it from the user\'s View page.'),
+
                     Switcher::make('user.is_visible')
                         ->title('Public Profile')
                         ->sendTrueOrFalse()

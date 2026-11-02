@@ -169,6 +169,14 @@ a.upv-stat:hover { border-color:#b9aef0; background:#fafbff; color:inherit; }
                 <dd>{{ $user->password_is_set ? 'Yes' : 'No (social sign-in only)' }}</dd>
                 <dt>Badge code</dt>
                 <dd>{{ $show($user->badge_code) }}</dd>
+                <dt>Website badge</dt>
+                <dd>
+                    @if($user->web_badge_code)
+                        <a href="{{ $user->webBadgeCheckUrl() }}" target="_blank" rel="noopener noreferrer"><code>{{ $user->web_badge_code }}</code> ↗</a>
+                    @else
+                        <span class="upv-empty">Not received from the website yet</span>
+                    @endif
+                </dd>
             </dl>
         </section>
 

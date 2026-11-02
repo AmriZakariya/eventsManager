@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Orchid\Screens\Push;
 
+use App\Models\AdminBroadcast;
 use App\Models\PushNotificationLog;
-use App\Models\EventSetting;
 use App\Models\User;
 use App\Notifications\AdminBroadcastNotification;
 use App\Services\PushMonitor;
@@ -16,9 +16,6 @@ use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Repository;
 use Orchid\Screen\Screen;
 use Orchid\Screen\TD;
-use Orchid\Screen\Fields\CheckBox;
-use Orchid\Screen\Fields\Input;
-use Orchid\Screen\Fields\TextArea;
 use Orchid\Support\Color;
 use Orchid\Support\Facades\Layout;
 use Orchid\Support\Facades\Toast;
@@ -46,7 +43,9 @@ class PushNotificationMonitorScreen extends Screen
                 'rate7'   => ['value' => $this->successRate($week)],
             ],
             'queueStuck' => $queue['oldest_seconds'] > self::STUCK_AFTER,
-            'users' => User::query()->orderBy('name')->limit(5000)->get()->mapWithKeys(fn (User $user) => [$user->id => trim($user->name . ' ' . $user->last_name) . ' — ' . $user->email])->all(),
+            'queue' => $queue,
+            'audiences' => $this->audienceCounts(),
+            'broadcasts' => $this->recentBroadcasts(),
             'byType'  => $rows(PushMonitor::byType()),
             'reasons' => $rows(PushMonitor::reasons()),
             'recent'  => PushNotificationLog::with('user:id,name,last_name,email,banned_at,ban_reason')
@@ -63,7 +62,7 @@ class PushNotificationMonitorScreen extends Screen
 
     public function description(): ?string
     {
-        return 'Queue health and delivery of app push notifications (last 30 days kept).';
+        return 'Send announcements to the app and follow their delivery.';
     }
 
     public function permission(): ?iterable
@@ -90,107 +89,230 @@ class PushNotificationMonitorScreen extends Screen
     public function layout(): iterable
     {
         return [
-            Layout::rows([
-                CheckBox::make('broadcast.all_users')->title('Audience: all users')->value(true)->sendTrueOrFalse(),
-                \Orchid\Screen\Fields\Select::make('broadcast.user_ids')->title('Or choose users')->multiple()->options($this->userOptions()),
-                Input::make('broadcast.title.en')->title('Title')->required(),
-                TextArea::make('broadcast.body.en')->title('Message')->rows(4)->required()->help('This default message is used for every recipient unless you add a translation.'),
-            ])->title('Compose notification'),
             Layout::tabs([
-                'Français (optionnel)' => Layout::rows([
-                    Input::make('broadcast.title.fr')->title('French title'),
-                    TextArea::make('broadcast.body.fr')->title('French message')->rows(3),
-                ]),
-                'العربية (اختياري)' => Layout::rows([
-                    Input::make('broadcast.title.ar')->title('Arabic title'),
-                    TextArea::make('broadcast.body.ar')->title('Arabic message')->rows(3),
-                ]),
+                'Compose' => [
+                    Layout::view('admin.push.compose'),
+                ],
+                'Sent broadcasts' => [
+                    Layout::table('broadcasts', [
+                        TD::make('created_at', 'Sent')
+                            ->render(fn (AdminBroadcast $b) => '<span title="' . e($b->created_at?->format('M j, Y H:i')) . '">'
+                                . e($b->created_at?->diffForHumans()) . '</span>'),
+                        TD::make('title', 'Notification')
+                            ->render(fn (AdminBroadcast $b) => '<div class="fw-semibold">' . e($b->titles['en'] ?? '') . '</div>'
+                                . '<div class="text-muted small text-truncate" style="max-width:360px;">' . e($b->bodies['en'] ?? '') . '</div>'
+                                . '<div class="small mt-1">' . collect(array_keys($b->titles))->map(fn ($l) => '<span class="badge bg-light text-dark border me-1">' . e(strtoupper($l)) . '</span>')->implode('') . '</div>'),
+                        TD::make('audience', 'Audience')
+                            ->render(fn (AdminBroadcast $b) => e($b->audienceLabel())
+                                . '<div class="text-muted small">' . number_format($b->recipients_count) . ' recipient(s)</div>'),
+                        TD::make('delivered', 'Delivered')->alignRight()
+                            ->render(fn (AdminBroadcast $b) => $this->badge((int) $b->delivered_count, 'success')),
+                        TD::make('failed', 'Failed')->alignRight()
+                            ->render(fn (AdminBroadcast $b) => $this->badge((int) $b->failed_count, 'danger')),
+                        TD::make('skipped', 'No device')->alignRight()
+                            ->render(fn (AdminBroadcast $b) => '<span title="Notifications off, or never opened the app on a phone">'
+                                . number_format((int) $b->skipped_count) . '</span>'),
+                        TD::make('sender', 'By')
+                            ->render(fn (AdminBroadcast $b) => e($b->sender ? trim($b->sender->name . ' ' . $b->sender->last_name) : '—')),
+                    ])->title('Latest 50 broadcasts · delivery numbers fill in within a minute, details kept 30 days'),
+                ],
+                'Delivery monitor' => [
+                    Layout::view('admin.push.monitor-alert'),
+
+                    Layout::metrics([
+                        'Waiting in queue' => 'metrics.waiting',
+                        'Oldest waiting'   => 'metrics.oldest',
+                        'Failed jobs'      => 'metrics.failedJobs',
+                        'Sent (24h)'       => 'metrics.sent24',
+                        'Failed (24h)'     => 'metrics.failed24',
+                        'Success rate (7d)' => 'metrics.rate7',
+                    ]),
+
+                    Layout::table('byType', [
+                        TD::make('notification', 'Notification'),
+                        TD::make('sent', 'Sent')->alignRight(),
+                        TD::make('failed', 'Failed')->alignRight()
+                            ->render(fn ($row) => $this->badge((int) $row->get('failed'), 'danger')),
+                        TD::make('skipped', 'Skipped (no token)')->alignRight(),
+                        TD::make('last_at', 'Last attempt')->alignRight(),
+                    ])->title('By notification type (7 days)'),
+
+                    Layout::table('reasons', [
+                        TD::make('error_code', 'Reason')
+                            ->render(fn ($row) => '<code>' . e($row->get('error_code')) . '</code>'),
+                        TD::make('hint', 'What it means')
+                            ->render(fn ($row) => e($row->get('hint') ?: $row->get('error_message'))),
+                        TD::make('total', 'Count')->alignRight(),
+                        TD::make('last_at', 'Last seen')->alignRight(),
+                    ])->title('Failures and skips (7 days)'),
+
+                    Layout::table('recent', [
+                        TD::make('created_at', 'Time')
+                            ->render(fn (PushNotificationLog $log) => '<span title="' . e($log->created_at?->format('Y-m-d H:i:s')) . '">'
+                                . e($log->created_at?->diffForHumans()) . '</span>'),
+                        TD::make('user', 'User')
+                            ->render(function (PushNotificationLog $log) {
+                                if (! $log->user) {
+                                    return '<span class="text-muted">#' . e((string) $log->user_id) . '</span>';
+                                }
+
+                                $name = trim($log->user->name . ' ' . $log->user->last_name);
+
+                                return '<a href="' . e(route('platform.systems.users.view', $log->user_id)) . '">'
+                                    . e($name ?: $log->user->email) . '</a> ' . $log->user->bannedBadgeHtml();
+                            }),
+                        TD::make('notification', 'Type'),
+                        TD::make('title', 'Title')->width('260px'),
+                        TD::make('status', 'Status')
+                            ->render(fn (PushNotificationLog $log) => $this->statusBadge($log->status)),
+                        TD::make('error_code', 'Reason')
+                            ->render(fn (PushNotificationLog $log) => $log->error_code ? '<code>' . e($log->error_code) . '</code>' : ''),
+                    ])->title('Latest 50 attempts'),
+                ],
             ]),
-            Layout::rows([
-                Button::make('Send notification')->icon('bs.send')->type(Color::PRIMARY)->method('sendBroadcast')->confirm('Send this notification to the selected recipients?'),
-            ]),
-            Layout::view('admin.push.monitor-alert'),
-
-            Layout::metrics([
-                'Waiting in queue' => 'metrics.waiting',
-                'Oldest waiting'   => 'metrics.oldest',
-                'Failed jobs'      => 'metrics.failedJobs',
-                'Sent (24h)'       => 'metrics.sent24',
-                'Failed (24h)'     => 'metrics.failed24',
-                'Success rate (7d)' => 'metrics.rate7',
-            ]),
-
-            Layout::table('byType', [
-                TD::make('notification', 'Notification'),
-                TD::make('sent', 'Sent')->alignRight(),
-                TD::make('failed', 'Failed')->alignRight()
-                    ->render(fn ($row) => $this->badge((int) $row->get('failed'), 'danger')),
-                TD::make('skipped', 'Skipped (no token)')->alignRight(),
-                TD::make('last_at', 'Last attempt')->alignRight(),
-            ])->title('By notification type (7 days)'),
-
-            Layout::table('reasons', [
-                TD::make('error_code', 'Reason')
-                    ->render(fn ($row) => '<code>' . e($row->get('error_code')) . '</code>'),
-                TD::make('hint', 'What it means')
-                    ->render(fn ($row) => e($row->get('hint') ?: $row->get('error_message'))),
-                TD::make('total', 'Count')->alignRight(),
-                TD::make('last_at', 'Last seen')->alignRight(),
-            ])->title('Failures and skips (7 days)'),
-
-            Layout::table('recent', [
-                TD::make('created_at', 'Time')
-                    ->render(fn (PushNotificationLog $log) => $log->created_at?->format('Y-m-d H:i:s')),
-                TD::make('user', 'User')
-                    ->render(function (PushNotificationLog $log) {
-                        if (! $log->user) {
-                            return '<span class="text-muted">#' . e((string) $log->user_id) . '</span>';
-                        }
-
-                        $name = trim($log->user->name . ' ' . $log->user->last_name);
-
-                        return '<a href="' . e(route('platform.systems.users.edit', $log->user_id)) . '">'
-                            . e($name ?: $log->user->email) . '</a> ' . $log->user->bannedBadgeHtml();
-                    }),
-                TD::make('notification', 'Type'),
-                TD::make('title', 'Title')->width('260px'),
-                TD::make('status', 'Status')
-                    ->render(fn (PushNotificationLog $log) => $this->statusBadge($log->status)),
-                TD::make('error_code', 'Reason')
-                    ->render(fn (PushNotificationLog $log) => $log->error_code ? '<code>' . e($log->error_code) . '</code>' : ''),
-            ])->title('Latest 50 attempts'),
         ];
     }
 
     public function sendBroadcast(): void
     {
-        $data = request()->input('broadcast', []);
-        $validator = Validator::make($data, [
-            'all_users' => ['nullable', 'boolean'], 'user_ids' => ['nullable', 'array'],
-            'user_ids.*' => ['integer', 'distinct', 'exists:users,id'],
-            'title.en' => ['required', 'string', 'max:255'], 'body.en' => ['required', 'string', 'max:5000'],
-            'title.fr' => ['nullable', 'string', 'max:255'], 'body.fr' => ['nullable', 'string', 'max:5000'],
-            'title.ar' => ['nullable', 'string', 'max:255'], 'body.ar' => ['nullable', 'string', 'max:5000'],
-        ]);
-        if ($validator->fails()) { Toast::error($validator->errors()->first()); return; }
-        $all = filter_var($data['all_users'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        if (!$all && empty($data['user_ids'])) { Toast::error('Select at least one user or choose all users.'); return; }
-        $users = User::query()->when(!$all, fn ($q) => $q->whereIn('id', $data['user_ids']))->get();
-        $titles = ['en' => $data['title']['en']];
-        $bodies = ['en' => $data['body']['en']];
-        foreach (['fr', 'ar'] as $locale) {
-            if (filled($data['title'][$locale] ?? null) && filled($data['body'][$locale] ?? null)) {
-                $titles[$locale] = $data['title'][$locale];
-                $bodies[$locale] = $data['body'][$locale];
-            }
+        if (! $content = $this->validatedBroadcast()) {
+            return;
         }
-        foreach ($users as $user) $user->notify(new AdminBroadcastNotification($titles, $bodies));
-        Toast::success('Notification queued for ' . $users->count() . ' user(s).');
+
+        [$audience, $userIds, $titles, $bodies] = $content;
+
+        $broadcast = AdminBroadcast::create([
+            'sent_by'          => request()->user()->id,
+            'audience'         => $audience,
+            'user_ids'         => $audience === AdminBroadcast::AUDIENCE_SPECIFIC ? $userIds : null,
+            'titles'           => $titles,
+            'bodies'           => $bodies,
+            'recipients_count' => 0,
+        ]);
+
+        $count = 0;
+        AdminBroadcast::audienceQuery($audience, $userIds)
+            ->chunkById(200, function ($users) use ($titles, $bodies, $broadcast, &$count) {
+                foreach ($users as $user) {
+                    $user->notify(new AdminBroadcastNotification($titles, $bodies, $broadcast->id));
+                    $count++;
+                }
+            });
+
+        $broadcast->update(['recipients_count' => $count]);
+
+        Toast::success("Notification queued for {$count} user(s). Follow its delivery in \"Sent broadcasts\".");
     }
 
-    private function userOptions(): array
+    /** Sends the composed notification only to the admin's own account, right away. */
+    public function sendTest(): void
     {
-        return User::query()->orderBy('name')->limit(5000)->get()->mapWithKeys(fn (User $user) => [$user->id => trim($user->name . ' ' . $user->last_name) . ' — ' . $user->email])->all();
+        if (! $content = $this->validatedBroadcast(requireAudience: false)) {
+            return;
+        }
+
+        [, , $titles, $bodies] = $content;
+        $me = request()->user();
+
+        if (blank($me->fcm_token)) {
+            session()->flashInput(request()->all());
+            Toast::warning('Your account has no phone registered. Log into the app with this account (notifications allowed), then try again.');
+
+            return;
+        }
+
+        $me->notifyNow(new AdminBroadcastNotification($titles, $bodies));
+        session()->flashInput(request()->all());
+
+        Toast::info('Test sent to your phone. Your text is kept below.');
+    }
+
+    /**
+     * Validates the compose form. On error, keeps the typed text and shows why.
+     *
+     * @return array{0:string,1:array,2:array,3:array}|null
+     */
+    private function validatedBroadcast(bool $requireAudience = true): ?array
+    {
+        $data = request()->input('broadcast', []);
+
+        $validator = Validator::make($data, [
+            'audience'   => ['required', 'in:' . implode(',', array_keys(AdminBroadcast::AUDIENCES))],
+            'user_ids'   => ['nullable', 'array'],
+            'user_ids.*' => ['integer', 'distinct', 'exists:users,id'],
+            'title.en'   => ['required', 'string', 'max:255'],
+            'body.en'    => ['required', 'string', 'max:2000'],
+            'title.fr'   => ['nullable', 'string', 'max:255', 'required_with:body.fr'],
+            'body.fr'    => ['nullable', 'string', 'max:2000', 'required_with:title.fr'],
+            'title.ar'   => ['nullable', 'string', 'max:255', 'required_with:body.ar'],
+            'body.ar'    => ['nullable', 'string', 'max:2000', 'required_with:title.ar'],
+        ], [
+            'title.en.required'      => 'Add an English title.',
+            'body.en.required'       => 'Add an English message.',
+            'title.fr.required_with' => 'The French translation needs a title too.',
+            'body.fr.required_with'  => 'The French translation needs a message too.',
+            'title.ar.required_with' => 'The Arabic translation needs a title too.',
+            'body.ar.required_with'  => 'The Arabic translation needs a message too.',
+        ]);
+
+        $error = $validator->fails() ? $validator->errors()->first() : null;
+        $audience = $data['audience'] ?? AdminBroadcast::AUDIENCE_ALL;
+        $userIds = array_map('intval', $data['user_ids'] ?? []);
+
+        if (! $error && $requireAudience && $audience === AdminBroadcast::AUDIENCE_SPECIFIC && $userIds === []) {
+            $error = 'Choose at least one user, or pick another audience.';
+        }
+
+        if ($error) {
+            session()->flashInput(request()->all());
+            Toast::error($error);
+
+            return null;
+        }
+
+        $titles = ['en' => trim($data['title']['en'])];
+        $bodies = ['en' => trim($data['body']['en'])];
+        foreach (['fr', 'ar'] as $locale) {
+            if (filled($data['title'][$locale] ?? null)) {
+                $titles[$locale] = trim($data['title'][$locale]);
+                $bodies[$locale] = trim($data['body'][$locale]);
+            }
+        }
+
+        return [$audience, $userIds, $titles, $bodies];
+    }
+
+    /** Recipients per audience, and how many of them have a phone registered. */
+    private function audienceCounts(): array
+    {
+        $counts = [];
+        foreach (array_keys(AdminBroadcast::AUDIENCES) as $audience) {
+            if ($audience === AdminBroadcast::AUDIENCE_SPECIFIC) {
+                continue;
+            }
+            $query = AdminBroadcast::audienceQuery($audience);
+            $counts[$audience] = [
+                'total'     => (clone $query)->count(),
+                'reachable' => (clone $query)->whereNotNull('fcm_token')->where('fcm_token', '!=', '')->count(),
+            ];
+        }
+
+        return $counts;
+    }
+
+    private function recentBroadcasts()
+    {
+        $count = fn (string $status) => fn ($q) => $q->where('status', $status);
+
+        return AdminBroadcast::with('sender:id,name,last_name')
+            ->withCount([
+                'logs as delivered_count' => $count(PushNotificationLog::STATUS_SENT),
+                'logs as failed_count'    => $count(PushNotificationLog::STATUS_FAILED),
+                'logs as skipped_count'   => $count(PushNotificationLog::STATUS_SKIPPED),
+            ])
+            ->latest()
+            ->limit(50)
+            ->get();
     }
 
     /**

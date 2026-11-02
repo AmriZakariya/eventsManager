@@ -174,6 +174,7 @@ class User extends Authenticatable
         'is_wordpress_synced'  => 'boolean',
         'platform_seen_at'     => 'datetime',
         'banned_at'            => 'datetime',
+        'web_badge_checked_at' => 'datetime',
         'wordpress_synced_at'  => 'datetime',
     ];
 
@@ -230,6 +231,26 @@ class User extends Authenticatable
      * and the social sign-up placeholders were replaced. Same rule as the app's
      * Complete Profile screen. NULL values count as filled, as in the app.
      */
+    /** Website check-badge URL for this user's HCX code, or null without one. */
+    public function webBadgeCheckUrl(): ?string
+    {
+        return $this->web_badge_code
+            ? config('services.wordpress_sync.badge_check_url') . urlencode($this->web_badge_code)
+            : null;
+    }
+
+    /** What the badge QR encodes: the website check URL, else the app's own code. */
+    public function badgeQrData(): string
+    {
+        return $this->webBadgeCheckUrl() ?? (string) ($this->badge_code ?: 'user:' . $this->id);
+    }
+
+    /** "Name Last — email", for admin user pickers. */
+    public function getAdminPickerLabelAttribute(): string
+    {
+        return trim($this->name . ' ' . $this->last_name) . ' — ' . $this->email;
+    }
+
     public function scopeNotBanned(Builder $query): Builder
     {
         return $query->whereNull($query->qualifyColumn('banned_at'));

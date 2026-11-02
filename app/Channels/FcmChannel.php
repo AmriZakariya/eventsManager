@@ -135,6 +135,7 @@ class FcmChannel
                 'error_code'    => $errorCode,
                 'error_message' => $errorMessage !== null ? mb_substr($errorMessage, 0, 255) : null,
                 'http_status'   => $httpStatus,
+                'broadcast_id'  => $notification->broadcastId ?? null,
             ]);
         } catch (\Throwable $e) {
             Log::warning('FCM: Could not record push log.', ['message' => $e->getMessage()]);

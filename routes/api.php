@@ -31,7 +31,7 @@ Route::get('/companies', [CompanyController::class, 'index']);
 Route::get('/companies/types', [CompanyController::class, 'types']);
 Route::get('/companies/{id}', [CompanyController::class, 'show']);
 Route::get('/awards', [AwardController::class, 'index']);
-Route::get('/integrations/badging/users', [BadgingController::class, 'index']);
+Route::get('/integrations/badging/users', [BadgingController::class, 'index'])->middleware('throttle:30,1');
 
 // 3. USER ACTIONS (Auth Required)
 Route::middleware(['auth:sanctum', \App\Http\Middleware\EnsureNotBanned::class])->group(function () {

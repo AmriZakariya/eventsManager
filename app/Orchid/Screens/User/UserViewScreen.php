@@ -9,7 +9,10 @@ use App\Models\Connection;
 use App\Models\Message;
 use App\Models\User;
 use App\Orchid\Screens\User\Concerns\BansUsers;
+use App\Service\WordPressBadgeService;
+use Orchid\Support\Facades\Toast;
 use Illuminate\Support\Facades\DB;
+use Orchid\Screen\Actions\Button;
 use Orchid\Screen\Actions\Link;
 use Orchid\Screen\Screen;
 use Orchid\Support\Color;
@@ -83,6 +86,10 @@ class UserViewScreen extends Screen
                 ->icon('bs.arrow-left')
                 ->route('platform.systems.users'),
 
+            Button::make('Refresh website badge')
+                ->icon('bs.qr-code')
+                ->method('refreshWebBadge'),
+
             ...$this->banActions($this->user),
 
             Link::make('Edit')
@@ -90,6 +97,18 @@ class UserViewScreen extends Screen
                 ->type(Color::PRIMARY)
                 ->route('platform.systems.users.edit', $this->user),
         ];
+    }
+
+    public function refreshWebBadge(User $user, WordPressBadgeService $badges): void
+    {
+        $previous = $user->web_badge_code;
+        $code = $badges->refresh($user);
+
+        match (true) {
+            $code === null       => Toast::warning('The website has no badge for ' . $user->email . ' (or could not be reached).'),
+            $code !== $previous  => Toast::success('Website badge code updated: ' . $code),
+            default              => Toast::info('Website badge code is up to date.'),
+        };
     }
 
     public function layout(): iterable

@@ -23,7 +23,7 @@ class PushNotificationLog extends Model
 
     protected $fillable = [
         'user_id', 'notification', 'title', 'status',
-        'error_code', 'error_message', 'http_status',
+        'error_code', 'error_message', 'http_status', 'broadcast_id',
     ];
 
     protected $casts = [

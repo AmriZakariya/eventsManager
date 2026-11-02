@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Service\WordPressBadgeService;
 use Illuminate\Http\Request;
 use setasign\Fpdi\Tcpdf\Fpdi;  // FPDI with TCPDF driver
 use chillerlan\QRCode\QRCode;
@@ -23,11 +24,14 @@ class BadgeController extends Controller
     {
         $user = $request->user();
         $user->loadMissing('company');
+        app(WordPressBadgeService::class)->ensure($user);
 
         // ── Pull data from User model ──────────────────────────────────────────
         $fullname     = strtoupper(trim($user->name . ' ' . $user->last_name));
-        $company_name = $user->company ? $user->company->name : $user->company_name;
-        $qr_data      = strtoupper(trim($user->name . ' ' . $user->last_name));
+        // Visitors may have no company; an empty line is printed instead of failing.
+        $company_name = (string) ($user->company ? $user->company->name : $user->company_name);
+        // Same QR as the website badge: its check-badge URL with the HCX code.
+        $qr_data      = $user->badgeQrData();
         $user_role    = $user->role;
 
         // ── Build PDF ──────────────────────────────────────────────────────────
@@ -132,7 +136,9 @@ class BadgeController extends Controller
                 QRMatrix::M_LOGO        => [255, 255, 255],
             ],
 
-            'scale'            => 10,
+            // 6 px per module is ~380 dpi at the printed 23 mm. Higher scales need
+            // far more memory with circular modules (161 MB at 10 for the badge URL).
+            'scale'            => 6,
             'imageTransparent' => false,
             'bgColor'          => [255, 255, 255],
         ]);

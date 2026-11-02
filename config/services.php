@@ -70,6 +70,10 @@ return [
         'url' => env('WORDPRESS_SYNC_URL', 'https://hygiecleanexpo.com/wp-json/hc-sync/v1/users'),
         'outbound_token' => env('WORDPRESS_SYNC_OUTBOUND_TOKEN'),
         'inbound_token' => env('WORDPRESS_SYNC_INBOUND_TOKEN'),
+        // Badge lookup by email; authenticated with outbound_token.
+        'badge_lookup_url' => env('WORDPRESS_BADGE_LOOKUP_URL', 'https://hygiecleanexpo.com/wp-json/hc-sync/v1/badges/lookup'),
+        // The website's badge QR points here, followed by the HCX code.
+        'badge_check_url' => env('WORDPRESS_BADGE_CHECK_URL', 'https://hygiecleanexpo.com/check-badge/?code='),
     ],
     'badging' => [
         'token' => env('BADGING_API_TOKEN'),
