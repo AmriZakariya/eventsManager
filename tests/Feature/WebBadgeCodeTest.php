@@ -127,4 +127,51 @@ class WebBadgeCodeTest extends TestCase
         $this->assertSame(self::NEW_CODE, $user->web_badge_code);
         $this->assertStringStartsWith('VIS-', $user->badge_code);
     }
+
+    public function test_reception_date_is_set_once_and_kept_on_recheck(): void
+    {
+        Http::fake([self::LOOKUP => Http::response(['badges' => [['uid' => self::NEW_CODE]]])]);
+        $user = User::factory()->create();
+        $service = app(WordPressBadgeService::class);
+
+        $this->travelTo(now()->subDay());
+        $service->refresh($user);
+        $receivedAt = $user->fresh()->web_badge_received_at;
+        $this->assertNotNull($receivedAt);
+
+        $this->travelBack();
+        $service->refresh($user->fresh());
+        $this->assertTrue($receivedAt->equalTo($user->fresh()->web_badge_received_at));
+    }
+
+    public function test_user_without_code_has_no_reception_date(): void
+    {
+        Http::fake([self::LOOKUP => Http::response([], 404)]);
+        $user = User::factory()->create();
+
+        app(WordPressBadgeService::class)->refresh($user);
+
+        $this->assertNull($user->fresh()->web_badge_received_at);
+    }
+
+    public function test_users_list_filters_by_website_badge(): void
+    {
+        $admin = User::factory()->create([
+            'app_role'    => User::APP_ROLE_ADMIN,
+            'permissions' => ['platform.index' => true, 'platform.systems.users' => true],
+        ]);
+        User::factory()->create(['email' => 'with-badge@example.com', 'web_badge_code' => self::NEW_CODE]);
+        User::factory()->create(['email' => 'no-badge@example.com']);
+
+        $this->actingAs($admin)->get(route('platform.systems.users', ['web_badge' => 'received']))
+            ->assertOk()
+            ->assertSee('with-badge@example.com')
+            ->assertDontSee('no-badge@example.com')
+            ->assertSee('Website badges');
+
+        $this->actingAs($admin)->get(route('platform.systems.users', ['web_badge' => 'missing']))
+            ->assertOk()
+            ->assertSee('no-badge@example.com')
+            ->assertDontSee('with-badge@example.com');
+    }
 }

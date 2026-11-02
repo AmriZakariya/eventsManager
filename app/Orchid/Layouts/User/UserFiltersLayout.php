@@ -10,6 +10,7 @@ use App\Orchid\Filters\SourceFilter;
 use App\Orchid\Filters\SignupMethodFilter;
 use App\Orchid\Filters\PlatformFilter;
 use App\Orchid\Filters\VisibilityFilter;
+use App\Orchid\Filters\WebBadgeFilter;
 use Orchid\Filters\Filter;
 use Orchid\Screen\Layouts\Selection;
 
@@ -29,6 +30,7 @@ class UserFiltersLayout extends Selection
             PlatformFilter::class,
             VisibilityFilter::class,
             BanStatusFilter::class,
+            WebBadgeFilter::class,
         ];
     }
 }

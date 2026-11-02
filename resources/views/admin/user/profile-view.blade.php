@@ -173,6 +173,9 @@ a.upv-stat:hover { border-color:#b9aef0; background:#fafbff; color:inherit; }
                 <dd>
                     @if($user->web_badge_code)
                         <a href="{{ $user->webBadgeCheckUrl() }}" target="_blank" rel="noopener noreferrer"><code>{{ $user->web_badge_code }}</code> ↗</a>
+                        @if($user->web_badge_received_at)
+                            <div class="upv-empty">Received {{ $user->web_badge_received_at->format('d M Y, H:i') }}</div>
+                        @endif
                     @else
                         <span class="upv-empty">Not received from the website yet</span>
                     @endif

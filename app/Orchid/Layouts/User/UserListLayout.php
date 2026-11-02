@@ -136,6 +136,13 @@ class UserListLayout extends Table
                     : '<span class="text-muted">—</span>'
                 ),
 
+            TD::make('web_badge_received_at', 'Website badge')
+                ->sort()
+                ->render(fn (User $user) => $user->web_badge_code
+                    ? '<span class="badge bg-success" title="'.e($user->web_badge_code).'"><i class="bi bi-check-circle"></i> Received</span>'
+                        .'<br><small class="text-muted">'.e($user->web_badge_received_at?->format('d M Y H:i') ?? '').'</small>'
+                    : '<span class="badge bg-light text-muted border">Not received</span>'),
+
             TD::make('created_at', __('Joined'))
                 ->usingComponent(DateTimeSplit::class)
                 ->align(TD::ALIGN_RIGHT)

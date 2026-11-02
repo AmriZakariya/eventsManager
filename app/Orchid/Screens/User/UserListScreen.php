@@ -81,7 +81,8 @@ class UserListScreen extends Screen
         $stats = User::selectRaw("
             count(*) as total,
             count(case when company_id is not null then 1 end) as with_company,
-            count(case when is_visible = 1 then 1 end) as visible
+            count(case when is_visible = 1 then 1 end) as visible,
+            count(case when web_badge_code is not null then 1 end) as web_badges
         ")->first();
 
         $exhibitors = User::appRole(User::APP_ROLE_EXHIBITOR)->count();
@@ -92,6 +93,11 @@ class UserListScreen extends Screen
             'exhibitors' => ['value' => number_format($exhibitors), 'diff' => 0],
             'visitors'   => ['value' => number_format($visitors), 'diff' => 0],
             'companies'  => ['value' => number_format($stats->with_company), 'diff' => 0],
+            'web_badges' => [
+                'value' => number_format($stats->web_badges) . ' / ' . number_format($stats->total)
+                    . ' (' . ($stats->total ? round($stats->web_badges * 100 / $stats->total) : 0) . '%)',
+                'diff'  => 0,
+            ],
         ];
     }
 
@@ -141,6 +147,7 @@ class UserListScreen extends Screen
                 'Exhibitors'   => 'metrics.exhibitors',
                 'Visitors'     => 'metrics.visitors',
                 'With Company' => 'metrics.companies',
+                'Website badges' => 'metrics.web_badges',
             ]),
 
             // 2. Search, role tabs, more filters and active-filter chips.
@@ -306,6 +313,7 @@ class UserListScreen extends Screen
             'source'     => ['label' => 'Source', 'options' => User::createdSourceOptions()],
             'visibility' => ['label' => 'Visibility', 'options' => ['visible' => 'Visible in app', 'hidden' => 'Hidden from app']],
             'ban'        => ['label' => 'Ban status', 'options' => ['banned' => 'Banned', 'active' => 'Not banned']],
+            'web_badge'  => ['label' => 'Website badge', 'options' => ['received' => 'Received', 'missing' => 'Not received']],
         ];
 
         $roles = [
@@ -481,7 +489,7 @@ class UserListScreen extends Screen
 
         return response()->streamDownload(function () use ($users) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['ID', 'First name', 'Last name', 'Email', 'Phone', 'Job title', 'Company', 'Role', 'Profile', 'Sign-up method', 'Platform', 'Visible', 'Joined']);
+            fputcsv($out, ['ID', 'First name', 'Last name', 'Email', 'Phone', 'Job title', 'Company', 'Role', 'Profile', 'Sign-up method', 'Platform', 'Visible', 'Website badge', 'Website badge received', 'Joined']);
 
             foreach ($users as $user) {
                 fputcsv($out, [
@@ -497,6 +505,8 @@ class UserListScreen extends Screen
                     $user->signupMethodLabel(),
                     $user->platformLabel(),
                     $user->is_visible ? 'Yes' : 'No',
+                    $user->web_badge_code,
+                    $user->web_badge_received_at?->format('Y-m-d H:i'),
                     $user->created_at?->format('Y-m-d H:i'),
                 ]);
             }

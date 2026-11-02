@@ -136,18 +136,21 @@ class BadgeController extends Controller
                 QRMatrix::M_LOGO        => [255, 255, 255],
             ],
 
-            // 6 px per module is ~380 dpi at the printed 23 mm. Higher scales need
-            // far more memory with circular modules (161 MB at 10 for the badge URL).
-            'scale'            => 6,
+            // Below scale 20 the library draws circles on a 10x larger canvas,
+            // which took ~45 MB for the badge URL. We draw at 20 px per module
+            // and halve it below instead: same smooth dots, a few MB.
+            'scale'             => 20,
+            'gdImageUseUpscale' => false,
+            'returnResource'    => true,
             'imageTransparent' => false,
             'bgColor'          => [255, 255, 255],
         ]);
 
         // Generate PNG to a temp file
-        $qrCode   = new QRCode($options);
-        $qrPng    = $qrCode->render($qr_data);           // raw PNG binary
+        $qrImage  = (new QRCode($options))->render($qr_data);   // GdImage
+        $qrImage  = imagescale($qrImage, intdiv(imagesx($qrImage), 2));
         $tmpQr    = tempnam(sys_get_temp_dir(), 'qr_') . '.png';
-        file_put_contents($tmpQr, $qrPng);
+        imagepng($qrImage, $tmpQr);
 
         // Place it in the PDF — 23×23 mm, centered in right panel
         $qrSize = 23;

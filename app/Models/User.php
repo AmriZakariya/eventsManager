@@ -28,6 +28,7 @@ class User extends Authenticatable
         'is_visible',
         'updated_at',
         'created_at',
+        'web_badge_received_at',
     ];
 
     public const APP_ROLE_ADMIN = 'admin';
@@ -175,6 +176,7 @@ class User extends Authenticatable
         'platform_seen_at'     => 'datetime',
         'banned_at'            => 'datetime',
         'web_badge_checked_at' => 'datetime',
+        'web_badge_received_at' => 'datetime',
         'wordpress_synced_at'  => 'datetime',
     ];
 
@@ -231,6 +233,20 @@ class User extends Authenticatable
      * and the social sign-up placeholders were replaced. Same rule as the app's
      * Complete Profile screen. NULL values count as filled, as in the app.
      */
+    /**
+     * Stamps the reception date whenever a new website badge code is stored,
+     * whatever the path (WordPress sync, lookup, admin refresh). A mutator, so
+     * it also runs with saveQuietly().
+     */
+    public function setWebBadgeCodeAttribute(?string $value): void
+    {
+        if ($value && $value !== ($this->attributes['web_badge_code'] ?? null)) {
+            $this->attributes['web_badge_received_at'] = $this->fromDateTime(now());
+        }
+
+        $this->attributes['web_badge_code'] = $value;
+    }
+
     /** Website check-badge URL for this user's HCX code, or null without one. */
     public function webBadgeCheckUrl(): ?string
     {
