@@ -27,12 +27,17 @@ class CompanyEditScreen extends Screen
 
     public $company;
 
+    public $exhibitors;
+
     public function query(Company $company): array
     {
         $company->hydrateTranslationInputs(['name', 'category', 'description', 'address']);
 
         return [
-            'company' => $company
+            'company'    => $company,
+            'exhibitors' => $company->exists
+                ? $company->team()->orderBy('name')->orderBy('last_name')->get()
+                : collect(),
         ];
     }
 
@@ -220,7 +225,10 @@ class CompanyEditScreen extends Screen
                         ->placeholder('Highlight on Homepage')
                         ->sendTrueOrFalse(),
                 ]),
-            ])
+            ] + ($this->company->exists ? [
+                // TAB 5: PEOPLE (read-only; users are linked from their own edit page)
+                'Exhibitors (' . $this->exhibitors->count() . ')' => Layout::view('admin.company.exhibitors'),
+            ] : []))
         ];
     }
 
