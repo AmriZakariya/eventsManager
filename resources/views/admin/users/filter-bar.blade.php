@@ -9,7 +9,7 @@
         <label class="ul-search">
             <x-orchid-icon path="bs.search" class="ul-search-icon"/>
             <input type="search" value="{{ $fb['search'] }}" data-filter="search"
-                   placeholder="Search name, email, company, phone, job title…" autocomplete="off">
+                   placeholder="Search ID, name, email, company, phone, job title…" autocomplete="off">
             @if($fb['search'] !== '')
                 <a href="{{ $url(['search' => null]) }}" class="ul-search-clear" title="Clear search"><x-orchid-icon path="bs.x-lg"/></a>
             @endif
