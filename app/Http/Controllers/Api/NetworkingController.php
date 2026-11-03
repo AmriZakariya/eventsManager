@@ -150,13 +150,13 @@ class NetworkingController extends Controller
     }
 
     /**
-     * ACTIONS: connect | accept | decline | cancel
+     * ACTIONS: connect | accept | decline | cancel | remove
      */
     public function toggleConnection(Request $request): JsonResponse
     {
         $request->validate([
             'target_id' => 'required|integer|exists:users,id',
-            'action'    => 'required|string|in:connect,accept,decline,cancel',
+            'action'    => 'required|string|in:connect,accept,decline,cancel,remove',
         ]);
 
         $authId   = Auth::id();
@@ -229,6 +229,17 @@ class NetworkingController extends Controller
                 Connection::where('requester_id', $authId)
                     ->where('target_id', $targetId)
                     ->where('status', 'pending')
+                    ->delete();
+                break;
+
+            case 'remove':
+                // Undo an accepted connection, whoever sent the request.
+                // The other person is not notified.
+                Connection::where('status', 'accepted')
+                    ->where(function ($q) use ($authId, $targetId) {
+                        $q->where(fn ($q) => $q->where('requester_id', $authId)->where('target_id', $targetId))
+                          ->orWhere(fn ($q) => $q->where('requester_id', $targetId)->where('target_id', $authId));
+                    })
                     ->delete();
                 break;
         }

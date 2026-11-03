@@ -808,8 +808,9 @@ class AuthController extends Controller
 
         // 2. Find or Create User
         $user = User::where('email', $email)->first();
+        $isNew = ! $user;
 
-        if (!$user) {
+        if ($isNew) {
             // Generate Badge Code for new WP registrations
             $prefix = ($request->input('role') === 'exhibitor') ? 'EXH-' : 'VIS-';
             do {
@@ -828,21 +829,34 @@ class AuthController extends Controller
             $user->password = Hash::make($request->input('password') ?? Str::random(24));
             $user->password_is_set = $request->filled('password');
         } elseif ($request->filled('password')) {
-            // Update password if WP sends a new one
-            $user->password = Hash::make($request->input('password'));
-            $user->password_is_set = true;
+            // An existing app password is never replaced from the website (the
+            // user could no longer log in); only an account without one gets it.
+            if ($user->password_is_set) {
+                Log::warning('WP sync: password for an existing account ignored.', ['user_id' => $user->id]);
+            } else {
+                $user->password = Hash::make($request->input('password'));
+                $user->password_is_set = true;
+            }
         }
 
-        // 3. Update Profile Data
-        $user->name = $request->input('first_name', 'Unknown');
-        $user->last_name = $request->input('last_name', '');
-        $user->phone = $request->input('phone', $user->phone ?? 'N/A');
-        $user->job_title = $request->input('job_title', $user->job_title);
-        $user->company_name = $request->input('company_name', $user->company_name);
-        $user->company_sector = $request->input('company_sector', $user->company_sector ?? 'N/A');
-        $user->country = $request->input('country', $user->country ?? 'N/A');
-        $user->city = $request->input('city', $user->city ?? 'N/A');
-        $user->app_role = $request->input('role', $user->app_role ?: User::APP_ROLE_VISITOR);
+        // 3. Update Profile Data. Existing accounts only take non-empty values,
+        //    so a partial payload never wipes what the user entered.
+        $fill = fn (string $field, ?string $default = null) => filled($request->input($field))
+            ? $request->input($field)
+            : ($user->{$field === 'first_name' ? 'name' : $field} ?? $default);
+
+        $user->name = $fill('first_name', 'Unknown');
+        $user->last_name = $fill('last_name', '');
+        $user->phone = $fill('phone', 'N/A');
+        $user->job_title = $fill('job_title');
+        $user->company_name = $fill('company_name');
+        $user->company_sector = $fill('company_sector', 'N/A');
+        $user->country = $fill('country', 'N/A');
+        $user->city = $fill('city', 'N/A');
+
+        if (! $isNew) {
+            $this->applyWordPressRole($user, (string) $request->input('role', ''));
+        }
 
         // The website's badge code (HCX-…). Our own badge_code stays unchanged.
         $webBadgeCode = $request->input('uid') ?: $request->input('badge_code');
@@ -856,6 +870,29 @@ class AuthController extends Controller
         $user->markWordPressSyncSuccess(User::WORDPRESS_SYNC_SOURCE_WORDPRESS);
 
         return response()->json(['status' => 'success', 'user_id' => $user->id]);
+    }
+
+    /**
+     * Role from a WordPress sync for an existing account: visitor -> exhibitor
+     * is allowed, a downgrade or any change to an admin is not.
+     */
+    private function applyWordPressRole(User $user, string $role): void
+    {
+        if ($role === '' || $role === $user->app_role) {
+            return;
+        }
+
+        if ($role === User::APP_ROLE_EXHIBITOR && $user->app_role === User::APP_ROLE_VISITOR) {
+            $user->app_role = User::APP_ROLE_EXHIBITOR;
+
+            return;
+        }
+
+        Log::warning('WP sync: role change ignored.', [
+            'user_id' => $user->id,
+            'current' => $user->app_role,
+            'sent'    => $role,
+        ]);
     }
 
     /**

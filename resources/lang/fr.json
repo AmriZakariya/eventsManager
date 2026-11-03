@@ -144,6 +144,7 @@
     "new_message_title": "Nouveau message",
     "new_message_body": ":name vous a envoyé un message.",
     "new_message_attachment_body": ":name vous a envoyé une pièce jointe.",
+    "new_message_voice_body": ":name vous a envoyé un message vocal.",
     "new_connection_request_title": "Nouvelle demande de connexion 👥",
     "new_connection_request_body": ":name souhaite se connecter avec vous.",
     "connection_accepted_title": "Connexion acceptée ! 🤝",

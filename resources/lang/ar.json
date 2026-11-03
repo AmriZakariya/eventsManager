@@ -144,6 +144,7 @@
     "new_message_title": "رسالة جديدة",
     "new_message_body": "أرسل لك :name رسالة.",
     "new_message_attachment_body": "أرسل لك :name مرفقاً.",
+    "new_message_voice_body": "أرسل لك :name رسالة صوتية.",
     "new_connection_request_title": "طلب تواصل جديد 👥",
     "new_connection_request_body": "يرغب :name في التواصل معك.",
     "connection_accepted_title": "تم قبول طلب التواصل! 🤝",

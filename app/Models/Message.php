@@ -20,6 +20,7 @@ class Message extends Model
         'receiver_id',
         'content',
         'attachment_url',
+        'attachment_duration',
         'read_at',
     ];
 
@@ -29,7 +30,14 @@ class Message extends Model
     protected $casts = [
         'read_at' => 'datetime',
         'created_at' => 'datetime',
+        'attachment_duration' => 'integer',
     ];
+
+    /** Voice messages are stored with the other audio files. */
+    public function isVoice(): bool
+    {
+        return $this->attachment_url !== null && str_contains($this->attachment_url, '/chat_files/audio/');
+    }
 
     // =========================================================================
     // RELATIONSHIPS

@@ -182,6 +182,7 @@
     "new_message_title": "New message",
     "new_message_body": ":name sent you a message.",
     "new_message_attachment_body": ":name sent you an attachment.",
+    "new_message_voice_body": ":name sent you a voice message.",
     "new_connection_request_title": "New Connection Request 👥",
     "new_connection_request_body": ":name wants to connect with you.",
     "connection_accepted_title": "Connection Accepted! 🤝",

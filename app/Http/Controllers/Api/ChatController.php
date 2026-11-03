@@ -81,6 +81,7 @@ class ChatController extends Controller
                 ],
                 'latest_message_id' => $lastMsg->id,
                 'last_message' => $lastMsg->content ?? '[Attachment]',
+                'last_message_type' => filled($lastMsg->content) ? 'text' : ($lastMsg->isVoice() ? 'voice' : 'attachment'),
                 'last_message_at' => $lastMsg->created_at,
                 'unread_count' => (int) ($unreadCounts[$item->other_user_id] ?? 0),
             ];
@@ -187,8 +188,9 @@ class ChatController extends Controller
         $request->validate([
             'receiver_id' => 'required|exists:users,id',
             'content'     => 'nullable|string',
-            'file'        => 'nullable|file|max:51200|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,mp3,wav,pdf,doc,docx,txt',
-            // 50MB max, supports images, videos, audio, documents
+            'file'        => 'nullable|file|max:51200|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,mp3,wav,m4a,aac,pdf,doc,docx,txt',
+            // 50MB max, supports images, videos, audio (incl. phone voice recordings), documents
+            'duration'    => 'nullable|integer|min:1|max:600',
         ]);
 
         if (!$request->content && !$request->hasFile('file')) {
@@ -196,17 +198,24 @@ class ChatController extends Controller
         }
 
         $path = null;
+        $isAudio = false;
         if ($request->hasFile('file')) {
             $file = $request->file('file');
 
             // Organize by type
+            // Phone voice recordings (.m4a) can be detected as video/mp4.
+            $isVoiceRecording = $request->filled('duration')
+                && in_array(strtolower($file->getClientOriginalExtension()), ['m4a', 'aac', 'mp3', 'wav'], true);
+
             $folder = match(true) {
+                $isVoiceRecording => 'chat_files/audio',
                 str_starts_with($file->getMimeType(), 'image/') => 'chat_files/images',
                 str_starts_with($file->getMimeType(), 'video/') => 'chat_files/videos',
                 str_starts_with($file->getMimeType(), 'audio/') => 'chat_files/audio',
                 default => 'chat_files/documents'
             };
 
+            $isAudio = $folder === 'chat_files/audio';
             $path = $file->store($folder, 'public');
             $path = asset('storage/' . $path);
         }
@@ -226,6 +235,7 @@ class ChatController extends Controller
             'receiver_id' => $receiver->id,
             'content'     => $request->content ?? '',
             'attachment_url' => $path,
+            'attachment_duration' => $isAudio ? ($request->integer('duration') ?: null) : null,
         ]);
 
         if ($receiver->id !== $request->user()->id) {

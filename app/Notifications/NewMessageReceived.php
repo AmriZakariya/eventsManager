@@ -28,7 +28,11 @@ class NewMessageReceived extends Notification implements ShouldQueue
     private function getTranslatedContent($notifiable): array
     {
         $locale = $notifiable->locale ?? 'en';
-        $bodyKey = $this->message->content ? 'new_message_body' : 'new_message_attachment_body';
+        $bodyKey = match (true) {
+            (bool) $this->message->content => 'new_message_body',
+            $this->message->isVoice() => 'new_message_voice_body',
+            default => 'new_message_attachment_body',
+        };
 
         return [
             'title' => __('new_message_title', [], $locale),
