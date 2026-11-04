@@ -58,8 +58,17 @@ class PlatformScreen extends Screen
         }
 
         // ── Core KPIs ─────────────────────────────────────────────────
-        $visitorCount   = User::appRole(User::APP_ROLE_VISITOR)->count();
-        $exhibitorCount = Company::count();
+        // Registrations = everyone who signed up as a visitor or exhibitor
+        // (same total as the users list, admins excluded).
+        $roleCounts = User::query()
+            ->whereIn('app_role', [User::APP_ROLE_VISITOR, User::APP_ROLE_EXHIBITOR])
+            ->selectRaw('app_role, count(*) as total')
+            ->groupBy('app_role')
+            ->pluck('total', 'app_role');
+        $visitorCount       = (int) ($roleCounts[User::APP_ROLE_VISITOR] ?? 0);
+        $exhibitorUserCount = (int) ($roleCounts[User::APP_ROLE_EXHIBITOR] ?? 0);
+        $registrationCount  = $visitorCount + $exhibitorUserCount;
+        $exhibitorCount     = Company::count();
         $unreadMessages = ContactRequest::where('is_handled', false)->count();
 
         // ── Appointment Stats ─────────────────────────────────────────
@@ -84,19 +93,23 @@ class PlatformScreen extends Screen
         $connectionCount    = DB::table('connections')->where('status', 'accepted')->count();
         $pendingConnections = DB::table('connections')->where('status', 'pending')->count();
 
-        $checkedInToday = User::appRole(User::APP_ROLE_VISITOR)
+        $checkedInToday = User::query()
+            ->whereIn('app_role', [User::APP_ROLE_VISITOR, User::APP_ROLE_EXHIBITOR])
             ->whereDate('created_at', today())
             ->count();
 
-        // ── Chart: Visitor Registrations (last 14 days) ───────────────
+        // ── Chart: Registrations (last 14 days), visitors and exhibitors ──
         $last14 = collect(range(13, 0))->map(fn($d) => now()->subDays($d)->format('Y-m-d'));
-        $rawVisitors = User::appRole(User::APP_ROLE_VISITOR)
+        $dailyByRole = fn (string $role) => User::appRole($role)
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
             ->where('created_at', '>=', now()->subDays(14))
             ->groupBy('date')
             ->pluck('count', 'date');
-        $visitorChartLabels = $last14->map(fn($d) => Carbon::parse($d)->format('d M'))->values()->toArray();
-        $visitorChartValues = $last14->map(fn($d) => (int) ($rawVisitors[$d] ?? 0))->values()->toArray();
+        $rawVisitors   = $dailyByRole(User::APP_ROLE_VISITOR);
+        $rawExhibitors = $dailyByRole(User::APP_ROLE_EXHIBITOR);
+        $visitorChartLabels   = $last14->map(fn($d) => Carbon::parse($d)->format('d M'))->values()->toArray();
+        $visitorChartValues   = $last14->map(fn($d) => (int) ($rawVisitors[$d] ?? 0))->values()->toArray();
+        $exhibitorChartValues = $last14->map(fn($d) => (int) ($rawExhibitors[$d] ?? 0))->values()->toArray();
 
         // ── Chart: Appointments per day (last 14 days) ────────────────
         $rawAppts = Appointment::select(DB::raw('DATE(scheduled_at) as date'), DB::raw('count(*) as count'))
@@ -106,16 +119,22 @@ class PlatformScreen extends Screen
         $apptChartLabels = $last14->map(fn($d) => Carbon::parse($d)->format('d M'))->values()->toArray();
         $apptChartValues = $last14->map(fn($d) => (int) ($rawAppts[$d] ?? 0))->values()->toArray();
 
-        // ── Chart: New visitor registrations per week (last 8 weeks) ─
+        // ── Chart: New registrations per week (last 8 weeks) ──────────
         $weeklyLabels = [];
         $weeklyValues = [];
+        $weeklyExhibitorValues = [];
         for ($i = 7; $i >= 0; $i--) {
             $weekStart      = now()->startOfWeek()->subWeeks($i);
             $weekEnd        = (clone $weekStart)->endOfWeek();
             $weeklyLabels[] = 'W' . $weekStart->week;
-            $weeklyValues[] = User::appRole(User::APP_ROLE_VISITOR)
+            $weekCounts = User::query()
+                ->whereIn('app_role', [User::APP_ROLE_VISITOR, User::APP_ROLE_EXHIBITOR])
                 ->whereBetween('created_at', [$weekStart, $weekEnd])
-                ->count();
+                ->selectRaw('app_role, count(*) as total')
+                ->groupBy('app_role')
+                ->pluck('total', 'app_role');
+            $weeklyValues[]          = (int) ($weekCounts[User::APP_ROLE_VISITOR] ?? 0);
+            $weeklyExhibitorValues[] = (int) ($weekCounts[User::APP_ROLE_EXHIBITOR] ?? 0);
         }
 
         // ── Chart: Appointment status donut ───────────────────────────
@@ -149,13 +168,14 @@ class PlatformScreen extends Screen
 
         return compact(
             'eventName', 'eventStatus', 'daysUntil', 'hoursUntil', 'minutesUntil', 'daysProgress', 'settings',
-            'visitorCount', 'exhibitorCount', 'unreadMessages', 'totalMeetings',
+            'visitorCount', 'exhibitorCount', 'exhibitorUserCount', 'registrationCount',
+            'unreadMessages', 'totalMeetings',
             'pendingMeetings', 'confirmedMeetings', 'completedMeetings', 'cancelledMeetings',
             'todayMeetings', 'checkedInToday',
             'conferenceCount', 'speakerCount', 'productCount', 'connectionCount', 'pendingConnections',
-            'visitorChartLabels', 'visitorChartValues',
+            'visitorChartLabels', 'visitorChartValues', 'exhibitorChartValues',
             'apptChartLabels', 'apptChartValues',
-            'weeklyLabels', 'weeklyValues',
+            'weeklyLabels', 'weeklyValues', 'weeklyExhibitorValues',
             'donutLabels', 'donutValues',
             'hourlyLabels', 'hourlyValues',
             'platformCounts'

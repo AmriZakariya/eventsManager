@@ -352,18 +352,19 @@
                     <div class="cc-kpi-label">Registrations</div>
                     <div class="cc-kpi-icon cc-icon-indigo"><i class="bi bi-people-fill"></i></div>
                 </div>
-                <div class="cc-kpi-value cc-counter" data-target="{{ $visitorCount }}">0</div>
+                <div class="cc-kpi-value cc-counter" data-target="{{ $registrationCount }}">0</div>
                 <div class="cc-kpi-sub"><i class="bi bi-graph-up-arrow" style="color: var(--accent-green);"></i> <span style="color: var(--accent-green); font-weight: 700;">+{{ $checkedInToday }}</span> &nbsp;joined today</div>
+                <div class="cc-kpi-sub" style="margin-top: 2px;">{{ number_format($visitorCount) }} visitors · {{ number_format($exhibitorUserCount) }} exhibitors</div>
             </a>
 
             {{-- Exhibitors -> Links to Companies List --}}
             <a href="{{ route('platform.companies.list') }}" class="cc-kpi">
                 <div class="cc-kpi-top">
-                    <div class="cc-kpi-label">Exhibitors</div>
+                    <div class="cc-kpi-label">Exhibitor companies</div>
                     <div class="cc-kpi-icon cc-icon-amber"><i class="bi bi-shop"></i></div>
                 </div>
                 <div class="cc-kpi-value cc-counter" data-target="{{ $exhibitorCount }}">0</div>
-                <div class="cc-kpi-sub"><i class="bi bi-check2-circle"></i> Total active booths</div>
+                <div class="cc-kpi-sub"><i class="bi bi-people"></i> {{ number_format($exhibitorUserCount) }} exhibitor staff</div>
             </a>
 
             {{-- B2B Meetings -> Links to Appointments --}}
@@ -513,7 +514,7 @@
                 <div class="cc-chart-header">
                     <div>
                         <div class="cc-chart-title">Daily Registrations</div>
-                        <div class="cc-chart-subtitle">Last 14 days</div>
+                        <div class="cc-chart-subtitle">Visitors and exhibitors, last 14 days</div>
                     </div>
                     <a href="{{ route('platform.registrations') }}" class="cc-chart-link">See all <i class="bi bi-arrow-right"></i></a>
                 </div>
@@ -524,7 +525,7 @@
                 <div class="cc-chart-header">
                     <div>
                         <div class="cc-chart-title">Weekly Registrations</div>
-                        <div class="cc-chart-subtitle">New visitors per week, last 8 weeks (current week in progress)</div>
+                        <div class="cc-chart-subtitle">Visitors and exhibitors per week, last 8 weeks (current week in progress)</div>
                     </div>
                     <a href="{{ route('platform.registrations') }}" class="cc-chart-link">See all <i class="bi bi-arrow-right"></i></a>
                 </div>
@@ -566,6 +567,7 @@
         const COLOR_GREEN  = '#10b981';
         const COLOR_RED    = '#ef4444';
         const COLOR_MUTED  = '#94a3b8';
+        const COLOR_AMBER  = '#f59e0b';
 
         // Add a nice gradient fill to the line chart
         const ctxVisitors = document.getElementById('chart-visitors').getContext('2d');
@@ -578,7 +580,7 @@
             data: {
                 labels: @json($visitorChartLabels),
                 datasets: [{
-                    label: 'Registrations',
+                    label: 'Visitors',
                     data:  @json($visitorChartValues),
                     borderColor: COLOR_INDIGO,
                     backgroundColor: gradientFill,
@@ -588,11 +590,22 @@
                     pointHoverRadius: 6,
                     pointBackgroundColor: COLOR_INDIGO,
                     borderWidth: 3,
+                }, {
+                    label: 'Exhibitors',
+                    data:  @json($exhibitorChartValues),
+                    borderColor: COLOR_AMBER,
+                    backgroundColor: 'transparent',
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    pointBackgroundColor: COLOR_AMBER,
+                    borderWidth: 2.5,
                 }]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { display: false } },
+                plugins: { legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } },
                 scales: {
                     x: { grid: { display: false } },
                     y: { beginAtZero: true, border: { dash: [4, 4] } }
@@ -649,19 +662,25 @@
             data: {
                 labels: @json($weeklyLabels),
                 datasets: [{
-                    label: 'New visitors',
+                    label: 'Visitors',
                     data:  @json($weeklyValues),
                     backgroundColor: COLOR_INDIGO,
+                    borderRadius: 6,
+                }, {
+                    label: 'Exhibitors',
+                    data:  @json($weeklyExhibitorValues),
+                    backgroundColor: COLOR_AMBER,
                     borderRadius: 6,
                 }]
             },
             options: {
                 responsive: true,
-                plugins: { legend: { display: false } },
+                plugins: { legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } },
                 scales: {
-                    x: { grid: { display: false } },
-                    y: { beginAtZero: true, border: { dash: [4, 4] } }
-                }
+                    x: { stacked: true, grid: { display: false } },
+                    y: { stacked: true, beginAtZero: true, border: { dash: [4, 4] } }
+                },
+                interaction: { intersect: false, mode: 'index' },
             }
         });
 
