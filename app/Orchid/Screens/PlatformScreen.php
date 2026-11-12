@@ -86,6 +86,9 @@ class PlatformScreen extends Screen
             ->whereIn('status', ['pending', 'confirmed'])
             ->count();
 
+        // ── Meetings on the event days ────────────────────────────────
+        $eventMeetings = $this->eventMeetings($settings, $eventStatus);
+
         // ── Content & Network ─────────────────────────────────────────
         $conferenceCount    = Conference::count();
         $speakerCount       = Speaker::count();
@@ -111,13 +114,11 @@ class PlatformScreen extends Screen
         $visitorChartValues   = $last14->map(fn($d) => (int) ($rawVisitors[$d] ?? 0))->values()->toArray();
         $exhibitorChartValues = $last14->map(fn($d) => (int) ($rawExhibitors[$d] ?? 0))->values()->toArray();
 
-        // ── Chart: Appointments per day (last 14 days) ────────────────
-        $rawAppts = Appointment::select(DB::raw('DATE(scheduled_at) as date'), DB::raw('count(*) as count'))
-            ->where('scheduled_at', '>=', now()->subDays(14))
-            ->groupBy('date')
-            ->pluck('count', 'date');
-        $apptChartLabels = $last14->map(fn($d) => Carbon::parse($d)->format('d M'))->values()->toArray();
-        $apptChartValues = $last14->map(fn($d) => (int) ($rawAppts[$d] ?? 0))->values()->toArray();
+        // Index of the event's first day in the 14-day registration chart (marker line).
+        $eventStartIndex = $settings?->start_date
+            ? $last14->search(Carbon::parse($settings->start_date)->format('Y-m-d'))
+            : false;
+        $eventStartIndex = $eventStartIndex === false ? null : $eventStartIndex;
 
         // ── Chart: New registrations per week (last 8 weeks) ──────────
         $weeklyLabels = [];
@@ -174,7 +175,7 @@ class PlatformScreen extends Screen
             'todayMeetings', 'checkedInToday',
             'conferenceCount', 'speakerCount', 'productCount', 'connectionCount', 'pendingConnections',
             'visitorChartLabels', 'visitorChartValues', 'exhibitorChartValues',
-            'apptChartLabels', 'apptChartValues',
+            'eventMeetings', 'eventStartIndex',
             'weeklyLabels', 'weeklyValues', 'weeklyExhibitorValues',
             'donutLabels', 'donutValues',
             'hourlyLabels', 'hourlyValues',
@@ -182,7 +183,115 @@ class PlatformScreen extends Screen
         );
     }
 
-    public function name(): ?string        { return 'Command Center'; }
+    /**
+     * Meetings grouped by event day (and by hour within each day), for the
+     * Meeting Volume chart. Cancelled/declined meetings are left out; active
+     * meetings booked outside the event dates are only counted.
+     * Times are compared as stored (wall-clock), like the rest of the app.
+     */
+    private function eventMeetings(?EventSetting $settings, string $eventStatus): array
+    {
+        $empty = [
+            'configured' => false, 'days' => [], 'hours' => [],
+            'total' => 0, 'outside' => 0, 'focus' => null, 'currentDay' => null,
+        ];
+        if (!$settings?->start_date || !$settings?->end_date) {
+            return $empty;
+        }
+
+        $firstDay = Carbon::parse($settings->start_date)->startOfDay();
+        $lastDay  = Carbon::parse($settings->end_date)->startOfDay();
+        if ($lastDay->lt($firstDay)) {
+            $lastDay = $firstDay->copy();
+        }
+        // A show lasts a few days; cap to keep the chart readable.
+        if ($firstDay->diffInDays($lastDay) > 13) {
+            $lastDay = $firstDay->copy()->addDays(13);
+        }
+
+        $days = [];
+        for ($d = $firstDay->copy(), $n = 1; $d->lte($lastDay); $d->addDay(), $n++) {
+            $days[$d->format('Y-m-d')] = [
+                'date'      => $d->format('Y-m-d'),
+                'label'     => 'Day ' . $n . ' · ' . $d->format('D d M'),
+                'confirmed' => 0,
+                'pending'   => 0,
+                'completed' => 0,
+                'total'     => 0,
+                'hours'     => [],
+            ];
+        }
+
+        $active = Appointment::query()
+            ->whereIn('status', ['pending', 'confirmed', 'completed'])
+            ->whereNotNull('scheduled_at');
+
+        $outside = (clone $active)
+            ->where(fn ($q) => $q->where('scheduled_at', '<', $firstDay)
+                ->orWhere('scheduled_at', '>', $lastDay->copy()->endOfDay()))
+            ->count();
+
+        $rows = (clone $active)
+            ->whereBetween('scheduled_at', [$firstDay, $lastDay->copy()->endOfDay()])
+            ->get(['status', 'scheduled_at']);
+
+        foreach ($rows as $row) {
+            $at  = Carbon::parse($row->scheduled_at);
+            $key = $at->format('Y-m-d');
+            if (!isset($days[$key])) {
+                continue;
+            }
+            $days[$key][$row->status]++;
+            $days[$key]['total']++;
+            $hour = (int) $at->format('G');
+            $days[$key]['hours'][$hour] = ($days[$key]['hours'][$hour] ?? 0) + 1;
+        }
+
+        // Hour axis: the event's usual opening hours, widened to fit any booking.
+        $usedHours = collect($days)->flatMap(fn ($d) => array_keys($d['hours']));
+        $fromHour  = min(9, $usedHours->min() ?? 9);
+        $toHour    = max(18, $usedHours->max() ?? 18);
+        $hours     = range($fromHour, $toHour);
+        foreach ($days as &$day) {
+            $day['hours'] = array_map(fn ($h) => $day['hours'][$h] ?? 0, $hours);
+        }
+        unset($day);
+
+        $total = (int) $rows->count();
+        $today = today()->format('Y-m-d');
+        $dayKeys = array_keys($days);
+        $currentDay = $eventStatus === 'live' && isset($days[$today])
+            ? array_search($today, $dayKeys, true) + 1
+            : null;
+
+        // Headline for the meetings KPI, depending on where we are in the event.
+        $focus = match (true) {
+            $currentDay !== null => [
+                'value' => $days[$today]['total'],
+                'label' => 'meetings today (day ' . $currentDay . ')',
+            ],
+            $eventStatus === 'ended' => [
+                'value' => $total,
+                'label' => 'meetings held during the event',
+            ],
+            default => [
+                'value' => $days[$dayKeys[0]]['total'],
+                'label' => 'booked for day 1',
+            ],
+        };
+
+        return [
+            'configured' => true,
+            'days'       => array_values($days),
+            'hours'      => array_map(fn ($h) => str_pad((string) $h, 2, '0', STR_PAD_LEFT) . ':00', $hours),
+            'total'      => $total,
+            'outside'    => $outside,
+            'focus'      => $focus,
+            'currentDay' => $currentDay,
+        ];
+    }
+
+    public function name(): ?string        { return 'Dashboard'; }
     public function description(): ?string { return null; }
 
     public function layout(): iterable

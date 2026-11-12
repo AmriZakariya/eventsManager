@@ -242,6 +242,38 @@
     .cc-platform-strip { display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; margin-top: 16px; padding: 14px 18px; background: var(--bg-surface); border: 1px solid var(--bg-border); border-radius: var(--radius-lg); font-size: 14px; color: var(--text-primary); }
     .cc-platform-label { font-weight: 700; margin-right: 6px; }
 
+    /* Event days strip (hero) */
+    .cc-hero-days { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+    .cc-hero-day {
+        display: flex; flex-direction: column; min-width: 150px; padding: 12px 16px;
+        background: var(--bg-surface); border: 1px solid var(--bg-border); border-radius: var(--radius-md);
+        text-decoration: none !important; color: var(--text-primary); transition: border-color 0.2s, transform 0.2s;
+    }
+    .cc-hero-day:hover { border-color: #cbd5e1; transform: translateY(-2px); }
+    .cc-hero-day.is-today { border-color: var(--accent-primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12); }
+    .cc-hero-day-name { font-size: 12px; font-weight: 600; color: var(--text-muted); }
+    .cc-hero-day-val  { font-size: 22px; font-weight: 800; line-height: 1.2; margin-top: 4px; }
+    .cc-hero-day-lbl  { font-size: 12px; color: var(--text-secondary); }
+    .cc-hero-setup {
+        display: inline-flex; align-items: center; gap: 8px; margin-top: 20px; padding: 10px 14px;
+        background: #fef3c7; color: #92400e; border-radius: var(--radius-md); font-size: 13px; font-weight: 600;
+        text-decoration: none !important;
+    }
+
+    /* Segmented control (Meeting Volume) */
+    .cc-seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; background: #f1f5f9; border-radius: 10px; }
+    .cc-seg-btn {
+        border: 0; background: transparent; padding: 5px 10px; border-radius: 8px;
+        font-size: 12px; font-weight: 600; color: var(--text-muted); cursor: pointer; white-space: nowrap;
+    }
+    .cc-seg-btn:hover { color: var(--text-primary); }
+    .cc-seg-btn.is-active { background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-sm); }
+    .cc-outside-note {
+        display: flex; align-items: center; gap: 8px; margin-top: 16px; padding: 10px 12px;
+        background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm);
+        font-size: 13px; color: #92400e; text-decoration: none !important;
+    }
+
     /* Shortcuts */
     .cc-actions-grid { display: flex; gap: 16px; flex-wrap: wrap; }
     .cc-action-btn {
@@ -272,6 +304,8 @@
         .cc-hero { padding: 24px; }
         .cc-hero-title { font-size: 28px; }
         .cc-countdown { gap: 12px; }
+        .cc-chart-header { flex-direction: column; gap: 12px; }
+        .cc-hero-day { flex: 1 1 100%; }
     }
 </style>
 
@@ -279,7 +313,16 @@
 
     {{-- ── HERO: Event Command Center ────────────────────── --}}
     <div class="cc-hero animate-up">
-        <div class="cc-hero-eyebrow"><i class="bi bi-broadcast"></i> Event Command Center</div>
+        <div class="cc-hero-eyebrow">
+            <i class="bi bi-broadcast"></i>
+            @if($eventStatus === 'live' && $eventMeetings['currentDay'])
+                Day {{ $eventMeetings['currentDay'] }} of {{ count($eventMeetings['days']) }}
+            @elseif($eventStatus === 'ended')
+                Event recap
+            @else
+                Getting ready for the show
+            @endif
+        </div>
         <h1 class="cc-hero-title">{{ $eventName }}</h1>
 
         <div class="cc-hero-meta">
@@ -340,6 +383,22 @@
                 </div>
             </div>
         @endif
+
+        @if($eventMeetings['configured'])
+            <div class="cc-hero-days">
+                @foreach($eventMeetings['days'] as $i => $day)
+                    <a href="#meeting-volume" class="cc-hero-day {{ $eventMeetings['currentDay'] === $i + 1 ? 'is-today' : '' }}">
+                        <span class="cc-hero-day-name">{{ $day['label'] }}</span>
+                        <span class="cc-hero-day-val">{{ number_format($day['total']) }}</span>
+                        <span class="cc-hero-day-lbl">meetings</span>
+                    </a>
+                @endforeach
+            </div>
+        @else
+            <a href="{{ route('platform.event.settings') }}" class="cc-hero-setup">
+                <i class="bi bi-exclamation-circle"></i> Set the event start and end dates in Event Settings to see meetings per event day.
+            </a>
+        @endif
     </div>
 
     {{-- ── SECTION 1: Core Overview ─────────────────────── --}}
@@ -374,7 +433,11 @@
                     <div class="cc-kpi-icon cc-icon-blue"><i class="bi bi-briefcase-fill"></i></div>
                 </div>
                 <div class="cc-kpi-value cc-counter" data-target="{{ $totalMeetings }}">0</div>
-                <div class="cc-kpi-sub"><i class="bi bi-calendar-event"></i> <span style="color: var(--accent-primary); font-weight: 700;">{{ $todayMeetings }}</span> &nbsp;scheduled today</div>
+                @if($eventMeetings['focus'])
+                    <div class="cc-kpi-sub"><i class="bi bi-calendar-event"></i> <span style="color: var(--accent-primary); font-weight: 700;">{{ number_format($eventMeetings['focus']['value']) }}</span> &nbsp;{{ $eventMeetings['focus']['label'] }}</div>
+                @else
+                    <div class="cc-kpi-sub"><i class="bi bi-calendar-event"></i> <span style="color: var(--accent-primary); font-weight: 700;">{{ $todayMeetings }}</span> &nbsp;scheduled today</div>
+                @endif
             </a>
 
             {{-- Support Inbox -> Links to Contacts List --}}
@@ -437,7 +500,7 @@
 
     {{-- ── SECTION 2: B2B Meetings ──────────────────────── --}}
     <div class="cc-section animate-up delay-2">
-        <div class="cc-section-label"><i class="bi bi-calendar2-week-fill"></i> Meeting Pipeline</div>
+        <div class="cc-section-label"><i class="bi bi-calendar2-week-fill"></i> B2B Meetings</div>
 
         <div class="cc-status-row">
             {{-- Wrap each mini status in a link pointing to the Appointments list --}}
@@ -483,14 +546,40 @@
         </div>
 
         <div class="cc-grid-charts-3">
-            <div class="cc-chart-card">
+            <div class="cc-chart-card" id="meeting-volume">
                 <div class="cc-chart-header">
                     <div>
                         <div class="cc-chart-title">Meeting Volume</div>
-                        <div class="cc-chart-subtitle">Last 14 days</div>
+                        <div class="cc-chart-subtitle">
+                            @if($eventMeetings['configured'])
+                                Per event day, {{ \Carbon\Carbon::parse($settings->start_date)->format('d M') }} – {{ \Carbon\Carbon::parse($settings->end_date)->format('d M Y') }} · {{ number_format($eventMeetings['total']) }} active meetings
+                            @else
+                                Event dates not set
+                            @endif
+                        </div>
                     </div>
+                    @if($eventMeetings['configured'])
+                        <div class="cc-seg" role="tablist" aria-label="Meeting volume view">
+                            <button type="button" class="cc-seg-btn is-active" data-appt-view="days">All days</button>
+                            @foreach($eventMeetings['days'] as $i => $day)
+                                <button type="button" class="cc-seg-btn" data-appt-view="{{ $i }}" title="Meetings per hour">Day {{ $i + 1 }}</button>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
-                <canvas id="chart-appt" height="90"></canvas>
+                @if($eventMeetings['configured'])
+                    <canvas id="chart-appt" height="90"></canvas>
+                    @if($eventMeetings['outside'] > 0)
+                        <a href="{{ route('platform.appointments') }}" class="cc-outside-note">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            {{ number_format($eventMeetings['outside']) }} active {{ $eventMeetings['outside'] === 1 ? 'meeting is' : 'meetings are' }} booked outside the event dates and not shown above.
+                        </a>
+                    @endif
+                @else
+                    <a href="{{ route('platform.event.settings') }}" class="cc-hero-setup" style="margin-top:0;">
+                        <i class="bi bi-gear"></i> Set the event start and end dates in Event Settings.
+                    </a>
+                @endif
             </div>
             <div class="cc-chart-card">
                 <div class="cc-chart-header">
@@ -507,14 +596,14 @@
 
     {{-- ── SECTION 3: Growth & Analytics ────────────────── --}}
     <div class="cc-section animate-up delay-3">
-        <div class="cc-section-label"><i class="bi bi-bar-chart-line-fill"></i> Traffic & Growth</div>
+        <div class="cc-section-label"><i class="bi bi-bar-chart-line-fill"></i> Registrations</div>
 
         <div class="cc-grid-charts">
             <div class="cc-chart-card">
                 <div class="cc-chart-header">
                     <div>
                         <div class="cc-chart-title">Daily Registrations</div>
-                        <div class="cc-chart-subtitle">Visitors and exhibitors, last 14 days</div>
+                        <div class="cc-chart-subtitle">Lead-up to {{ $eventName }} · visitors and exhibitors, last 14 days</div>
                     </div>
                     <a href="{{ route('platform.registrations') }}" class="cc-chart-link">See all <i class="bi bi-arrow-right"></i></a>
                 </div>
@@ -525,7 +614,7 @@
                 <div class="cc-chart-header">
                     <div>
                         <div class="cc-chart-title">Weekly Registrations</div>
-                        <div class="cc-chart-subtitle">Visitors and exhibitors per week, last 8 weeks (current week in progress)</div>
+                        <div class="cc-chart-subtitle">Lead-up to {{ $eventName }} · per week, last 8 weeks (current week in progress)</div>
                     </div>
                     <a href="{{ route('platform.registrations') }}" class="cc-chart-link">See all <i class="bi bi-arrow-right"></i></a>
                 </div>
@@ -575,8 +664,32 @@
         gradientFill.addColorStop(0, 'rgba(79, 70, 229, 0.2)');
         gradientFill.addColorStop(1, 'rgba(79, 70, 229, 0)');
 
+        // Dashed line on the event's first day, when it falls inside the chart.
+        const eventStartIndex = @json($eventStartIndex);
+        const eventStartMarker = {
+            id: 'eventStartMarker',
+            afterDatasetsDraw(chart) {
+                if (eventStartIndex === null) return;
+                const x = chart.scales.x.getPixelForValue(eventStartIndex);
+                const { top, bottom } = chart.chartArea;
+                const c = chart.ctx;
+                c.save();
+                c.strokeStyle = COLOR_RED;
+                c.setLineDash([4, 4]);
+                c.lineWidth = 1.5;
+                c.beginPath(); c.moveTo(x, top); c.lineTo(x, bottom); c.stroke();
+                c.setLineDash([]);
+                c.fillStyle = COLOR_RED;
+                c.font = "600 11px 'Inter', sans-serif";
+                c.textAlign = 'center';
+                c.fillText('Event starts', x, top + 10);
+                c.restore();
+            }
+        };
+
         new Chart(ctxVisitors, {
             type: 'line',
+            plugins: [eventStartMarker],
             data: {
                 labels: @json($visitorChartLabels),
                 datasets: [{
@@ -614,27 +727,50 @@
             }
         });
 
-        new Chart(document.getElementById('chart-appt'), {
-            type: 'bar',
-            data: {
-                labels: @json($apptChartLabels),
-                datasets: [{
-                    label: 'Appointments',
-                    data:  @json($apptChartValues),
-                    backgroundColor: COLOR_BLUE,
-                    hoverBackgroundColor: '#2563eb',
-                    borderRadius: 6,
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { display: false } },
-                    y: { beginAtZero: true, border: { dash: [4, 4] } }
+        // Meeting Volume: stacked bars per event day, or per hour for one day.
+        const eventMeetings = @json($eventMeetings);
+        const apptCanvas = document.getElementById('chart-appt');
+        if (apptCanvas && eventMeetings.configured) {
+            const days = eventMeetings.days;
+            const bar = { borderRadius: 4, borderSkipped: false, maxBarThickness: 56 };
+            const byDay = () => ({
+                labels: days.map(d => d.label),
+                datasets: [
+                    { label: 'Confirmed', data: days.map(d => d.confirmed), backgroundColor: COLOR_BLUE, ...bar },
+                    { label: 'Pending',   data: days.map(d => d.pending),   backgroundColor: COLOR_MUTED, ...bar },
+                    { label: 'Completed', data: days.map(d => d.completed), backgroundColor: COLOR_GREEN, ...bar },
+                ],
+            });
+            const byHour = (i) => ({
+                labels: eventMeetings.hours,
+                datasets: [{ label: 'Meetings', data: days[i].hours, backgroundColor: COLOR_INDIGO, ...bar }],
+            });
+
+            const apptChart = new Chart(apptCanvas, {
+                type: 'bar',
+                data: byDay(),
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: true, position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } },
+                    scales: {
+                        x: { stacked: true, grid: { display: false } },
+                        y: { stacked: true, beginAtZero: true, ticks: { precision: 0 }, border: { dash: [4, 4] } }
+                    },
+                    interaction: { intersect: false, mode: 'index' },
                 }
-            }
-        });
+            });
+
+            document.querySelectorAll('[data-appt-view]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('[data-appt-view]').forEach(b => b.classList.toggle('is-active', b === btn));
+                    const view = btn.dataset.apptView;
+                    const hourly = view !== 'days';
+                    apptChart.data = hourly ? byHour(parseInt(view, 10)) : byDay();
+                    apptChart.options.plugins.legend.display = !hourly;
+                    apptChart.update();
+                });
+            });
+        }
 
         new Chart(document.getElementById('chart-donut'), {
             type: 'doughnut',
